@@ -55,41 +55,22 @@ describe("Upgradeable initializers", function () {
       )
     ).to.be.revertedWithCustomError(ideaRegistry, "InvalidInitialization");
 
-    const governanceToken = await deployUpgradeable(
-      ethers,
-      admin,
-      "GovernanceTokenUpgradeable",
-      [
-        "GovToken",
-        "GOV",
-        ethers.parseEther("1000000"),
-        admin.address,
-        await roles.getAddress(),
-      ]
-    );
-    await expect(
-      governanceToken.initialize(
-        "GovToken",
-        "GOV",
-        ethers.parseEther("1000000"),
-        admin.address,
-        await roles.getAddress()
-      )
-    ).to.be.revertedWithCustomError(governanceToken, "InvalidInitialization");
+    const usdc = await (await ethers.getContractFactory("MockUSDC", admin)).deploy();
+    await usdc.waitForDeployment();
 
     const fundingPool = await deployUpgradeable(
       ethers,
       admin,
       "FundingPoolUpgradeable",
       [
-        await governanceToken.getAddress(),
+        await usdc.getAddress(),
         await ideaRegistry.getAddress(),
         await roles.getAddress(),
       ]
     );
     await expect(
       fundingPool.initialize(
-        await governanceToken.getAddress(),
+        await usdc.getAddress(),
         await ideaRegistry.getAddress(),
         await roles.getAddress()
       )
@@ -205,12 +186,6 @@ describe("Zero address initializers", function () {
     await deployProxyExpectZeroAddress(
       "GrantManagerUpgradeable",
       [ethers.ZeroAddress, ethers.ZeroAddress, ethers.ZeroAddress, ethers.ZeroAddress],
-      roles
-    );
-
-    await deployProxyExpectZeroAddress(
-      "GovernanceTokenUpgradeable",
-      ["Gov", "GOV", 1n, admin.address, ethers.ZeroAddress],
       roles
     );
 

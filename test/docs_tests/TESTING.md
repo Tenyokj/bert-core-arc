@@ -46,9 +46,9 @@ npx hardhat test --coverage
 
 **Core Test Suites**
 1. `IdeaRegistryUpgradeable.fully.ts` - idea creation, status transitions, reviews, and edge cases
-2. `VotingSystemUpgradeable.fully.ts` - round lifecycle, staking, voting, and winner resolution
-3. `FundingPoolUpgradeable.fully.ts` - deposits, pool accounting, and distributions
-4. `GrantManagerUpgradeable.fully.ts` - claim flow, distribution checks, and edge cases
+2. `VotingSystemUpgradeable.fully.ts` - round lifecycle, USDC voting, and winner resolution
+3. `FundingPoolUpgradeable.fully.ts` - USDC deposits, pool accounting, and distributions
+4. `GrantManagerUpgradeable.fully.ts` - claim flow, milestone releases, and edge cases
 5. `ReputationSystemUpgradeable.fully.ts` - reputation init and updates
 6. `VoterProgressionUpgradeable.fully.ts` - progression thresholds and role grants
 7. `Upgradeability.edge.ts` - proxy upgrade and storage preservation

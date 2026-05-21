@@ -19,7 +19,7 @@ describe("DAO Grant System Integration (v2)", function () {
       votingSystem,
       fundingPool,
       grantManager,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -34,8 +34,8 @@ describe("DAO Grant System Integration (v2)", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user2.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user2.address, minStake * 2n);
+    await usdc
       .connect(user2)
       .approve(await fundingPool.getAddress(), minStake * 2n);
 
@@ -45,11 +45,11 @@ describe("DAO Grant System Integration (v2)", function () {
     await networkHelpers.time.increaseTo(Number(roundInfo[3]) + 1);
     await votingSystem.endVotingRound(1);
 
-    const authorBalanceBefore = await governanceToken.balanceOf(user1.address);
+    const authorBalanceBefore = await usdc.balanceOf(user1.address);
 
     await grantManager.connect(user1).claimGrant(1);
 
-    const authorBalanceAfter = await governanceToken.balanceOf(user1.address);
+    const authorBalanceAfter = await usdc.balanceOf(user1.address);
     expect(authorBalanceAfter).to.be.gt(authorBalanceBefore);
 
     const idea = await ideaRegistry.getIdea(1);

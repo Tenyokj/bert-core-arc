@@ -17,9 +17,22 @@ describe("External call failure paths", function () {
     await roles.revokeSystemRole(REPUTATION_MANAGER_ROLE, await ideaRegistry.getAddress());
 
     await expect(
-      ideaRegistry.connect(user1).createIdea("Idea", "Desc", "")
+      ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n)
     ).to.be.revertedWithCustomError(ideaRegistry, "ExternalCallFailed")
       .withArgs("ReputationSystem", "initializeReputation");
+  });
+
+  /** @notice it: IdeaRegistry reverts ExternalCallFailed when funding pool deposit path fails */
+  it("IdeaRegistry reverts ExternalCallFailed when funding pool deposit path fails", async function () {
+    const { user1, ideaRegistry, roles } = await deploySystem();
+
+    const IREGISTRY_ROLE = await roles.IREGISTRY_ROLE();
+    await roles.revokeSystemRole(IREGISTRY_ROLE, await ideaRegistry.getAddress());
+
+    await expect(
+      ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n)
+    ).to.be.revertedWithCustomError(ideaRegistry, "ExternalCallFailed")
+      .withArgs("FundingPool", "depositAuthorStakeFrom");
   });
 
   /** @notice it: VotingSystem vote reverts ExternalCallFailed when funding pool paused */
@@ -30,7 +43,7 @@ describe("External call failure paths", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -42,8 +55,8 @@ describe("External call failure paths", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
 
@@ -61,7 +74,7 @@ describe("External call failure paths", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       roles,
       networkHelpers,
     } = await deploySystem();
@@ -76,8 +89,8 @@ describe("External call failure paths", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
     await votingSystem.connect(user1).vote(1, 1, minStake);
@@ -101,7 +114,7 @@ describe("External call failure paths", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       roles,
       networkHelpers,
     } = await deploySystem();
@@ -116,8 +129,8 @@ describe("External call failure paths", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
     await votingSystem.connect(user1).vote(1, 1, minStake);
@@ -145,7 +158,7 @@ describe("External call failure paths", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       grantManager,
       networkHelpers,
     } = await deploySystem();
@@ -161,8 +174,8 @@ describe("External call failure paths", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user2.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user2.address, minStake * 2n);
+    await usdc
       .connect(user2)
       .approve(await fundingPool.getAddress(), minStake * 2n);
     await votingSystem.connect(user2).vote(1, 1, minStake);
@@ -175,6 +188,6 @@ describe("External call failure paths", function () {
 
     await expect(grantManager.connect(user1).claimGrant(1))
       .to.be.revertedWithCustomError(grantManager, "ExternalCallFailed")
-      .withArgs("FundingPool", "distributeFunds");
+      .withArgs("FundingPool", "moveIdeaFundsToReserve");
   });
 });

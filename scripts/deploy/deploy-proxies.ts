@@ -1,6 +1,6 @@
 /**
  * @file deploy-proxies.ts
- * @notice Deploys the full DAO system using TransparentUpgradeableProxy (OZ v5).
+ * @notice Deploys the full USDC-native funding system using TransparentUpgradeableProxy (OZ v5).
  * @dev Each proxy creates its own ProxyAdmin. Owner = PROXY_ADMIN_OWNER or deployer.
  * @dev Run with: npx hardhat run scripts/deploy-proxies.ts --network localhost
  */
@@ -90,19 +90,16 @@ async function main() {
   const { ethers } = connection;
   const { network } = hre;
   const [deployer] = await ethers.getSigners();
+  const configuredVoteMinStake = process.env.VOTE_MIN_STAKE_USDC?.trim();
+  const configuredAuthorMinStake = process.env.AUTHOR_MIN_STAKE_USDC?.trim();
 
-  console.log("🚀 Deploying DAO Grant System with Transparent Proxies");
+  console.log("🚀 Deploying BERT USDC-native funding system with Transparent Proxies");
   console.log("Deployer:", deployer.address);
   const initialOwner =
     process.env.PROXY_ADMIN_OWNER && process.env.PROXY_ADMIN_OWNER.trim() !== ""
       ? process.env.PROXY_ADMIN_OWNER
       : deployer.address;
   console.log("ProxyAdmin owner (initial):", initialOwner);
-
-  const tokenName = process.env.GOV_TOKEN_NAME ?? "BertToken";
-  const tokenSymbol = process.env.GOV_TOKEN_SYMBOL ?? "BRT";
-  const maxSupplyStr = process.env.GOV_MAX_SUPPLY ?? "80000000";
-  const maxSupply = ethers.parseEther(maxSupplyStr);
 
   console.log("\n1) Deploying core contracts via proxies...");
 
@@ -134,17 +131,20 @@ async function main() {
     initialOwner
   );
 
-  const governanceToken = await deployProxy(
-    ethers,
-    "GovernanceTokenUpgradeable",
-    [tokenName, tokenSymbol, maxSupply, deployer.address, roles.proxyAddress],
-    initialOwner
-  );
+  const configuredUsdc = process.env.USDC_ADDRESS?.trim();
+  let usdcAddress = configuredUsdc;
+
+  if (!usdcAddress) {
+    const mockUsdc = await (await ethers.getContractFactory("MockUSDC", deployer)).deploy();
+    await mockUsdc.waitForDeployment();
+    usdcAddress = await mockUsdc.getAddress();
+    console.log("MockUSDC:", usdcAddress, "(local/dev fallback)");
+  }
 
   const fundingPool = await deployProxy(
     ethers,
     "FundingPoolUpgradeable",
-    [governanceToken.proxyAddress, ideaRegistry.proxyAddress, roles.proxyAddress],
+    [usdcAddress, ideaRegistry.proxyAddress, roles.proxyAddress],
     initialOwner
   );
 
@@ -209,10 +209,15 @@ async function main() {
 
   console.log("✅ Roles configured");
 
-  console.log("\n3) Unpausing system contracts...");
+  console.log("\n3) Wiring contract references...");
   const fundingPoolContract = await ethers.getContractAt(
     "FundingPoolUpgradeable",
     fundingPool.proxyAddress,
+    deployer
+  );
+  const ideaRegistryContract = await ethers.getContractAt(
+    "IdeaRegistryUpgradeable",
+    ideaRegistry.proxyAddress,
     deployer
   );
   const votingSystemContract = await ethers.getContractAt(
@@ -226,6 +231,21 @@ async function main() {
     deployer
   );
 
+  await ideaRegistryContract.setFundingPool(fundingPool.proxyAddress);
+  if (configuredAuthorMinStake) {
+    await ideaRegistryContract.setAuthorMinStake(
+      ethers.parseUnits(configuredAuthorMinStake, 6)
+    );
+  }
+  if (configuredVoteMinStake) {
+    await votingSystemContract.setMinStake(
+      ethers.parseUnits(configuredVoteMinStake, 6)
+    );
+  }
+
+  console.log("✅ Contract references configured");
+
+  console.log("\n4) Unpausing system contracts...");
   await fundingPoolContract.unpause();
   await votingSystemContract.unpause();
   await grantManagerContract.unpause();
@@ -237,7 +257,15 @@ async function main() {
   console.log("ReputationSystemUpgradeable:", reputationSystem.proxyAddress);
   console.log("VoterProgressionUpgradeable:", voterProgression.proxyAddress);
   console.log("IdeaRegistryUpgradeable:", ideaRegistry.proxyAddress);
-  console.log("GovernanceTokenUpgradeable:", governanceToken.proxyAddress);
+  console.log("USDC asset:", usdcAddress);
+  console.log(
+    "Author min stake (USDC):",
+    ethers.formatUnits(await ideaRegistryContract.authorMinStake(), 6)
+  );
+  console.log(
+    "Vote min stake (USDC):",
+    ethers.formatUnits(await votingSystemContract.minStake(), 6)
+  );
   console.log("FundingPoolUpgradeable:", fundingPool.proxyAddress);
   console.log("VotingSystemUpgradeable:", votingSystem.proxyAddress);
   console.log("GrantManagerUpgradeable:", grantManager.proxyAddress);
@@ -247,7 +275,6 @@ async function main() {
   console.log("ReputationSystemUpgradeable:", reputationSystem.proxyAdminAddress);
   console.log("VoterProgressionUpgradeable:", voterProgression.proxyAdminAddress);
   console.log("IdeaRegistryUpgradeable:", ideaRegistry.proxyAdminAddress);
-  console.log("GovernanceTokenUpgradeable:", governanceToken.proxyAdminAddress);
   console.log("FundingPoolUpgradeable:", fundingPool.proxyAdminAddress);
   console.log("VotingSystemUpgradeable:", votingSystem.proxyAdminAddress);
   console.log("GrantManagerUpgradeable:", grantManager.proxyAdminAddress);
@@ -257,7 +284,6 @@ async function main() {
   console.log("ReputationSystemUpgradeable:", reputationSystem.implAddress);
   console.log("VoterProgressionUpgradeable:", voterProgression.implAddress);
   console.log("IdeaRegistryUpgradeable:", ideaRegistry.implAddress);
-  console.log("GovernanceTokenUpgradeable:", governanceToken.implAddress);
   console.log("FundingPoolUpgradeable:", fundingPool.implAddress);
   console.log("VotingSystemUpgradeable:", votingSystem.implAddress);
   console.log("GrantManagerUpgradeable:", grantManager.implAddress);

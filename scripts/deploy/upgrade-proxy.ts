@@ -43,7 +43,7 @@ Required:
   --impl <ContractName>     Name of new implementation contract
 
 Optional:
-  --call <functionSig>      Function to call after upgrade (e.g., "initializeV2")
+  --call <functionSig>      Function to call after upgrade (e.g., "postUpgradeSync")
   --args <jsonArray>        Arguments for the call (e.g., "[42, \\"newValue\\"]")
   --gas <number>           Gas limit for the transaction
 
@@ -55,7 +55,7 @@ Example:
     --proxyAdmin 0x5FbDB2315678afecb367f032d93F642f64180aa3 \\
     --proxy 0x9A676e781A523b5d0C0e43731313A708CB607508 \\
     --impl MockVotingSystemV2 \\
-    --call "initializeV2" \\
+    --call "postUpgradeSync" \\
     --args "[42]" \\
     --gas 500000
 `);

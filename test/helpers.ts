@@ -91,25 +91,15 @@ export async function deploySystem(): Promise<any> {
     ]
   );
 
-  const governanceToken = await deployUpgradeable(
-    ethers,
-    admin,
-    "GovernanceTokenUpgradeable",
-    [
-      "GovToken",
-      "GOV",
-      ethers.parseEther("1000000"),
-      admin.address,
-      await roles.getAddress(),
-    ]
-  );
+  const usdc = await (await ethers.getContractFactory("MockUSDC", admin)).deploy();
+  await usdc.waitForDeployment();
 
   const fundingPool = await deployUpgradeable(
     ethers,
     admin,
     "FundingPoolUpgradeable",
     [
-      await governanceToken.getAddress(),
+      await usdc.getAddress(),
       await ideaRegistry.getAddress(),
       await roles.getAddress(),
     ]
@@ -165,6 +155,17 @@ export async function deploySystem(): Promise<any> {
 
   await roles.grantRole(AUTO_GRANT_ROLE, await voterProgression.getAddress());
 
+  await ideaRegistry.setFundingPool(await fundingPool.getAddress());
+  await ideaRegistry.setAuthorMinStake(1n);
+
+  const fundedUsers = [admin, user1, user2, user3, user4, user5];
+  for (const signer of fundedUsers) {
+    await usdc.mint(signer.address, ethers.parseUnits("100000", 6));
+    await usdc
+      .connect(signer)
+      .approve(await fundingPool.getAddress(), ethers.MaxUint256);
+  }
+
   return {
     ethers,
     networkHelpers,
@@ -179,7 +180,7 @@ export async function deploySystem(): Promise<any> {
     reputationSystem,
     voterProgression,
     ideaRegistry,
-    governanceToken,
+    usdc,
     fundingPool,
     votingSystem,
     grantManager,
@@ -194,7 +195,7 @@ export async function createIdeas(
   for (let i = 0; i < count; i += 1) {
     await ideaRegistry
       .connect(author)
-      .createIdea(`Idea ${i + 1}`, `Description ${i + 1}`, "");
+      .createIdea(`Idea ${i + 1}`, `Description ${i + 1}`, "", 1n);
   }
 }
 

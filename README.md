@@ -1,51 +1,120 @@
-![Bert v1.0.0](https://img.shields.io/badge/Bert-v1.0.0-6B8E23) ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green)
-![Node.js >=22](https://img.shields.io/badge/Node.js->=22-brightgreen) ![TypeScript 5.8.0](https://img.shields.io/badge/TypeScript-5.8.0-3178C6) ![Hardhat 3.0.15](https://img.shields.io/badge/Hardhat-3.0.1-yellow) ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-orange) ![Upgradeable](https://img.shields.io/badge/Upgradeable-UUPS-blueviolet) ![DAO](https://img.shields.io/badge/DAO-Governance-purple)
-![Ethers 6.15.0](https://img.shields.io/badge/Ethers-6.15.0-3C3C3D) ![Tests: Unit passing](https://img.shields.io/badge/Tests%3A%20Unit-passing-success) ![Tests: Coverage >95%](https://img.shields.io/badge/coverage-95%25-orange)
-![Tests: Integration: Scratch passing](https://img.shields.io/badge/Tests%3A%20Integration%3A%20Scratch-passing-success) ![Tests: Integration: Sepolia Fork passing](https://img.shields.io/badge/Tests%3A%20Integration%3A%20Sepolia%20Fork-passing-success) ![Linters passing](https://img.shields.io/badge/Linters-passing-success)
+![Bert v1.1.x](https://img.shields.io/badge/Bert-USDC--native-0F766E)
+![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green)
+![Hardhat](https://img.shields.io/badge/Hardhat-3.x-yellow)
+![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-orange)
+![Arc](https://img.shields.io/badge/Arc-Testnet-1D4ED8)
 
 ![LOGO](/docs/assets/banner.png)
 
-**BERT**
-is an upgradeable DAO voting & grant system that turns community proposals into funded outcomes. Users submit ideas, vote with stake, and receive transparent, on-chain grant distribution.
+# BERT
 
-Users can create proposals in the Idea Registry, participate in structured voting rounds, and see winners funded through the pool. Reputation and voter progression reward consistent contributors, while role-based permissions protect critical actions.
+BERT is programmable stablecoin-native funding infrastructure for transparent grant allocation, treasury coordination, and milestone-based capital release.
 
-Note: Please read the Contract [Documentation](https://bertdao-docs.vercel.app) before integrating with this repo.
+The protocol keeps proposal intake, voting rounds, treasury accounting, and staged grant distribution onchain. Economic flows are USDC-native: proposal deposits, vote commitments, treasury balances, reserve accounting, and grant payouts all settle in USDC-compatible units.
 
-**Key Features**
-1. End-to-end grant flow: ideas -> voting -> funding -> distribution
-2. Transparent, verifiable state transitions for every idea
-3. Reputation and progression to reward consistent contributors
-4. Role-based permissions to protect critical actions
-5. Upgradeable core modules for long-term evolution
+## Problem
 
-**Why BERT**
-1. Focused on outcomes: clear rules from proposal to payout
-2. Community-driven: voting with stake aligns incentives
-3. Built for growth: upgradeable modules and role governance
+Traditional grant programs are often opaque, manual, slow to execute, and difficult to audit. Treasury coordination is fragmented across forms, spreadsheets, chat approvals, and offchain payout operations.
 
-**Use Cases**
-1. Community grant programs
-2. DAO ecosystem funding rounds
-3. Hackathon or builder reward pools
+## Solution
 
-**Contract Documentation**
-See: [docs/CONTRACTS.md](docs/CONTRACTS.md)
+BERT turns grant allocation into programmable treasury flow:
 
-**Learn More**
-1. Documentation: [website](https://bertdao-docs.vercel.app)
-2. Documentation repository: [repository](https://github.com/Tenyokj/bert-docs)
-3. Main site: [website](https://bertdao.vercel.app)
+1. Builders create proposals with a stake-backed submission flow.
+2. Participants commit USDC voting weight during funding rounds.
+3. The treasury records round-level and proposal-level capital onchain.
+4. Winning proposals receive milestone-based USDC releases.
+5. Reviewers validate progress before later tranches unlock.
 
-**Protocol Docs**
-1. Architecture: [ARCHITECTURE.md](docs/ARCHITECTURE.md)
-2. Security: [SECURITY.md](docs/SECURITY.md)
-3. Upgrades: [UPGRADES.md](docs/UPGRADES.md)
-4. Configuration: [CONFIG.md](docs/CONFIG.md)
-5. Operations: [OPERATIONS.md](docs/OPERATIONS.md)
-6. FAQ: [FAQ.md](docs/FAQ.md)
-7. Glossary: [GLOSSARY.md](docs/GLOSSARY.md)
-8. Getting Started: [GETTING_STARTED.md](docs/GETTING_STARTED.md)
+## Why Arc
+
+BERT is designed for Arc’s stablecoin settlement infrastructure.
+
+Arc is not presented here as “just another EVM” or a “cheap chain”. The fit is that Arc is a stablecoin-native execution environment where USDC is central to settlement and fees. That makes it a strong home for treasury coordination, grant disbursement, and programmable capital allocation workflows.
+
+For the current Arc testnet references used in this repo:
+
+1. Arc Testnet chain ID is `5042002`.
+2. Public RPC is `https://rpc.testnet.arc.network`.
+3. Testnet USDC ERC-20 interface address is `0x3600000000000000000000000000000000000000`.
+
+Sources:
+1. Arc docs: `Connect to Arc`
+2. Arc docs: `Contract addresses`
+3. Circle docs: `USDC Contract Addresses`
+
+## Funding Flow
+
+```text
+Builder creates proposal
+        |
+        v
+Proposal stake is locked in USDC
+        |
+        v
+Participants commit USDC votes
+        |
+        v
+FundingPool accumulates round capital
+        |
+        v
+Winning proposal is selected
+        |
+        v
+GrantManager releases 30% / 40% / 30%
+        |
+        v
+Each later tranche requires milestone approval
+```
+
+## Core Modules
+
+1. `IdeaRegistryUpgradeable` stores proposals, metadata, author stake requirements, and lifecycle state.
+2. `VotingSystemUpgradeable` manages voting rounds and USDC-denominated vote commitments.
+3. `FundingPoolUpgradeable` is the USDC treasury and accounting layer.
+4. `GrantManagerUpgradeable` coordinates claim flow and milestone-based releases.
+5. `RolesRegistryUpgradeable` and `RolesAwareUpgradeable` enforce protocol permissions.
+
+## Security
+
+1. Upgradeable core modules are deployed behind proxies.
+2. `FundingPoolUpgradeable`, `VotingSystemUpgradeable`, and `GrantManagerUpgradeable` are pausable.
+3. Treasury transfers use `SafeERC20`.
+4. Milestone payout state prevents duplicate release.
+5. Role-gated cross-contract calls reduce unauthorized state changes.
+
+## Development
+
+```bash
+npm install
+npx hardhat compile
+npx hardhat test
+```
+
+Local deployment:
+
+```bash
+npx hardhat node
+npx hardhat run scripts/deploy/deploy-proxies.ts --network localhost
+```
+
+Arc testnet deployment:
+
+```bash
+cp .env.example .env
+npx hardhat run scripts/deploy/deploy-proxies.ts --network arcTestnet
+```
+
+If `USDC_ADDRESS` is not set, the deploy script falls back to `MockUSDC` for local/dev environments.
+
+## Docs
+
+1. [Architecture](docs/ARCHITECTURE.md)
+2. [Security](docs/SECURITY.md)
+3. [Contracts](docs/CONTRACTS.md)
+4. [Migration notes](docs/MIGRATION_NOTES.md)
+5. [Arc deployment guide](scripts/deploy/docs_deploy/DEPLOY.md)
+6. [Upgrades](docs/UPGRADES.md)
 
 **Disclaimer**
 This repository contains the core smart contracts of the protocol. The codebase may evolve rapidly, so older guides may not match the current layout. Refer to the latest docs for accurate integration guidance.

@@ -11,10 +11,10 @@ import { deploySystem } from "./helpers.js";
 describe("FundingPoolUpgradeable", function () {
   /** @notice it: handles deposits and pause logic */
   it("handles deposits and pause logic", async function () {
-    const { admin, user1, fundingPool, governanceToken } = await deploySystem();
+    const { admin, user1, fundingPool, usdc } = await deploySystem();
 
-    await governanceToken.mint(user1.address, 1000n);
-    await governanceToken.connect(user1).approve(await fundingPool.getAddress(), 1000n);
+    await usdc.mint(user1.address, 1000n);
+    await usdc.connect(user1).approve(await fundingPool.getAddress(), 1000n);
 
     await expect(fundingPool.connect(user1).deposit(100n))
       .to.be.revertedWithCustomError(fundingPool, "EnforcedPause");
@@ -33,11 +33,11 @@ describe("FundingPoolUpgradeable", function () {
 
   /** @notice it: allows voting system deposits for ideas */
   it("allows voting system deposits for ideas", async function () {
-    const { admin, user1, roles, fundingPool, governanceToken } =
+    const { admin, user1, roles, fundingPool, usdc } =
       await deploySystem();
 
-    await governanceToken.mint(user1.address, 500n);
-    await governanceToken.connect(user1).approve(await fundingPool.getAddress(), 500n);
+    await usdc.mint(user1.address, 500n);
+    await usdc.connect(user1).approve(await fundingPool.getAddress(), 500n);
     await fundingPool.connect(admin).unpause();
 
     await expect(
@@ -54,23 +54,23 @@ describe("FundingPoolUpgradeable", function () {
     expect(await fundingPool.totalPoolBalance()).to.equal(100n);
   });
 
-  /** @notice it: distributes funds with reserve accounting */
-  it("distributes funds with reserve accounting", async function () {
+  /** @notice it: distributes funds and moves reserve accounting explicitly */
+  it("distributes funds and moves reserve accounting explicitly", async function () {
     const {
       admin,
       user1,
       roles,
       fundingPool,
-      governanceToken,
+      usdc,
       ideaRegistry,
     } = await deploySystem();
 
-    await governanceToken.mint(user1.address, 1000n);
-    await governanceToken.connect(user1).approve(await fundingPool.getAddress(), 1000n);
+    await usdc.mint(user1.address, 1000n);
+    await usdc.connect(user1).approve(await fundingPool.getAddress(), 1000n);
 
     await fundingPool.connect(admin).unpause();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "");
+    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
@@ -79,22 +79,23 @@ describe("FundingPoolUpgradeable", function () {
     const DISTRIBUTOR_ROLE = await roles.DISTRIBUTOR_ROLE();
     await roles.grantSystemRole(DISTRIBUTOR_ROLE, admin.address);
 
-    await expect(
-      fundingPool.connect(admin).distributeFunds(1, 1, 150n)
-    )
+    await expect(fundingPool.connect(admin).moveIdeaFundsToReserve(1, 1, 50n))
+      .to.emit(fundingPool, "IdeaFundsReserved")
+      .withArgs(1n, 1n, 50n);
+
+    await expect(fundingPool.connect(admin).distributeFunds(1, 1, 150n))
       .to.emit(fundingPool, "FundsDistributed")
       .withArgs(1n, 1n, 150n);
 
     expect(await fundingPool.protocolReserve()).to.equal(50n);
-    expect(await fundingPool.totalPoolBalance()).to.equal(50n);
+    expect(await fundingPool.totalPoolBalance()).to.equal(51n);
 
-    await fundingPool.connect(admin).syncBalance();
-    expect(await fundingPool.totalPoolBalance()).to.equal(0n);
+    expect(await fundingPool.poolByRoundAndIdea(1, 1)).to.equal(0n);
   });
 
   /** @notice it: validates pool queries and admin functions */
   it("validates pool queries and admin functions", async function () {
-    const { admin, ethers, fundingPool, governanceToken, ideaRegistry } =
+    const { admin, ethers, fundingPool, usdc, ideaRegistry } =
       await deploySystem();
 
     await expect(fundingPool.isDistributed(0))
@@ -117,11 +118,20 @@ describe("FundingPoolUpgradeable", function () {
       fundingPool.setIdeaRegistry(ethers.ZeroAddress)
     ).to.be.revertedWithCustomError(fundingPool, "ZeroAddress");
 
+    expect(await fundingPool.governanceToken()).to.equal(await usdc.getAddress());
+
     await expect(
       fundingPool.allocateReserveToIdea(1, 1, 10)
     ).to.be.revertedWithCustomError(fundingPool, "InsufficientPoolBalance");
 
-    await fundingPool.setGovernanceToken(await governanceToken.getAddress());
+    await expect(fundingPool.setUsdc(await usdc.getAddress()))
+      .to.emit(fundingPool, "UsdcUpdated")
+      .withArgs(await usdc.getAddress());
+
+    await expect(fundingPool.setGovernanceToken(await usdc.getAddress()))
+      .to.emit(fundingPool, "GovernanceTokenUpdated")
+      .withArgs(await usdc.getAddress());
+
     await fundingPool.setIdeaRegistry(await ideaRegistry.getAddress());
 
     await fundingPool.connect(admin).unpause();
@@ -134,12 +144,12 @@ describe("FundingPoolUpgradeable", function () {
 describe("FundingPoolUpgradeable edge cases", function () {
   /** @notice it: validates depositForIdeaFrom inputs */
   it("validates depositForIdeaFrom inputs", async function () {
-    const { ethers, admin, roles, fundingPool, governanceToken, user1 } =
+    const { ethers, admin, roles, fundingPool, usdc, user1 } =
       await deploySystem();
 
     await fundingPool.connect(admin).unpause();
-    await governanceToken.mint(user1.address, 1000n);
-    await governanceToken.connect(user1).approve(await fundingPool.getAddress(), 1000n);
+    await usdc.mint(user1.address, 1000n);
+    await usdc.connect(user1).approve(await fundingPool.getAddress(), 1000n);
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
@@ -157,23 +167,23 @@ describe("FundingPoolUpgradeable edge cases", function () {
     ).to.be.revertedWithCustomError(fundingPool, "ZeroAmount");
   });
 
-  /** @notice it: rejects double distribution and insufficient idea balance */
-  it("rejects double distribution and insufficient idea balance", async function () {
+  /** @notice it: rejects insufficient idea balance after partial distribution */
+  it("rejects insufficient idea balance after partial distribution", async function () {
     const {
       admin,
       user1,
       roles,
       fundingPool,
-      governanceToken,
+      usdc,
       ideaRegistry,
     } = await deploySystem();
 
     await fundingPool.connect(admin).unpause();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "");
+    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
 
-    await governanceToken.mint(user1.address, 500n);
-    await governanceToken.connect(user1).approve(await fundingPool.getAddress(), 500n);
+    await usdc.mint(user1.address, 500n);
+    await usdc.connect(user1).approve(await fundingPool.getAddress(), 500n);
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
@@ -189,8 +199,8 @@ describe("FundingPoolUpgradeable edge cases", function () {
     await fundingPool.connect(admin).distributeFunds(1, 1, 150n);
 
     await expect(
-      fundingPool.connect(admin).distributeFunds(1, 1, 10n)
-    ).to.be.revertedWithCustomError(fundingPool, "AlreadyDistributed");
+      fundingPool.connect(admin).distributeFunds(1, 1, 60n)
+    ).to.be.revertedWithCustomError(fundingPool, "InsufficientIdeaBalance");
   });
 
   /** @notice it: validates reserve allocation inputs */
@@ -213,6 +223,50 @@ describe("FundingPoolUpgradeable edge cases", function () {
 
 /** @notice describe: FundingPoolUpgradeable extra coverage */
 describe("FundingPoolUpgradeable extra coverage", function () {
+  /** @notice it: validates depositAuthorStakeFrom inputs and syncs live balance */
+  it("validates author stake inputs and syncBalance", async function () {
+    const { admin, user1, roles, fundingPool, usdc } = await deploySystem();
+
+    const IREGISTRY_ROLE = await roles.IREGISTRY_ROLE();
+    await roles.grantSystemRole(IREGISTRY_ROLE, admin.address);
+
+    await expect(
+      fundingPool.depositAuthorStakeFrom(user1.address, 0, 1n)
+    ).to.be.revertedWithCustomError(fundingPool, "InvalidId")
+      .withArgs("ideaId");
+
+    await expect(
+      fundingPool.depositAuthorStakeFrom(user1.address, 1, 0n)
+    ).to.be.revertedWithCustomError(fundingPool, "ZeroAmount");
+
+    await expect(
+      fundingPool.depositAuthorStakeFrom("0x0000000000000000000000000000000000000000", 1, 1n)
+    ).to.be.revertedWithCustomError(fundingPool, "ZeroAddress")
+      .withArgs("from");
+
+    await usdc.mint(user1.address, 20n);
+    await usdc.connect(user1).approve(await fundingPool.getAddress(), 20n);
+
+    await fundingPool.depositAuthorStakeFrom(user1.address, 1, 10n);
+    await usdc.transfer(await fundingPool.getAddress(), 7n);
+
+    await fundingPool.syncBalance();
+    expect(await fundingPool.totalPoolBalance()).to.equal(17n);
+
+    await expect(
+      fundingPool.slashAuthorStakeToReserve(0)
+    ).to.be.revertedWithCustomError(fundingPool, "InvalidId")
+      .withArgs("ideaId");
+
+    await fundingPool.slashAuthorStakeToReserve(2n);
+
+    await expect(fundingPool.slashAuthorStakeToReserve(1n))
+      .to.emit(fundingPool, "AuthorStakeSlashed")
+      .withArgs(1n, 10n);
+
+    expect(await fundingPool.authorStakeByIdea(1n)).to.equal(0n);
+  });
+
   /** @notice it: rejects distributeFunds when paused or non-distributor */
   it("rejects distributeFunds when paused or non-distributor", async function () {
     const {
@@ -220,13 +274,13 @@ describe("FundingPoolUpgradeable extra coverage", function () {
       user1,
       roles,
       fundingPool,
-      governanceToken,
+      usdc,
       ideaRegistry,
     } = await deploySystem();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "");
-    await governanceToken.mint(user1.address, 200n);
-    await governanceToken
+    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
+    await usdc.mint(user1.address, 200n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), 200n);
 
@@ -256,13 +310,13 @@ describe("FundingPoolUpgradeable extra coverage", function () {
       user1,
       roles,
       fundingPool,
-      governanceToken,
+      usdc,
       ideaRegistry,
     } = await deploySystem();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "");
-    await governanceToken.mint(user1.address, 200n);
-    await governanceToken
+    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
+    await usdc.mint(user1.address, 200n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), 200n);
 
@@ -298,13 +352,13 @@ describe("FundingPoolUpgradeable extra coverage", function () {
       user1,
       roles,
       fundingPool,
-      governanceToken,
+      usdc,
       ideaRegistry,
     } = await deploySystem();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "");
-    await governanceToken.mint(user1.address, 200n);
-    await governanceToken
+    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
+    await usdc.mint(user1.address, 200n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), 200n);
 
@@ -315,6 +369,7 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
     await fundingPool.connect(admin).unpause();
     await fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 200n);
+    await fundingPool.connect(admin).moveIdeaFundsToReserve(1, 1, 50n);
     await fundingPool.connect(admin).distributeFunds(1, 1, 150n);
 
     expect(await fundingPool.protocolReserve()).to.equal(50n);
@@ -325,11 +380,11 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
   /** @notice it: enforces admin-only functions */
   it("enforces admin-only functions", async function () {
-    const { user1, fundingPool, governanceToken, ideaRegistry } =
+    const { user1, fundingPool, usdc, ideaRegistry } =
       await deploySystem();
 
     await expect(
-      fundingPool.connect(user1).setGovernanceToken(await governanceToken.getAddress())
+      fundingPool.connect(user1).setGovernanceToken(await usdc.getAddress())
     ).to.be.revertedWithCustomError(fundingPool, "NotAdmin");
 
     await expect(
@@ -351,11 +406,11 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
   /** @notice it: rejects depositForIdeaFrom when paused */
   it("rejects depositForIdeaFrom when paused", async function () {
-    const { admin, user1, roles, fundingPool, governanceToken } =
+    const { admin, user1, roles, fundingPool, usdc } =
       await deploySystem();
 
-    await governanceToken.mint(user1.address, 100n);
-    await governanceToken
+    await usdc.mint(user1.address, 100n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), 100n);
 
@@ -369,7 +424,7 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
   /** @notice it: reverts on invalid author during distribution */
   it("reverts on invalid author during distribution", async function () {
-    const { admin, roles, fundingPool, governanceToken, ethers } =
+    const { admin, roles, fundingPool, usdc, ethers } =
       await deploySystem();
 
     const mockIdeaRegistry = await ethers.deployContract(
@@ -387,8 +442,8 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
     await fundingPool.connect(admin).unpause();
 
-    await governanceToken.mint(admin.address, 200n);
-    await governanceToken
+    await usdc.mint(admin.address, 200n);
+    await usdc
       .connect(admin)
       .approve(await fundingPool.getAddress(), 200n);
 

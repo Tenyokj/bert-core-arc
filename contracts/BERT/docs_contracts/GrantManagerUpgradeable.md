@@ -1,26 +1,28 @@
 # GrantManagerUpgradeable
 
 **Summary**
-Orchestrates the grant lifecycle and coordinates distribution after voting.
+Coordinates the grant lifecycle and milestone-based capital release after voting rounds settle.
 
 **Role In System**
-Reads voting results, validates idea eligibility, and triggers distribution from the funding pool.
+Reads round outcomes, validates winning proposal eligibility, and triggers staged distribution from the funding pool.
 
 **Key Features**
-- Validates round completion and winning idea
-- Calculates and distributes author share
-- Updates idea status to Funded
-- Exposes helper view functions for claimability
+- Validates round completion and winning idea eligibility
+- Releases the initial author share on claim
+- Handles milestone proof submission and reviewer approvals
+- Releases staged payouts in a `30/40/30` flow
+- Updates idea status through `Funded`, `InProcess`, and `Completed`
+- Exposes helper view functions for claimability and payout state
 - Pausable for safety
 
 **Access Control**
 - Uses `RolesAwareUpgradeable` modifiers
-- Critical actions restricted by roles
+- Critical actions are restricted by protocol roles
 
 **Dependencies**
 - `VotingSystemUpgradeable` for round results
-- `FundingPoolUpgradeable` for distributions
-- `IdeaRegistryUpgradeable` for idea status and author
+- `FundingPoolUpgradeable` for USDC distributions
+- `IdeaRegistryUpgradeable` for idea status and author validation
 - `RolesRegistryUpgradeable` for access control
 
 **Upgradeability**

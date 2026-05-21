@@ -1,4 +1,81 @@
 // SPDX-License-Identifier: GPL-3.0
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##########################▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#######%********************%#####@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▁@###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%%******%#################%******%####@▇▇▇▇▇▇▇▇▇▇▇@####▓▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▓######▇▇▇▇▇▇▇▇▇█#####*****##############################*****%####▇▇▇▇▇▇@######▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##%####@▇▇▇▇#####****######################################****#####▇#####%##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##**%###▇@###%***############################################***%######**##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***#####***%########################*#######################%*%###***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%****%#############################%**##########################%****##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%*****%#######################%##*%**%##%#####################*****###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####*******%###############%%****##%%%***%##****%##############******%#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇█######********##%######%*********##%%%%****%#%********%#####%##*******###%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###*###%*******%#%***###%********##*%%%%*****%#%*******###%**##*******###***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%###%*******##*****###******##%*%%%%%*****%#%****%##****%#%*******####***####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%#####%*******##%**###******##%*%%%%%*******##%*****##%**##*******######%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**%########*******##%##%******##%*%%%######%****##%*****#####******%########%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%###########%*****###******%##%*##############%*###*****%##*****%###########%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***#####@#########****%##%****########################%***###****%##############***@##▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**######**%%##%*%###%***###****%##%%%###########%*%##****##%**%###%**###%**%#####**%##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%########%***%#%**%###%*%##%***%###%***%###%***%###***%##*%###%***%%****%#######%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**%###########%*********%######****####%********###%***######%*********%###########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**###############%*********%####%***#####*****####%**%####%*********%##############%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##@**%##########**%######%********%###***%#####*#####***%##%********%#####%**###########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%#########*****#########%************%#########***%*********%########****##########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**#########%****#########%###%***********#######**********%###%########%***%#########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**#########*****@##%#####****%###%********####%*******%###%****%########****%########***###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**########******###*#####%*******####%*****%#******%####*******%###%%##%*****########***###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**%######%*******##*%######****%#########%*****%#########%***%#####*###*******#######**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##@***######********###**######################%####################%**##%*******#######**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**#######********%##**%##############%%%%%###%**%#############%***##********#######%**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##%**%#######*********###%********%####%%%%%%%******%####%%*******%##%*******%########%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***@########%*********%%######%%**###%%%%%%*****%###%*%%######%*********%##########***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%#####*####%*****************###%##%%%%%*****######%***************%####*%#####%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***####%**%######%**********%##%***###%%%%****###%***###*********%######%***#####***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▓####***####****##########@######*******###%%%***%###******%#####@#########%***%####***@###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####***####****%###%##########%********###%%%*%###********#########%%###****%###@***%###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###%***######%**##%%%%%########%*******##%%**###******%########%%%%##%*%#@#####***%###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###%***############%%%%%%#######%*****%##%%###*****%######%%%%%%########%####***%####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#####***####******%#####%%%%%######****%#####****%#####%%%%%#####%******####***%####@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####***%###%******%####%%%%%%%#####%**%###%**######%%%%%#####*******####%***#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%***####%*******####%%%%%##%%####%##%%###%*##%%%%%####*******%####***%#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####****####%*******####%%%%##%%%%######%***%##%%%###%*******%####****#####@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%****#####******#%####%##%%%%%%%%******##%%#####%*****#####****%####@@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%****######***##**######%%%%%%******%#####%*%#***%#####****%#####@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇######*****########****######%%%%*****#####%***##%#####%****%######@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#######%*****######*****######%%***%####%****######%****%#######@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@#####@%*****%####%****#####%*%#####****%###%******########@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#@#######%****####%****#########****####*****%#########▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##########%*######***%#####***%#####%%#@########@█▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##############@%**%#***%################@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@@@############***#############@#@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#@@###############@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇    
+/**
+ *     NOTICE
+ *
+ *     BERT is an upgradeable DAO voting and grant protocol developed to turn
+ *     community ideas into funded on-chain outcomes. The protocol enables users
+ *     to submit ideas, participate in structured voting rounds with stake, and
+ *     receive transparent grant distribution through upgradeable smart contracts
+ *     on EVM-compatible blockchains.
+ *
+ *     Copyright (C) 2026, BERT contributors.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -13,11 +90,11 @@ import "../utils/Errors.sol";
 
 /**
  * @title FundingPool
- * @notice Manages token deposits and distributes grants to winning ideas
+ * @notice Manages USDC deposits and distributes grants to winning ideas
  * @dev Handles donor balances, fund safekeeping, and controlled distribution
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.0.0
+ * @custom:version 1.1.1
  */
 contract FundingPoolUpgradeable is 
     Initializable, 
@@ -30,8 +107,8 @@ contract FundingPoolUpgradeable is
 
     /* ========== CONTRACTS ========== */ 
 
-    /// @notice Governance token contract
-    IERC20 public governanceToken;
+    /// @notice USDC contract used for all treasury flows
+    IERC20 public usdc;
     
     /// @notice IdeaRegistry contract address for author verification
     IIdeaRegistry public ideaRegistry;
@@ -74,6 +151,10 @@ contract FundingPoolUpgradeable is
     /// @dev Mapping from round ID to distribution status
     mapping(uint256 => bool) public distributed;
 
+    /// @notice Mapping from idea ID to locked author stake amount
+    /// @dev Tracks per-idea author deposits in 6-decimal USDC units.
+    mapping(uint256 => uint256) public authorStakeByIdea;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -82,13 +163,13 @@ contract FundingPoolUpgradeable is
 
     /**
      * @notice Initializes the FundingPool contract
-     * @param _governanceToken Governance token contract address
+     * @param _usdc USDC contract address
      * @param _ideaRegistry IdeaRegistry contract address
      * @custom:emits FundingPoolInitialized
      * @custom:requires All addresses must be non-zero
      */
     function initialize(
-        address _governanceToken,
+        address _usdc,
         address _ideaRegistry,
         address _rolesRegistry
     ) public initializer {
@@ -99,10 +180,10 @@ contract FundingPoolUpgradeable is
 
         __RolesAware_init(_rolesRegistry);
         
-        if (_governanceToken == address(0)) revert ZeroAddress("governanceToken");
+        if (_usdc == address(0)) revert ZeroAddress("usdc");
         if (_ideaRegistry == address(0)) revert ZeroAddress("ideaRegistry");
 
-        governanceToken = IERC20(_governanceToken);
+        usdc = IERC20(_usdc);
         ideaRegistry = IIdeaRegistry(_ideaRegistry);
         
         _pause();
@@ -113,7 +194,7 @@ contract FundingPoolUpgradeable is
     /* ========== EXTERNAL FUNCTIONS ========== */
 
     /**
-     * @notice Deposits governance tokens into the funding pool
+     * @notice Deposits USDC into the funding pool
      * @dev Transfers tokens from caller to contract, updates donor balance
      * @param amount Amount of tokens to deposit
      * @custom:emits FundsDeposited
@@ -126,12 +207,47 @@ contract FundingPoolUpgradeable is
             revert ZeroAmount();
         }
         
-        governanceToken.safeTransferFrom(msg.sender, address(this), amount);
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
 
         donorBalances[msg.sender] += amount;
         totalPoolBalance += amount;
 
         emit FundsDeposited(msg.sender, amount);
+        emit PoolBalanceUpdated(totalPoolBalance);
+    }
+
+    /**
+     * @notice Deposits author stake for a newly created idea
+     * @dev Can only be called by the IdeaRegistry contract.
+     *      This is separate from voter deposits because the amount is locked
+     *      against the idea itself and can later be slashed into `protocolReserve`
+     *      if the idea is rejected.
+     * @param from Address from which tokens are transferred
+     * @param ideaId ID of the idea being created
+     * @param amount Amount of tokens to deposit
+     */
+    function depositAuthorStakeFrom(
+        address from,
+        uint256 ideaId,
+        uint256 amount
+    ) external onlyIdeaRegistry nonReentrant {
+        if (from == address(0)) {
+            revert ZeroAddress("from");
+        }
+        if (ideaId == 0) {
+            revert InvalidId("ideaId");
+        }
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
+
+        usdc.safeTransferFrom(from, address(this), amount);
+
+        donorBalances[from] += amount;
+        authorStakeByIdea[ideaId] += amount;
+        totalPoolBalance += amount;
+
+        emit AuthorStakeDeposited(ideaId, from, amount);
         emit PoolBalanceUpdated(totalPoolBalance);
     }
 
@@ -165,7 +281,7 @@ contract FundingPoolUpgradeable is
             revert InvalidId("ideaId");
         }
         
-        governanceToken.safeTransferFrom(from, address(this), amount);
+        usdc.safeTransferFrom(from, address(this), amount);
         
         totalPoolBalance += amount;
         _poolByRoundAndIdea[roundId][ideaId] += amount;
@@ -196,9 +312,6 @@ contract FundingPoolUpgradeable is
       nonReentrant 
       whenNotPaused 
     {
-        if (distributed[roundId]) {
-            revert AlreadyDistributed(roundId);
-        }
         if (amount == 0) {
             revert ZeroAmount();
         }
@@ -214,12 +327,11 @@ contract FundingPoolUpgradeable is
         }
 
         uint256 remaining = available - amount;
-        _poolByRoundAndIdea[roundId][ideaId] = 0;
-        if (remaining > 0) {
-            protocolReserve += remaining;
-        }
+        _poolByRoundAndIdea[roundId][ideaId] = remaining;
         totalPoolBalance -= amount;
-        distributed[roundId] = true;
+        if (remaining == 0) {
+            distributed[roundId] = true;
+        }
         
         distributionHistory.push(Distribution({
             roundId: roundId,
@@ -228,10 +340,72 @@ contract FundingPoolUpgradeable is
             distributedAt: block.timestamp
         }));
 
-        governanceToken.safeTransfer(author, amount);
+        usdc.safeTransfer(author, amount);
 
         emit FundsDistributed(roundId, ideaId, amount);
         emit PoolBalanceUpdated(totalPoolBalance);
+    }
+
+    /**
+     * @notice Moves a portion of idea-allocated funds into protocol reserve
+     * @dev Can only be called by the distributor role.
+     *      Used by `GrantManager` when the protocol share is carved out of the
+     *      winning idea before author tranches start being paid.
+     * @param roundId Grant round identifier
+     * @param ideaId Winning idea identifier
+     * @param amount Amount to move into reserve
+     */
+    function moveIdeaFundsToReserve(
+        uint256 roundId,
+        uint256 ideaId,
+        uint256 amount
+    ) external onlyDistributor nonReentrant whenNotPaused {
+        if (roundId == 0) {
+            revert InvalidId("roundId");
+        }
+        if (ideaId == 0) {
+            revert InvalidId("ideaId");
+        }
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
+
+        uint256 available = _poolByRoundAndIdea[roundId][ideaId];
+        if (amount > available) {
+            revert InsufficientIdeaBalance(roundId, ideaId, available, amount);
+        }
+
+        uint256 remaining = available - amount;
+        _poolByRoundAndIdea[roundId][ideaId] = remaining;
+        protocolReserve += amount;
+        if (remaining == 0) {
+            distributed[roundId] = true;
+        }
+
+        emit IdeaFundsReserved(roundId, ideaId, amount);
+    }
+
+    /**
+     * @notice Slashes an author's stake into protocol reserve
+     * @dev Can only be called by the IdeaRegistry contract.
+     *      If the stake is already zero, the function exits silently so repeated
+     *      rejection handling does not break downstream state transitions.
+     * @param ideaId ID of the rejected idea
+     */
+    function slashAuthorStakeToReserve(uint256 ideaId) external onlyIdeaRegistry {
+        if (ideaId == 0) {
+            revert InvalidId("ideaId");
+        }
+
+        uint256 amount = authorStakeByIdea[ideaId];
+        if (amount == 0) {
+            return;
+        }
+
+        authorStakeByIdea[ideaId] = 0;
+        protocolReserve += amount;
+
+        emit AuthorStakeSlashed(ideaId, amount);
     }
 
     /* ========== VIEW FUNCTIONS ========== */
@@ -326,18 +500,37 @@ contract FundingPoolUpgradeable is
     }
     
     /**
-     * @notice Updates the governance token contract address
+     * @notice Returns the deprecated governance-token compatibility getter
+     * @dev Older integrations still expect `governanceToken()`, but the protocol
+     *      now settles exclusively in USDC.
+     */
+    function governanceToken() external view returns (IERC20 token) {
+        return usdc;
+    }
+
+    /**
+     * @notice Updates the USDC contract address
      * @dev Can only be called by the contract admin
-     * @param _newToken New governance token address
+     * @param _newToken New USDC token address
+     * @custom:emits UsdcUpdated
      * @custom:emits GovernanceTokenUpdated
      * @custom:requires _newToken cannot be zero address
      */
-    function setGovernanceToken(address _newToken) external onlyAdmin {
+    function setUsdc(address _newToken) public onlyAdmin {
         if (_newToken == address(0)) {
             revert ZeroAddress("newToken");
         }
-        governanceToken = IERC20(_newToken);
+        usdc = IERC20(_newToken);
+        emit UsdcUpdated(_newToken);
         emit GovernanceTokenUpdated(_newToken);
+    }
+
+    /**
+     * @notice Deprecated compatibility setter retained for older tooling
+     * @param _newToken New USDC token address
+     */
+    function setGovernanceToken(address _newToken) external onlyAdmin {
+        setUsdc(_newToken);
     }
 
     /**
@@ -357,10 +550,12 @@ contract FundingPoolUpgradeable is
 
     /**
      * @notice Checks real pool balance
-     * @dev Can only be called by the contract admin
+     * @dev Can only be called by the contract admin.
+     *      Reconciles `totalPoolBalance` with the actual token balance while keeping
+     *      `protocolReserve` accounted for separately.
      */
     function syncBalance() external onlyAdmin {
-        uint256 real = governanceToken.balanceOf(address(this));
+        uint256 real = usdc.balanceOf(address(this));
         totalPoolBalance = real - protocolReserve;
     }
 

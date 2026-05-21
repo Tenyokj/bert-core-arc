@@ -11,6 +11,13 @@ import { HDNodeWallet } from "ethers";
 
 /** @notice describe: VotingSystemUpgradeable */
 describe("VotingSystemUpgradeable", function () {
+  it("uses a sane USDC-native default voting stake", async function () {
+    const { votingSystem, ethers } = await deploySystem();
+    expect(await votingSystem.minStake()).to.equal(
+      ethers.parseUnits("10", 6)
+    );
+  });
+
   /** @notice it: starts rounds when enough ideas */
   it("starts rounds when enough ideas", async function () {
     const {
@@ -73,7 +80,7 @@ describe("VotingSystemUpgradeable", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -87,15 +94,15 @@ describe("VotingSystemUpgradeable", function () {
 
     await votingSystem.startVotingRound();
 
-    await governanceToken.mint(user1.address, 5000n * 10n ** 18n);
-    await governanceToken.mint(user2.address, 5000n * 10n ** 18n);
+    await usdc.mint(user1.address, 5000n * 10n ** 6n);
+    await usdc.mint(user2.address, 5000n * 10n ** 6n);
 
-    await governanceToken
+    await usdc
       .connect(user1)
-      .approve(await fundingPool.getAddress(), 5000n * 10n ** 18n);
-    await governanceToken
+      .approve(await fundingPool.getAddress(), 5000n * 10n ** 6n);
+    await usdc
       .connect(user2)
-      .approve(await fundingPool.getAddress(), 5000n * 10n ** 18n);
+      .approve(await fundingPool.getAddress(), 5000n * 10n ** 6n);
 
     const minStake = await votingSystem.minStake();
 
@@ -206,7 +213,7 @@ describe("VotingSystemUpgradeable edge cases", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -221,12 +228,12 @@ describe("VotingSystemUpgradeable edge cases", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken.mint(user2.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc.mint(user2.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
-    await governanceToken
+    await usdc
       .connect(user2)
       .approve(await fundingPool.getAddress(), minStake * 2n);
 
@@ -266,7 +273,7 @@ describe("VotingSystemUpgradeable edge cases", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -280,8 +287,8 @@ describe("VotingSystemUpgradeable edge cases", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
 
@@ -333,7 +340,7 @@ describe("VotingSystemUpgradeable max voters", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
       ethers,
     } = await deploySystem();
@@ -357,8 +364,8 @@ describe("VotingSystemUpgradeable max voters", function () {
         to: wallet.address,
         value: 10n ** 18n,
       });
-      await governanceToken.mint(wallet.address, minStake);
-      await governanceToken
+      await usdc.mint(wallet.address, minStake);
+      await usdc
         .connect(wallet)
         .approve(await fundingPool.getAddress(), minStake);
       await votingSystem.connect(wallet).vote(1, 1, minStake);
@@ -369,8 +376,8 @@ describe("VotingSystemUpgradeable max voters", function () {
       to: extra.address,
       value: 10n ** 18n,
     });
-    await governanceToken.mint(extra.address, minStake);
-    await governanceToken
+    await usdc.mint(extra.address, minStake);
+    await usdc
       .connect(extra)
       .approve(await fundingPool.getAddress(), minStake);
 
@@ -424,7 +431,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -439,8 +446,8 @@ describe("VotingSystemUpgradeable extra coverage", function () {
     await votingSystem.connect(admin).pause();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
 
@@ -475,7 +482,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -488,8 +495,8 @@ describe("VotingSystemUpgradeable extra coverage", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
 
@@ -506,7 +513,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
     } = await deploySystem();
 
@@ -519,8 +526,8 @@ describe("VotingSystemUpgradeable extra coverage", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
     await votingSystem.connect(user1).vote(1, 1, minStake);
@@ -546,7 +553,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
       ethers,
     } = await deploySystem();
@@ -567,8 +574,8 @@ describe("VotingSystemUpgradeable extra coverage", function () {
     await votingSystem.startVotingRound();
 
     const minStake = await votingSystem.minStake();
-    await governanceToken.mint(user1.address, minStake * 2n);
-    await governanceToken
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
       .connect(user1)
       .approve(await fundingPool.getAddress(), minStake * 2n);
     await votingSystem.connect(user1).vote(1, 1, minStake);
@@ -658,6 +665,13 @@ describe("VotingSystemUpgradeable extra coverage", function () {
     expect(await votingSystem.VOTING_DURATION()).to.equal(1000n);
     expect(await votingSystem.minStake()).to.equal(1n);
     expect(await votingSystem.IDEAS_PER_ROUND()).to.equal(10n);
+    expect(await votingSystem.isPaused()).to.equal(true);
+
+    await votingSystem.connect(admin).unpause();
+    expect(await votingSystem.isPaused()).to.equal(false);
+
+    await votingSystem.connect(admin).pause();
+    expect(await votingSystem.isPaused()).to.equal(true);
   });
 
   /** @notice it: enforces admin-only setters and validates zero addresses */
@@ -736,7 +750,7 @@ describe("VotingSystemUpgradeable invariants", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
       ethers,
     } = await deploySystem();
@@ -762,8 +776,8 @@ describe("VotingSystemUpgradeable invariants", function () {
         to: wallet.address,
         value: 10n ** 18n,
       });
-      await governanceToken.mint(wallet.address, minStake);
-      await governanceToken
+      await usdc.mint(wallet.address, minStake);
+      await usdc
         .connect(wallet)
         .approve(await fundingPool.getAddress(), minStake);
 

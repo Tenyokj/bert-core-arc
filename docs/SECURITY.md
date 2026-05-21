@@ -1,84 +1,41 @@
 **Security Overview**
 
-**Contents**
-1. Roles And Permissions
-2. Role Assignment Principles
-3. Admin Key Practices
-4. Pausability
-5. Upgrade Safety
-6. Threat Model Notes
-7. Operational Controls
-8. External Calls
-9. Emergency Checklist
-10. Threat Model Diagram (ASCII)
+The protocol is designed around upgrade-safe modules, strict role boundaries, and controlled USDC accounting.
 
-**Roles And Permissions**
-1. `DEFAULT_ADMIN_ROLE` controls critical parameters and role grants
-2. `VOTING_ROLE` restricts voting system operations
-3. `GRANT_ROLE` and `DISTRIBUTOR_ROLE` protect grant distribution
-4. `IREGISTRY_ROLE` controls cross-contract registry actions
-5. `REPUTATION_MANAGER_ROLE` controls reputation updates
-6. `AUTO_GRANT_ROLE` allows voter progression to grant user roles
+**Primary Controls**
+1. `SafeERC20` is used for treasury transfers.
+2. `ReentrancyGuardUpgradeable` protects critical asset-moving flows.
+3. `PausableUpgradeable` is enabled on `FundingPoolUpgradeable`, `VotingSystemUpgradeable`, and `GrantManagerUpgradeable`.
+4. Role checks isolate proposal, voting, treasury, and grant operations.
+5. Milestone review state prevents duplicate review and duplicate release.
 
-**Role Assignment Principles**
-1. System roles should only be granted to contracts, not EOAs
-2. Admin role should be held by a multisig for production use
-3. Use the smallest permission set required for each module
+**Treasury Protection**
+1. `FundingPoolUpgradeable` tracks total pool balance separately from protocol reserve.
+2. Proposal-level balances are tracked by `roundId => ideaId`.
+3. Author submission stake is tracked independently in `authorStakeByIdea`.
+4. Reserve movements are explicit and evented.
+5. There is no arbitrary admin withdraw path for user-committed treasury capital.
 
-**Admin Key Practices**
-1. Use a dedicated admin address for deployments
-2. Rotate admin keys after deployment if needed
-3. Never use admin keys for day-to-day interactions
-4. Store admin keys in a hardware wallet or secure signer
-
-**Pausability**
-1. `FundingPoolUpgradeable`, `VotingSystemUpgradeable`, and `GrantManagerUpgradeable` are pausable
-2. Keep pause privileges limited to trusted admins
-3. Document pause and unpause procedures
-4. Use pause in emergencies only, then perform a post-mortem
+**Milestone Protection**
+1. `GrantManagerUpgradeable` stores payout state per round.
+2. Each tranche has one-time execution flags.
+3. Milestone requests are versioned by `requestId`.
+4. Reviewer votes are keyed by `(roundId, stage, requestId, reviewer)`.
+5. Rejected milestone requests are subject to cooldown before resubmission.
 
 **Upgrade Safety**
-1. Review storage layout before any upgrade
-2. Use upgrade rehearsals on localhost and Sepolia
-3. Store deployment and upgrade artifacts for auditability
-4. Prefer multi-step reviews for production upgrades
-5. Validate new implementation bytecode before upgrade
+1. Proxy-based modules keep storage layouts stable across versions.
+2. New storage is appended, not inserted.
+3. Compatibility wrappers like `governanceToken()` are retained where useful during migration, while the live treasury asset is USDC.
 
-**Threat Model Notes**
-1. Admin key compromise is the highest-risk scenario
-2. Misconfigured roles can cause unintended permissions
-3. Incorrect proxy admin use can block upgrades
-4. Incorrect parameters can halt voting or cause unfair outcomes
+**Operational Guidance**
+1. Use a multisig for admin and ProxyAdmin control in production.
+2. Rehearse every upgrade on a non-production network before execution.
+3. Verify role wiring immediately after deployment.
+4. Monitor `FundsDeposited`, `FundsDistributed`, `IdeaFundsReserved`, and milestone events.
+5. Pause funding, voting, and grant modules before investigating critical incidents.
 
-**Operational Controls**
-1. Keep a record of ProxyAdmin owners per proxy
-2. Verify admin and impl slots after upgrades
-3. Monitor pause status and critical parameters
-4. Review events for unexpected role changes
-
-**External Calls**
-1. Cross-contract calls are protected by role checks
-2. Integrations must respect access restrictions
-3. Untrusted external calls should be wrapped with try/catch where possible
-
-**Emergency Checklist**
-1. Pause FundingPool, VotingSystem, GrantManager
-2. Identify the root cause and scope
-3. Patch or upgrade the affected module
-4. Verify state consistency before unpausing
-
-**Threat Model Diagram (ASCII)**
-```text
-Admin Key Compromise
-  -> Unauthorized upgrades
-  -> Role abuse
-  -> Fund misdirection
-
-Misconfigured Roles
-  -> Unauthorized status changes
-  -> Reputation manipulation
-
-Operational Errors
-  -> Wrong proxy/admin
-  -> Broken upgrades
-```
+**Arc-Specific Notes**
+1. Arc uses USDC as the native gas asset on testnet.
+2. Arc’s ERC-20 USDC interface uses 6 decimals for token operations, which the protocol now treats as the canonical accounting precision.
+3. Integration code should avoid 18-decimal assumptions for ERC-20 USDC allowances, deposits, or voting amounts.

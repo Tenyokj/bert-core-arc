@@ -17,7 +17,7 @@ describe("DAO Grant System stress", function () {
       ideaRegistry,
       votingSystem,
       fundingPool,
-      governanceToken,
+      usdc,
       networkHelpers,
       ethers,
     } = await deploySystem();
@@ -41,8 +41,8 @@ describe("DAO Grant System stress", function () {
         to: wallet.address,
         value: 10n ** 18n,
       });
-      await governanceToken.mint(wallet.address, minStake);
-      await governanceToken
+      await usdc.mint(wallet.address, minStake);
+      await usdc
         .connect(wallet)
         .approve(await fundingPool.getAddress(), minStake);
       await votingSystem.connect(wallet).vote(1, i + 1, minStake);

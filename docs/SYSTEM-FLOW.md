@@ -13,7 +13,7 @@ This document describes the operational flow of BERT in a narrative sequence fro
 ## Idea Creation Flow
 
 1. builder prepares proposal metadata
-2. builder approves funding token allowance
+2. builder approves USDC allowance
 3. builder calls `createIdea`
 4. registry validates metadata and minimum author stake
 5. author stake is locked in the funding pool

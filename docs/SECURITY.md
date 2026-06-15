@@ -154,7 +154,7 @@ Rounds are built from the global idea sequence using `lastUsedIdeaId`. Bugs here
 ### Vote Commitment Risk
 Voting is capital-backed. Risks include:
 - wrong minimum stake configuration
-- wrong funding token address
+- wrong USDC token address
 - faulty accounting for `depositForIdeaFrom`
 - duplicate or misattributed idea membership
 

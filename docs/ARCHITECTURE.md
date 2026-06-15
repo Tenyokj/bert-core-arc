@@ -11,7 +11,7 @@ The protocol is not just a “grant voting app”. It is a multi-layer system wi
 - a reputation layer
 - a voter progression layer
 
-In the current design, the settlement asset is an ERC-20 token configured as the protocol’s funding token and deployed in practice as USDC on Arc. All economic actions in the core flow are denominated in that asset.
+The settlement asset is USDC. Proposal stake, vote commitments, treasury accounting, reserve accounting, and staged grant release are all denominated in USDC on Arc.
 
 ## Contents
 1. Purpose
@@ -97,7 +97,7 @@ Responsibilities:
 Handled by `FundingPoolUpgradeable`.
 
 Responsibilities:
-- hold protocol funding token balances
+- hold USDC treasury balances
 - record donor balances
 - record author stake balances
 - record per-round and per-idea voting capital
@@ -462,7 +462,7 @@ Failure path:
 ## Capital and Treasury Model
 
 ### Treasury Asset
-The accounting model is ERC-20 based and currently used with USDC as the settlement asset.
+The treasury asset is USDC.
 
 ### Capital Buckets
 BERT distinguishes several economic buckets:
@@ -550,7 +550,7 @@ A winning vote should not immediately unlock 100% of capital. The milestone laye
 - `RolesRegistryUpgradeable`
 
 ### `FundingPoolUpgradeable` depends on
-- configured ERC-20 funding token
+- configured USDC token address
 - `IdeaRegistryUpgradeable`
 - `RolesRegistryUpgradeable`
 
@@ -613,15 +613,15 @@ BERT is intentionally modular. Upgrading grant release policy should not require
 
 ## Arc Fit
 
-BERT is designed to fit Arc as a stablecoin-native execution environment.
+BERT is designed for Arc as a USDC-native execution environment.
 
-Why Arc makes sense:
-- BERT’s core unit is not speculative governance weight but token-denominated capital coordination
+Why Arc and Circle make sense:
+- BERT’s core unit is USDC-denominated capital coordination, not speculative governance weight
 - settlement is easier to reason about when the funding asset is stable
-- treasury movement, staged grant release, and reserve accounting all align naturally with a stablecoin-native chain environment
+- treasury movement, staged grant release, and reserve accounting align naturally with Arc and Circle-backed stablecoin rails
 
 In short:
-BERT uses Arc as programmable funding infrastructure, not as a venue for abstract governance theatre.
+BERT uses Arc as programmable funding infrastructure for real treasury coordination in USDC.
 
 ## ASCII Diagrams
 

@@ -109,7 +109,7 @@ Can mutate:
 - admin can allocate reserve back into round/idea accounting
 
 Depends on:
-- configured ERC-20 funding token
+- configured USDC token address
 - `IdeaRegistryUpgradeable`
 - `RolesRegistryUpgradeable`
 
@@ -151,17 +151,6 @@ Critical invariants:
 - proof review cannot be duplicated by a single reviewer
 - stage order must be enforced
 - rejected proof must respect cooldown
-
-### `GovernanceTokenUpgradeable`
-Reference:
-- [GovernanceTokenUpgradeable](../contracts/BERT/docs_contracts/GovernanceTokenUpgradeable.md)
-
-Role in system:
-- protocol-configured ERC-20 asset used for treasury and vote accounting
-
-Architectural note:
-- the contract layer remains token-agnostic at the ERC-20 interface level
-- the intended Arc deployment model uses USDC-denominated accounting semantics
 
 ## Supporting Contracts
 
@@ -220,13 +209,6 @@ Owns this state:
 Critical thresholds:
 - curator threshold: `20`
 - reviewer threshold: `60`
-
-### `BTKFaucet`
-Reference:
-- [BTKFaucet](../contracts/BERT/docs_contracts/BTKFaucet.md)
-
-Role in system:
-- non-core test and onboarding utility for development environments
 
 ## Shared Types and Utilities
 

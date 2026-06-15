@@ -4,9 +4,15 @@
 1. `node >= 22.10`
 2. `npm`
 
+**Clone**
+```bash
+git clone <repo-url>
+cd <repo-name>
+```
+
 **Install**
 ```bash
-npm install
+npm i
 ```
 
 **Compile**
@@ -19,25 +25,27 @@ npx hardhat compile
 npx hardhat test
 ```
 
-**Local Development**
+**Local Node (Optional)**
 ```bash
 npx hardhat node
+```
+
+**Deploy (Localhost)**
+```bash
 npx hardhat run scripts/deploy/deploy-proxies.ts --network localhost
 ```
-
-For localhost, if `USDC_ADDRESS` is not set, the deploy script uses `MockUSDC`.
-
-**Arc Testnet Setup**
-1. Copy `.env.example` to `.env`
-2. Set `ARC_TESTNET_RPC_URL`
-3. Set `DEPLOYER_KEY`
-4. Set `PROXY_ADMIN_OWNER`
-5. Set `USDC_ADDRESS`
-
-**Arc Testnet Deploy**
 ```bash
-npx hardhat run scripts/deploy/deploy-proxies.ts --network arcTestnet
+npx hardhat run scripts/deploy/deploy-faucet.ts --network localhost
 ```
 
-**Important Integration Note**
-All protocol amounts in the live funding path should be treated as USDC 6-decimal units.
+**Sepolia Setup**
+1. Copy `.env.example` to `.env`
+2. Set `SEPOLIA_RPC_URL` and `DEPLOYER_KEY`
+
+**Deploy (Sepolia)**
+```bash
+npx hardhat run scripts/deploy/deploy-proxies.ts --network sepolia
+```
+```bash
+npx hardhat run scripts/deploy/deploy-faucet.ts --network sepolia
+```

@@ -324,7 +324,15 @@ contract GrantManagerUpgradeable is
         uint256 authorAmount = (totalIdeaStake * authorSharePercent) / 100;
         uint256 protocolAmount = totalIdeaStake - authorAmount;
         uint256 initialPayout = (authorAmount * INITIAL_PAYOUT_PERCENT) / 100;
-        
+
+        // Record payout state before cross-contract interactions so a future
+        // dependency upgrade cannot observe this round as unclaimed mid-flow.
+        payout.ideaId = winningIdeaId;
+        payout.author = author;
+        payout.totalGrant = authorAmount;
+        payout.released = initialPayout;
+        payout.initialClaimed = true;
+
         try fundingPool.moveIdeaFundsToReserve(roundId, winningIdeaId, protocolAmount) {
             // success
         } catch {
@@ -334,12 +342,6 @@ contract GrantManagerUpgradeable is
         ideaRegistry.updateStatus(winningIdeaId, IdeaStatus.Funded);
 
         try fundingPool.distributeFunds(roundId, winningIdeaId, initialPayout) {
-            payout.ideaId = winningIdeaId;
-            payout.author = author;
-            payout.totalGrant = authorAmount;
-            payout.released = initialPayout;
-            payout.initialClaimed = true;
-
             emit RoundFunded(roundId, winningIdeaId, initialPayout);
         } catch {
             revert ExternalCallFailed("FundingPool", "distributeFunds");
@@ -806,15 +808,19 @@ contract GrantManagerUpgradeable is
     ) internal {
         uint256 amount = _milestoneAmount(payout.totalGrant, stage);
 
-        try fundingPool.distributeFunds(roundId, payout.ideaId, amount) {
-            payout.released += amount;
-            request.active = false;
+        payout.released += amount;
+        request.active = false;
 
+        if (stage == IN_PROCESS_STAGE) {
+            payout.inProcessPaid = true;
+        } else {
+            payout.completionPaid = true;
+        }
+
+        try fundingPool.distributeFunds(roundId, payout.ideaId, amount) {
             if (stage == IN_PROCESS_STAGE) {
-                payout.inProcessPaid = true;
                 ideaRegistry.updateStatus(payout.ideaId, IdeaStatus.InProcess);
             } else {
-                payout.completionPaid = true;
                 ideaRegistry.markAsCompleted(payout.ideaId);
             }
 

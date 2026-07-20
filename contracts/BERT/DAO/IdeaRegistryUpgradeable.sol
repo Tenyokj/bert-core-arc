@@ -290,21 +290,8 @@ contract IdeaRegistryUpgradeable is
             revert InsufficientAllowance(allowance, _amount);
         }
 
-        if (!reputationSystem.isInitialized(msg.sender)) {
-            try reputationSystem.initializeReputation(msg.sender) {
-                // success
-            } catch {
-                revert ExternalCallFailed("ReputationSystem", "initializeReputation");
-            }
-        }
-
         uint256 newId = _ideaIdCounter;
-
-        try fundingPool.depositAuthorStakeFrom(msg.sender, newId, _amount) {
-            // success
-        } catch {
-            revert ExternalCallFailed("FundingPool", "depositAuthorStakeFrom");
-        }
+        _ideaIdCounter++;
 
         ideas[newId] = Idea({
             id: newId,
@@ -318,10 +305,22 @@ contract IdeaRegistryUpgradeable is
             status: IdeaStatus.Pending
         });
 
+        if (!reputationSystem.isInitialized(msg.sender)) {
+            try reputationSystem.initializeReputation(msg.sender) {
+                // success
+            } catch {
+                revert ExternalCallFailed("ReputationSystem", "initializeReputation");
+            }
+        }
+
+        try fundingPool.depositAuthorStakeFrom(msg.sender, newId, _amount) {
+            // success
+        } catch {
+            revert ExternalCallFailed("FundingPool", "depositAuthorStakeFrom");
+        }
+
         authorIdeas[msg.sender].push(newId);
         emit IdeaCreated(newId, msg.sender, _title);
-
-        _ideaIdCounter++;
     }
 
     /**
@@ -379,6 +378,8 @@ contract IdeaRegistryUpgradeable is
             revert TerminalStatus(current);
         }
 
+        ideas[ideaId].status = newStatus;
+
         if (newStatus == IdeaStatus.Rejected) {
             try fundingPool.slashAuthorStakeToReserve(ideaId) {
                 // success
@@ -387,7 +388,6 @@ contract IdeaRegistryUpgradeable is
             }
         }
 
-        ideas[ideaId].status = newStatus;
         emit IdeaStatusUpdated(ideaId, newStatus);
     }
 

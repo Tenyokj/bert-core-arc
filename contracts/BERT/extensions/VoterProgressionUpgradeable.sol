@@ -165,14 +165,14 @@ contract VoterProgressionUpgradeable is
         uint256 votes = _winningVotes[voter];
 
         if (votes >= CURATOR_THRESHOLD && !_curatorGranted[voter]) {
-            roles.grantUserRole(roles.CURATOR_ROLE(), voter);
             _curatorGranted[voter] = true;
+            roles.grantUserRole(roles.CURATOR_ROLE(), voter);
             emit RoleGranted(voter, roles.CURATOR_ROLE());
         }
 
         if (votes >= REVIEWER_THRESHOLD && !_reviewerGranted[voter]) {
-            roles.grantUserRole(roles.REVIEWER_ROLE(), voter);
             _reviewerGranted[voter] = true;
+            roles.grantUserRole(roles.REVIEWER_ROLE(), voter);
             emit RoleGranted(voter, roles.REVIEWER_ROLE());
         }
     }
@@ -284,8 +284,8 @@ contract VoterProgressionUpgradeable is
             revert AlreadyCurator(voter);
         }
 
-        roles.grantUserRole(roles.CURATOR_ROLE(), voter);
         _curatorGranted[voter] = true;
+        roles.grantUserRole(roles.CURATOR_ROLE(), voter);
         emit RoleGranted(voter, roles.CURATOR_ROLE());
     }
 
@@ -304,8 +304,8 @@ contract VoterProgressionUpgradeable is
             revert AlreadyReviewer(voter);
         }
 
-        roles.grantUserRole(roles.REVIEWER_ROLE(), voter);
         _reviewerGranted[voter] = true;
+        roles.grantUserRole(roles.REVIEWER_ROLE(), voter);
         emit RoleGranted(voter, roles.REVIEWER_ROLE());
     }
 
@@ -329,15 +329,15 @@ contract VoterProgressionUpgradeable is
         }
 
         _winningVotes[voter] = 0;
+        _curatorGranted[voter] = false;
+        _reviewerGranted[voter] = false;
 
         if (isCurator) {
             roles.revokeUserRole(roles.CURATOR_ROLE(), voter);
-            _curatorGranted[voter] = false;
         }
 
         if (isReviewer) {
             roles.revokeUserRole(roles.REVIEWER_ROLE(), voter);
-            _reviewerGranted[voter] = false;
         }
 
         emit ProgressionReset(voter);

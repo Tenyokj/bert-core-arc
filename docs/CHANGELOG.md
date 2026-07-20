@@ -77,3 +77,38 @@ Future entries should include:
 - storage or upgrade impact
 
 This file should be updated whenever protocol behavior, trust assumptions, state layout, or operator obligations change.
+
+
+## 2026-07-20 Security Hardening Notes
+
+This upgrade batch is intended to preserve storage layout while reducing
+cross-contract reentrancy exposure in existing flows.
+
+Modules touched:
+- `IdeaRegistryUpgradeable`
+- `VotingSystemUpgradeable`
+- `GrantManagerUpgradeable`
+- `VoterProgressionUpgradeable`
+
+Behavioral changes:
+- `GrantManagerUpgradeable.claimGrant` now records payout state before external
+  funding pool and registry calls.
+- `VotingSystemUpgradeable.vote` now records the local vote before calling into
+  the funding pool and registry.
+- `IdeaRegistryUpgradeable._createIdea` now reserves the new idea id and stores
+  the draft idea before external reputation and funding calls.
+- `IdeaRegistryUpgradeable.updateStatus` now writes the new lifecycle status
+  before invoking rejected-stake slashing.
+- `VoterProgressionUpgradeable` now flips local grant tracking flags before role
+  registry grant/revoke calls.
+
+Storage impact:
+- none
+- no state variables added
+- no storage gaps changed
+- no inheritance order changed
+
+Operational guidance:
+- upgrade implementations behind the existing proxies
+- re-run the full create/vote/end/claim/milestone smoke flow after upgrade
+- verify role wiring and dependency addresses remain unchanged

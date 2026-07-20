@@ -322,15 +322,14 @@ contract VotingSystemUpgradeable is
             r.isIdeaInRound[ideaId] = true;
         }
 
-        // Update counters
+        // Update counters before cross-contract status propagation.
         lastUsedIdeaId += IDEAS_PER_ROUND;
+        currentRoundId++;
 
         // Update idea statuses to Voting (status 1)
         for (uint256 j = 0; j < r.ideaIds.length; j++) {
             ideaRegistry.updateStatus(r.ideaIds[j], IdeaStatus.Voting); // Status.Voting
         }
-
-        currentRoundId++;
 
         emit VotingRoundStarted(newId, ideaIds, r.startTime, r.endTime);
     }
@@ -399,18 +398,18 @@ contract VotingSystemUpgradeable is
             revert MaxVotersReached(roundId, ideaId, MAX_VOTERS_PER_IDEA);
         }
 
+        // Lock the local vote record before cross-contract interactions.
+        r.ideaVotes[ideaId] += amount;
+        r.totalVotes += amount;
+        r.hasVoted[msg.sender] = true;
+        r.votersForIdea[ideaId].push(msg.sender);
+
         // Deposit committed USDC through the funding pool.
         try fundingPool.depositForIdeaFrom(msg.sender, roundId, ideaId, amount) {
             // Success - continue
         } catch {
             revert ExternalCallFailed("FundingPool", "depositForIdeaFrom");
         }
-
-        // Update voting records
-        r.ideaVotes[ideaId] += amount;
-        r.totalVotes += amount;
-        r.hasVoted[msg.sender] = true;
-        r.votersForIdea[ideaId].push(msg.sender);
 
         // Register vote in idea registry
         ideaRegistry.addVote(ideaId, amount);
@@ -459,12 +458,13 @@ contract VotingSystemUpgradeable is
 
         // Handle case with no votes
         if (highestVotes == 0) {
+            r.ended = true;
+            r.active = false;
+
             for (uint256 i = 0; i < r.ideaIds.length; i++) {
                 uint256 id = r.ideaIds[i];
                 ideaRegistry.updateStatus(id, IdeaStatus.Rejected); // Status.Rejected
             }
-            r.ended = true;
-            r.active = false;
 
             emit VotingRoundEnded(roundId, 0, 0);
             return 0;

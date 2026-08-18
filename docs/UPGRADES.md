@@ -49,6 +49,11 @@ These rules are non-negotiable for upgrade safety:
 5. preserve inheritance order unless the storage impact is explicitly understood and validated
 6. do not repurpose old storage slots for new semantics
 
+Specific lesson from the August 18, 2026 voting hotfix:
+- adding `humanVerifier`, `humanOnlyVoting`, or other new voting fields before legacy voting storage is unsafe
+- new voting fields must remain appended after the pre-existing voting storage layout
+- post-upgrade validation must read live config values immediately, not only check transaction success
+
 If a change breaks these rules, the upgrade can preserve admin control while silently corrupting live state.
 
 ## Dependency Rewiring Rules
@@ -115,6 +120,12 @@ Immediately after upgrade, validate:
 - critical parameters still match expected values
 - key view functions return sane values
 
+If the upgrade touches voting access policy, also validate:
+- `humanOnlyVoting`
+- `humanVerifier`
+- `maxVoteAmount`
+- `trustedSigner` on the verifier contract
+
 Smoke-test the following:
 - create idea
 - read round info
@@ -146,6 +157,7 @@ Common operational upgrade mistakes include:
 - forgetting to validate dependency wiring
 - upgrading only one module in a multi-module change
 - deploying correct code but wrong configuration
+- assuming new verifier-related storage can be inserted near existing voting parameters without layout impact
 
 Protocol-specific risks include:
 - grant manager upgrade that no longer matches funding pool assumptions

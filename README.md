@@ -12,6 +12,8 @@ BERT is programmable stablecoin-native funding infrastructure for transparent gr
 
 The protocol keeps proposal intake, voting rounds, treasury accounting, and staged grant distribution onchain. Economic flows are USDC-native: proposal deposits, vote commitments, treasury balances, reserve accounting, and grant payouts all settle in USDC-compatible units.
 
+The live voting model can additionally enforce verified-human participation through a dedicated verifier contract. When enabled, voting remains capital-weighted in USDC, but only wallets that pass the configured proof-of-personhood flow may participate, and each wallet is capped per idea vote.
+
 ## Problem
 
 Traditional grant programs are often opaque, manual, slow to execute, and difficult to audit. Treasury coordination is fragmented across forms, spreadsheets, chat approvals, and offchain payout operations.
@@ -22,9 +24,11 @@ BERT turns grant allocation into programmable treasury flow:
 
 1. Builders create proposals with a stake-backed submission flow.
 2. Participants commit USDC voting weight during funding rounds.
-3. The treasury records round-level and proposal-level capital onchain.
-4. Winning proposals receive milestone-based USDC releases.
-5. Reviewers validate progress before later tranches unlock.
+3. Optional verified-human gating can restrict voting access to approved wallets.
+4. Optional per-vote caps can limit single-wallet influence on one idea.
+5. The treasury records round-level and proposal-level capital onchain.
+6. Winning proposals receive milestone-based USDC releases.
+7. Reviewers validate progress before later tranches unlock.
 
 ## Why Arc
 
@@ -74,6 +78,7 @@ Each later tranche requires milestone approval
 3. `FundingPoolUpgradeable` is the USDC treasury and accounting layer.
 4. `GrantManagerUpgradeable` coordinates claim flow and milestone-based releases.
 5. `RolesRegistryUpgradeable` and `RolesAwareUpgradeable` enforce protocol permissions.
+6. `PoPVerifierUpgradeable` stores trusted verified-human attestations used by voting access control.
 
 ## Security
 
@@ -82,6 +87,7 @@ Each later tranche requires milestone approval
 3. Treasury transfers use `SafeERC20`.
 4. Milestone payout state prevents duplicate release.
 5. Role-gated cross-contract calls reduce unauthorized state changes.
+6. Verified-human voting can be enabled without embedding any single identity provider directly into the voting contract.
 
 ## Development
 

@@ -26,6 +26,9 @@ ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.network
 DEPLOYER_KEY=0x...
 PROXY_ADMIN_OWNER=0x...
 USDC_ADDRESS=0x3600000000000000000000000000000000000000
+TRUSTED_SIGNER_ADDRESS=0x...
+HUMAN_ONLY_VOTING=true
+MAX_VOTE_AMOUNT_USDC=10000
 ```
 
 **Local Deployment**
@@ -48,7 +51,8 @@ The script:
 2. Uses the configured USDC address for `FundingPoolUpgradeable`.
 3. Grants protocol roles.
 4. Wires `IdeaRegistryUpgradeable` to `FundingPoolUpgradeable`.
-5. Unpauses the live modules.
+5. Optionally deploys and wires `PoPVerifierUpgradeable` when `TRUSTED_SIGNER_ADDRESS` is provided.
+6. Unpauses the live modules.
 
 **Verification Checklist**
 1. Confirm the reported USDC address matches the intended network.
@@ -56,6 +60,7 @@ The script:
 3. Confirm `VotingSystemUpgradeable.minStake()` and `IdeaRegistryUpgradeable.authorMinStake()` reflect 6-decimal USDC units and your intended treasury policy.
 4. Confirm all system roles are assigned.
 5. Confirm `FundingPoolUpgradeable`, `VotingSystemUpgradeable`, and `GrantManagerUpgradeable` are unpaused only after role wiring.
+6. If PoP voting is enabled, confirm `humanVerifier`, `humanOnlyVoting`, `maxVoteAmount`, and verifier `trustedSigner`.
 
 **Post-Deploy Console Checks**
 
@@ -68,10 +73,15 @@ const { ethers } = await hre.network.connect();
 const funding = await ethers.getContractAt("FundingPoolUpgradeable", "<funding_proxy>");
 const voting = await ethers.getContractAt("VotingSystemUpgradeable", "<voting_proxy>");
 const registry = await ethers.getContractAt("IdeaRegistryUpgradeable", "<idea_proxy>");
+const verifier = await ethers.getContractAt("PoPVerifierUpgradeable", "<pop_proxy>");
 
 await funding.usdc();
 await voting.minStake();
 await registry.authorMinStake();
+await voting.humanOnlyVoting();
+await voting.humanVerifier();
+await voting.maxVoteAmount();
+await verifier.trustedSigner();
 ```
 
 **Production Readiness Checklist**
@@ -80,7 +90,8 @@ await registry.authorMinStake();
 3. Rehearse deployment and upgrade flow off-production.
 4. Archive proxy, implementation, and ProxyAdmin addresses.
 5. Verify role assignments from chain state, not logs alone.
-6. Test proposal creation, voting, claim, and milestone payout with realistic USDC amounts before launch.
+6. Test proposal creation, verified-human voting, claim, and milestone payout with realistic USDC amounts before launch.
+7. Confirm an unverified wallet cannot vote if `humanOnlyVoting` is enabled.
 
 **Asset Note**
 The Arc deployment path assumes a configured USDC-compatible ERC-20 asset and does not require any protocol-native governance token or faucet contract.

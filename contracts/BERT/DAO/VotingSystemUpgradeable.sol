@@ -121,9 +121,6 @@ contract VotingSystemUpgradeable is
     /// @notice VoterProgression contract interface
     IVoterProgression public voterProgression;
 
-    /// @notice Optional verifier contract used to gate voting to verified-human wallets
-    IHumanVerifier public humanVerifier;
-
     /* ========== CONSTANTS ========== */
 
     /// @notice Maximum voters allowed per idea in a round (protects endVotingRound gas usage)
@@ -148,12 +145,6 @@ contract VotingSystemUpgradeable is
 
     /// @notice Minimum USDC commitment required to vote (in token minor units)
     uint256 public minStake;
-
-    /// @notice Whether voting is restricted to verified-human wallets
-    bool public humanOnlyVoting;
-
-    /// @notice Maximum amount a single wallet can commit in one vote (0 disables the cap)
-    uint256 public maxVoteAmount;
 
     /* ========== STRUCTS ========== */
     
@@ -194,6 +185,18 @@ contract VotingSystemUpgradeable is
 
     /// @dev Mapping from round ID to VotingRound struct
     mapping(uint256 => VotingRound) private votingRounds;
+
+    /// @notice Optional verifier contract used to gate voting to verified-human wallets
+    /// @dev Declared after legacy voting storage to preserve upgrade compatibility
+    IHumanVerifier public humanVerifier;
+
+    /// @notice Whether voting is restricted to verified-human wallets
+    /// @dev Declared after legacy voting storage to preserve upgrade compatibility
+    bool public humanOnlyVoting;
+
+    /// @notice Maximum amount a single wallet can commit in one vote (0 disables the cap)
+    /// @dev Declared after legacy voting storage to preserve upgrade compatibility
+    uint256 public maxVoteAmount;
 
     /* ========== MODIFIERS ========== */
 
@@ -271,7 +274,7 @@ contract VotingSystemUpgradeable is
         currentRoundId = 1;
         minStake = 10 * 10**6;
         humanOnlyVoting = false;
-        maxVoteAmount = 10_000**6;
+        maxVoteAmount = 10_000 * 10**6;
         
         _pause();
         

@@ -2,6 +2,41 @@
 
 This changelog tracks protocol-level evolution, not just developer notes. Each entry should describe what changed, why it changed, and what operators or integrators should care about.
 
+## v1.1.1
+
+### Summary
+Introduced verified-human-gated voting with a per-wallet vote cap and shipped a corrective voting upgrade to preserve storage safety.
+
+### Modules Touched
+- `VotingSystemUpgradeable`
+- `PoPVerifierUpgradeable`
+- deployment and verification scripts
+
+### Key Changes
+1. `VotingSystemUpgradeable` can now enforce verified-human-only voting.
+2. Voting can now cap the amount a single wallet commits to one idea vote.
+3. `PoPVerifierUpgradeable` stores trusted offchain humanity attestations onchain.
+4. Deployment tooling now supports verifier deployment, voting policy wiring, and post-deploy verification.
+5. Upgrade documentation now explicitly calls out storage-layout constraints for new voting fields.
+
+### Behavioral Impact
+- voting remains USDC-weighted rather than one-person-one-vote
+- sybil resistance can now be raised through verified-human gating
+- whale influence can now be bounded per idea vote through `maxVoteAmount`
+- voting policy depends on correct verifier and backend signer configuration
+
+### Operator Impact
+- operators must maintain a trusted signer for PoP attestations
+- operators must verify `humanVerifier`, `humanOnlyVoting`, and `maxVoteAmount` after deployment or upgrade
+- smoke tests should include both verified and unverified voting attempts
+
+### Storage / Upgrade Impact
+- new voting fields must be appended after legacy voting storage
+- an unsafe intermediate voting upgrade required a corrective implementation upgrade and config restoration on August 18, 2026
+
+### Documentation Impact
+- deployment, config, and upgrade runbooks now include verified-human voting policy guidance
+
 ## v1.1.0
 
 ### Summary

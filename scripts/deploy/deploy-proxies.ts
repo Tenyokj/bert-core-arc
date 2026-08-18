@@ -2,6 +2,7 @@
  * @file deploy-proxies.ts
  * @notice Deploys the full USDC-native funding system using TransparentUpgradeableProxy (OZ v5).
  * @dev Each proxy creates its own ProxyAdmin. Owner = PROXY_ADMIN_OWNER or deployer.
+ * @dev Optionally deploys and wires PoPVerifierUpgradeable when TRUSTED_SIGNER_ADDRESS is provided.
  * @dev Run with: npx hardhat run scripts/deploy-proxies.ts --network localhost
  */
 import { createRequire } from "module";
@@ -92,6 +93,9 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   const configuredVoteMinStake = process.env.VOTE_MIN_STAKE_USDC?.trim();
   const configuredAuthorMinStake = process.env.AUTHOR_MIN_STAKE_USDC?.trim();
+  const configuredTrustedSigner = process.env.TRUSTED_SIGNER_ADDRESS?.trim();
+  const configuredHumanOnlyVoting = process.env.HUMAN_ONLY_VOTING?.trim();
+  const configuredMaxVoteAmount = process.env.MAX_VOTE_AMOUNT_USDC?.trim();
 
   console.log("🚀 Deploying BERT USDC-native funding system with Transparent Proxies");
   console.log("Deployer:", deployer.address);
@@ -161,6 +165,16 @@ async function main() {
     initialOwner
   );
 
+  let popVerifier: DeployedProxy | null = null;
+  if (configuredTrustedSigner) {
+    popVerifier = await deployProxy(
+      ethers,
+      "PoPVerifierUpgradeable",
+      [roles.proxyAddress, configuredTrustedSigner],
+      initialOwner
+    );
+  }
+
   const grantManager = await deployProxy(
     ethers,
     "GrantManagerUpgradeable",
@@ -225,6 +239,14 @@ async function main() {
     votingSystem.proxyAddress,
     deployer
   );
+  const popVerifierContract =
+    popVerifier !== null
+      ? await ethers.getContractAt(
+          "PoPVerifierUpgradeable",
+          popVerifier.proxyAddress,
+          deployer
+        )
+      : null;
   const grantManagerContract = await ethers.getContractAt(
     "GrantManagerUpgradeable",
     grantManager.proxyAddress,
@@ -240,6 +262,18 @@ async function main() {
   if (configuredVoteMinStake) {
     await votingSystemContract.setMinStake(
       ethers.parseUnits(configuredVoteMinStake, 6)
+    );
+  }
+  if (popVerifier) {
+    await votingSystemContract.setHumanVerifier(popVerifier.proxyAddress);
+  }
+  if (configuredHumanOnlyVoting) {
+    const enabled = configuredHumanOnlyVoting.toLowerCase() === "true";
+    await votingSystemContract.setHumanOnlyVoting(enabled);
+  }
+  if (configuredMaxVoteAmount) {
+    await votingSystemContract.setMaxVoteAmount(
+      ethers.parseUnits(configuredMaxVoteAmount, 6)
     );
   }
 
@@ -266,8 +300,19 @@ async function main() {
     "Vote min stake (USDC):",
     ethers.formatUnits(await votingSystemContract.minStake(), 6)
   );
+  if (popVerifierContract) {
+    console.log("Trusted signer:", await popVerifierContract.trustedSigner());
+    console.log("PoP verification enabled:", await votingSystemContract.humanOnlyVoting());
+    console.log(
+      "Max vote amount (USDC):",
+      ethers.formatUnits(await votingSystemContract.maxVoteAmount(), 6)
+    );
+  }
   console.log("FundingPoolUpgradeable:", fundingPool.proxyAddress);
   console.log("VotingSystemUpgradeable:", votingSystem.proxyAddress);
+  if (popVerifier) {
+    console.log("PoPVerifierUpgradeable:", popVerifier.proxyAddress);
+  }
   console.log("GrantManagerUpgradeable:", grantManager.proxyAddress);
 
   console.log("\nProxyAdmin per proxy:");
@@ -277,6 +322,9 @@ async function main() {
   console.log("IdeaRegistryUpgradeable:", ideaRegistry.proxyAdminAddress);
   console.log("FundingPoolUpgradeable:", fundingPool.proxyAdminAddress);
   console.log("VotingSystemUpgradeable:", votingSystem.proxyAdminAddress);
+  if (popVerifier) {
+    console.log("PoPVerifierUpgradeable:", popVerifier.proxyAdminAddress);
+  }
   console.log("GrantManagerUpgradeable:", grantManager.proxyAdminAddress);
 
   console.log("\nImplementations:");
@@ -286,6 +334,9 @@ async function main() {
   console.log("IdeaRegistryUpgradeable:", ideaRegistry.implAddress);
   console.log("FundingPoolUpgradeable:", fundingPool.implAddress);
   console.log("VotingSystemUpgradeable:", votingSystem.implAddress);
+  if (popVerifier) {
+    console.log("PoPVerifierUpgradeable:", popVerifier.implAddress);
+  }
   console.log("GrantManagerUpgradeable:", grantManager.implAddress);
 
   console.log("\n🎉 Deployment complete");

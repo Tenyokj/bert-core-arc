@@ -105,6 +105,8 @@ Meaning:
 Operational note:
 - this should remain provider-agnostic at the protocol layer
 - the verifier can be backed by proof-of-personhood, privacy-preserving identity checks, or stronger compliance flows
+- in the current PoP deployment model, the verifier stores attestations signed by a trusted backend signer after offchain human verification succeeds
+- operators must keep the trusted signer and backend environment aligned
 
 ### `maxVoteAmount`
 Owned by:
@@ -123,6 +125,9 @@ Lower values:
 
 Operational note:
 - this works best together with verified-human gating, not by itself
+- current live policy target:
+  `humanOnlyVoting = true`
+  `maxVoteAmount = 10_000 * 10^6`
 
 ## Proposal Intake Parameters
 
@@ -230,12 +235,17 @@ If addresses or roles are wrong, valid code may still fail at runtime.
 
 ## Recommended Defaults
 
-For local or Sepolia-style testing, existing protocol defaults have included:
+For local or staging-style testing, existing protocol defaults have included:
 - `IDEAS_PER_ROUND = 30`
 - `VOTING_DURATION = 1 day`
-- `minStake = 3000 * tokenUnit`
-- `authorMinStake = 5000 * tokenUnit`
+- `minStake = 10 * 10^6`
+- `authorMinStake = 50 * 10^6`
 - `authorSharePercent = 95`
+
+Current Arc testnet governance policy as of August 18, 2026:
+- `humanOnlyVoting = true`
+- `maxVoteAmount = 10_000 * 10^6`
+- `trustedSigner` must match the PoP backend signer address exactly
 
 These should be treated as environment defaults, not universal policy truths.
 

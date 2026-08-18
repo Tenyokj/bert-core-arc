@@ -87,6 +87,7 @@ import { IFundingPool } from "../interfaces/IFundingPool.sol";
 import { IIdeaRegistry } from "../interfaces/IIdeaRegistry.sol";
 import { IReputationSystem } from "../interfaces/IReputationSystem.sol";
 import { IVoterProgression } from "../interfaces/IVoterProgression.sol";
+import { IHumanVerifier } from "../interfaces/IHumanVerifier.sol";
 import { RolesAwareUpgradeable } from "../extensions/Roles/RolesAwareUpgradeable.sol";
 import "../utils/IdeaStatus.sol";
 import "../utils/Errors.sol";
@@ -120,6 +121,9 @@ contract VotingSystemUpgradeable is
     /// @notice VoterProgression contract interface
     IVoterProgression public voterProgression;
 
+    /// @notice Optional verifier contract used to gate voting to verified-human wallets
+    IHumanVerifier public humanVerifier;
+
     /* ========== CONSTANTS ========== */
 
     /// @notice Maximum voters allowed per idea in a round (protects endVotingRound gas usage)
@@ -144,6 +148,12 @@ contract VotingSystemUpgradeable is
 
     /// @notice Minimum USDC commitment required to vote (in token minor units)
     uint256 public minStake;
+
+    /// @notice Whether voting is restricted to verified-human wallets
+    bool public humanOnlyVoting;
+
+    /// @notice Maximum amount a single wallet can commit in one vote (0 disables the cap)
+    uint256 public maxVoteAmount;
 
     /* ========== STRUCTS ========== */
     
@@ -243,23 +253,25 @@ contract VotingSystemUpgradeable is
 
         __RolesAware_init(_rolesRegistry);
         
-        // Проверки
+        // Checks
         if (_fundingPool == address(0)) revert ZeroAddress("fundingPool");
         if (_ideaRegistry == address(0)) revert ZeroAddress("ideaRegistry");
         if (_reputationSystem == address(0)) revert ZeroAddress("reputationSystem");
         if (_voterProgression == address(0)) revert ZeroAddress("voterProgression");
 
-        // Инициализация переменных
+        // Initialization of variables
         fundingPool = IFundingPool(_fundingPool);
         ideaRegistry = IIdeaRegistry(_ideaRegistry);
         reputationSystem = IReputationSystem(_reputationSystem);
         voterProgression = IVoterProgression(_voterProgression);
         
-        // Инициализация значений
+        // Initialization of values
         IDEAS_PER_ROUND = 30;
         VOTING_DURATION = 1 days;
         currentRoundId = 1;
         minStake = 10 * 10**6;
+        humanOnlyVoting = false;
+        maxVoteAmount = 10_000**6;
         
         _pause();
         
@@ -383,6 +395,19 @@ contract VotingSystemUpgradeable is
         
         if (amount < minStake) {
             revert InsufficientStake(amount, minStake);
+        }
+
+        if (humanOnlyVoting) {
+            if (address(humanVerifier) == address(0)) {
+                revert HumanVerifierNotConfigured();
+            }
+            if (!humanVerifier.isVerifiedHuman(msg.sender)) {
+                revert HumanVerificationRequired(msg.sender);
+            }
+        }
+
+        if (maxVoteAmount != 0 && amount > maxVoteAmount) {
+            revert VoteAmountCapExceeded(amount, maxVoteAmount);
         }
         
         if (!r.isIdeaInRound[ideaId]) {
@@ -758,6 +783,46 @@ contract VotingSystemUpgradeable is
         minStake = _minStake;
         emit MinStakeUpdated(_minStake);
     }
+
+    /**
+     * @notice Updates the human verifier contract used for verified-human gating
+     * @dev Can only be called by the contract admin
+     * @param _newHumanVerifier New human verifier contract address
+     * @custom:emits HumanVerifierUpdated
+     * @custom:requires Only admin can call
+     * @custom:requires _newHumanVerifier cannot be zero address
+     */
+    function setHumanVerifier(address _newHumanVerifier) external onlyAdmin {
+        if (_newHumanVerifier == address(0)) {
+            revert ZeroAddress("newHumanVerifier");
+        }
+        humanVerifier = IHumanVerifier(_newHumanVerifier);
+        emit HumanVerifierUpdated(_newHumanVerifier);
+    }
+
+    /**
+     * @notice Toggles verified-human voting enforcement
+     * @dev Can only be called by the contract admin
+     * @param enabled Whether voting should require a verified-human wallet
+     * @custom:emits HumanOnlyVotingUpdated
+     * @custom:requires Only admin can call
+     */
+    function setHumanOnlyVoting(bool enabled) external onlyAdmin {
+        humanOnlyVoting = enabled;
+        emit HumanOnlyVotingUpdated(enabled);
+    }
+
+    /**
+     * @notice Updates the maximum amount allowed for a single vote
+     * @dev Can only be called by the contract admin
+     * @param _maxVoteAmount New cap for one vote; 0 disables the cap
+     * @custom:emits MaxVoteAmountUpdated
+     * @custom:requires Only admin can call
+     */
+    function setMaxVoteAmount(uint256 _maxVoteAmount) external onlyAdmin {
+        maxVoteAmount = _maxVoteAmount;
+        emit MaxVoteAmountUpdated(_maxVoteAmount);
+    }
     
     /**
      * @notice Updates the minimum ideas per round required to start a voting round
@@ -809,5 +874,5 @@ contract VotingSystemUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[50] private __gap;
+    uint256[47] private __gap;
 }

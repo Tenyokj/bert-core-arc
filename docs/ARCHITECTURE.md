@@ -174,7 +174,9 @@ Responsibilities:
    - round exists
    - round is active
    - idea belongs to the round
+   - wallet satisfies verified-human policy when enabled
    - amount is at least `minStake`
+   - amount does not exceed the configured per-vote cap when enabled
 3. Treasury accounting is updated by calling `FundingPoolUpgradeable.depositForIdeaFrom`.
 4. The vote is recorded in round state and reflected in idea vote totals.
 

@@ -210,6 +210,22 @@ Critical thresholds:
 - curator threshold: `20`
 - reviewer threshold: `60`
 
+### `PoPVerifierUpgradeable`
+Reference:
+- [PoPVerifierUpgradeable](../contracts/BERT/docs_contracts/PoPVerifierUpgradeable.md)
+
+Role in system:
+- stores trusted proof-of-personhood attestations for voting access
+
+Owns this state:
+- trusted backend signer
+- per-wallet verification expiry
+- per-wallet verification nonce progression
+
+Critical note:
+- this module does not score humanity itself
+- it only records backend-signed verification outcomes in an onchain form that `VotingSystemUpgradeable` can consume
+
 ## Shared Types and Utilities
 
 ### `IdeaStatus`

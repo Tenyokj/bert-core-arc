@@ -80,6 +80,50 @@ Lower values:
 - improve accessibility
 - increase noise and potential low-conviction participation
 
+### `humanOnlyVoting`
+Owned by:
+- `VotingSystemUpgradeable`
+
+Meaning:
+- whether voting is restricted to wallets that pass the configured verified-human policy
+
+When enabled:
+- lowers sybil exposure
+- adds integration dependency on an external verifier
+- increases participation quality at the cost of some UX friction
+
+Operational note:
+- do not enable this without configuring `humanVerifier`
+
+### `humanVerifier`
+Owned by:
+- `VotingSystemUpgradeable`
+
+Meaning:
+- external verifier contract that decides whether a wallet is allowed to vote as a verified human
+
+Operational note:
+- this should remain provider-agnostic at the protocol layer
+- the verifier can be backed by proof-of-personhood, privacy-preserving identity checks, or stronger compliance flows
+
+### `maxVoteAmount`
+Owned by:
+- `VotingSystemUpgradeable`
+
+Meaning:
+- maximum amount a single wallet can commit in one vote
+
+Higher values:
+- preserve capital expression for large voters
+- weaken anti-whale protection
+
+Lower values:
+- reduce single-wallet influence
+- can push large participants to split capital if identity gating is weak
+
+Operational note:
+- this works best together with verified-human gating, not by itself
+
 ## Proposal Intake Parameters
 
 ### `authorMinStake`

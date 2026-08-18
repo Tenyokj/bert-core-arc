@@ -51,7 +51,7 @@
 // ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##############@%**%#***%################@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
 // ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@@@############***#############@#@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
 // ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#@@###############@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
-// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇    
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇  
 /**
  *     NOTICE
  *
@@ -76,293 +76,233 @@
  *     You should have received a copy of the GNU General Public License
  *     along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { RolesAwareUpgradeable } from "./Roles/RolesAwareUpgradeable.sol";
+import { IHumanVerifier } from "../interfaces/IHumanVerifier.sol";
+import "../utils/Errors.sol";
 
 /**
- * @title IVotingSystem
- * @notice Interface for VotingSystem contract that manages voting rounds for idea selection
- * @dev Handles token-staked voting, round management, and winner determination
+ * @title PoPVerifierUpgradeable
+ * @notice Stores backend-signed proof-of-personhood attestations for voting access
+ * @dev Users submit an EIP-712 signature issued by a trusted backend after passing
+ *      an external proof-of-personhood check. The resulting verified status is then
+ *      consumed onchain by `VotingSystemUpgradeable`.
+ *
+ * @custom:version 1.0.0
  */
-interface IVotingSystem {
+contract PoPVerifierUpgradeable is
+    Initializable,
+    EIP712Upgradeable,
+    RolesAwareUpgradeable,
+    IHumanVerifier
+{
+    /* ========== CONSTANTS ========== */
+
+    /// @notice Human-readable EIP-712 domain name
+    string public constant SIGNING_DOMAIN = "BERT PoP Verifier";
+
+    /// @notice EIP-712 domain version
+    string public constant SIGNATURE_VERSION = "1";
+
+    /// @notice Type hash for verification payloads signed by the trusted backend
+    bytes32 public constant VERIFICATION_TYPEHASH =
+        keccak256(
+            "Verification(address user,uint64 verifiedUntil,uint256 nonce,bytes32 provider,bytes32 credentialHash)"
+        );
+
+    /* ========== STATE ========== */
+
+    /// @notice Backend signer authorized to attest proof-of-personhood results
+    address public trustedSigner;
+
+    /// @notice Timestamp until which an address remains verified
+    mapping(address => uint64) public verifiedUntil;
+
+    /// @notice Latest consumed nonce per address
+    mapping(address => uint256) public latestNonce;
+
     /* ========== EVENTS ========== */
 
     /**
-     * @notice Emmited when contract was initialized
-     * @param sender Address who initialized the contract
+     * @notice Emitted when a signed verification proof is recorded
+     * @param user Wallet whose verification was recorded
+     * @param verifiedUntilTimestamp Timestamp until which the verification remains valid
+     * @param nonce Consumed nonce for the verification payload
+     * @param provider Provider identifier, e.g. `keccak256("HUMAN_PASSPORT_STAMPS")`
      */
-    event VotingSystemInitialized(address sender);
-    /**
-     * @notice Emitted when a new voting round starts
-     * @param roundId Unique identifier of the voting round
-     * @param ideaIds Array of idea IDs included in the round
-     * @param startTime Round start timestamp
-     * @param endTime Round end timestamp
-     */
-    event VotingRoundStarted(
-        uint256 indexed roundId,
-        uint256[] ideaIds,
-        uint256 startTime,
-        uint256 endTime
+    event VerificationRecorded(
+        address indexed user,
+        uint64 verifiedUntilTimestamp,
+        uint256 nonce,
+        bytes32 provider
     );
 
     /**
-     * @notice Emitted when a user casts votes
-     * @param voter Address of the voting user
-     * @param roundId Voting round identifier
-     * @param ideaId Idea receiving votes
-     * @param amount Amount of tokens staked as votes
+     * @notice Emitted when the backend signer is updated
+     * @param newSigner New trusted signer address
      */
-    event VoteCast(
-        address indexed voter,
-        uint256 indexed roundId,
-        uint256 indexed ideaId,
-        uint256 amount
-    );
+    event TrustedSignerUpdated(address newSigner);
 
     /**
-     * @notice Emitted when a voting round ends
-     * @param roundId Unique identifier of the ended round
-     * @param winningIdeaId ID of the winning idea (0 if no votes)
-     * @param winningVotes Total votes received by the winner
+     * @notice Emitted when a user's onchain verification is revoked
+     * @param user Wallet whose verification was revoked
      */
-    event VotingRoundEnded(
-        uint256 indexed roundId,
-        uint256 winningIdeaId,
-        uint256 winningVotes
-    );
+    event VerificationRevoked(address indexed user);
+
+    /* ========== INITIALIZE ========== */
+
+    constructor() {
+        _disableInitializers();
+    }
 
     /**
-     * @notice Emitted when FundingPool address is updated
-     * @param newFundingPool New FundingPool contract address
+     * @notice Initializes the PoP verifier contract
+     * @param _rolesRegistry Address of the RolesRegistry contract
+     * @param _trustedSigner Backend signer authorized to issue verification proofs
+     * @custom:requires All addresses must be non-zero
      */
-    event FundingPoolUpdated(address newFundingPool);
-    
-    /**
-     * @notice Emitted when IdeaRegistry address is updated
-     * @param newIdeaRegistry New IdeaRegistry contract address
-     */
-    event IdeaRegistryUpdated(address newIdeaRegistry);
-    
-    /**
-     * @notice Emitted when IdeaRegistry address is updated
-     * @param newReputationSystem New ReputationSystem contract address
-     */
-    event ReputationSystemUpdated(address newReputationSystem);
+    function initialize(
+        address _rolesRegistry,
+        address _trustedSigner
+    ) public initializer {
+        if (_rolesRegistry == address(0)) revert ZeroAddress("rolesRegistry");
+        if (_trustedSigner == address(0)) revert ZeroAddress("trustedSigner");
 
-    /**
-     * @notice Emitted when IdeaRegistry address is updated
-     * @param newVoterProgression New ReputationSystem contract address
-     */
-    event VoterProgressionUpdated(address newVoterProgression);
+        __EIP712_init(SIGNING_DOMAIN, SIGNATURE_VERSION);
+        __RolesAware_init(_rolesRegistry);
 
-    /**
-     * @notice Emitted when voting duration is updated
-     * @param newDuration New voting duration in seconds
-     */
-    event VotingDurationUpdated(uint256 newDuration);
+        trustedSigner = _trustedSigner;
 
-    /**
-     * @notice Emitted when minimum stake is updated
-     * @param newMinStake New minimum stake amount
-     */
-    event MinStakeUpdated(uint256 newMinStake);
-
-    /**
-     * @notice Emitted when ideas per round is updated
-     * @param newQuantity New number of ideas per round
-     */
-    event IdeasPerRoundUpdated(uint256 newQuantity);
-
-    /**
-     * @notice Emitted when the human verifier dependency is updated
-     * @param newHumanVerifier New human verifier contract address
-     */
-    event HumanVerifierUpdated(address newHumanVerifier);
-
-    /**
-     * @notice Emitted when verified-human voting enforcement is toggled
-     * @param enabled Whether verified-human gating is required for voting
-     */
-    event HumanOnlyVotingUpdated(bool enabled);
-
-    /**
-     * @notice Emitted when the single-vote cap is updated
-     * @param newMaxVoteAmount New maximum amount allowed per vote
-     */
-    event MaxVoteAmountUpdated(uint256 newMaxVoteAmount);
-
+        emit TrustedSignerUpdated(_trustedSigner);
+    }
 
     /* ========== EXTERNAL FUNCTIONS ========== */
 
     /**
-     * @notice Starts a new voting round (anyone can call)
-     * @dev Sets up round parameters, validates included ideas, and updates their status
+     * @notice Records a proof-of-personhood verification signed by the trusted backend
+     * @dev The signed payload is bound to `msg.sender`, so proofs cannot be replayed
+     *      by another wallet. Each new proof must advance the user's nonce.
+     * @param verifiedUntil_ Expiration timestamp for the verification
+     * @param nonce User-specific nonce signed by the backend
+     * @param provider Provider identifier used for auditability
+     * @param credentialHash Hash of offchain verification metadata
+     * @param signature EIP-712 signature issued by `trustedSigner`
+     * @custom:emits VerificationRecorded
      */
-    function startVotingRound() external;
+    function submitVerification(
+        uint64 verifiedUntil_,
+        uint256 nonce,
+        bytes32 provider,
+        bytes32 credentialHash,
+        bytes calldata signature
+    ) external {
+        uint64 currentTime = uint64(block.timestamp);
+        if (verifiedUntil_ <= currentTime) {
+            revert VerifiedTimeExpired(msg.sender, currentTime, verifiedUntil_);
+        }
+
+        uint256 requiredNonce = latestNonce[msg.sender] + 1;
+        if (nonce != requiredNonce) {
+            revert InvalidNonce(nonce, requiredNonce);
+        }
+
+        bytes32 structHash = keccak256(
+            abi.encode(
+                VERIFICATION_TYPEHASH,
+                msg.sender,
+                verifiedUntil_,
+                nonce,
+                provider,
+                credentialHash
+            )
+        );
+        bytes32 digest = _hashTypedDataV4(structHash);
+        address recoveredSigner = ECDSA.recover(digest, signature);
+
+        if (recoveredSigner != trustedSigner) {
+            revert InvalidSignatureSigner(recoveredSigner, trustedSigner);
+        }
+
+        verifiedUntil[msg.sender] = verifiedUntil_;
+        latestNonce[msg.sender] = nonce;
+
+        emit VerificationRecorded(msg.sender, verifiedUntil_, nonce, provider);
+    }
 
     /**
-     * @notice Casts votes for an idea in a specific round
-     * @dev Transfers tokens from voter to funding pool as stake
-     * @param roundId Voting round identifier
-     * @param ideaId Idea to vote for
-     * @param amount Amount of tokens to stake as votes
+     * @notice Revokes an address's recorded verification
+     * @param user Wallet to revoke
+     * @custom:emits VerificationRevoked
+     * @custom:requires Caller must be admin
      */
-    function vote(
-        uint256 roundId,
-        uint256 ideaId,
-        uint256 amount
-    ) external;
+    function revokeVerification(address user) external onlyAdmin {
+        if (user == address(0)) revert ZeroAddress("user");
+
+        delete verifiedUntil[user];
+
+        emit VerificationRevoked(user);
+    }
 
     /**
-     * @notice Ends a voting round and determines winner (callable by anyone)
-     * @dev Identifies idea with highest votes, updates statuses, and handles rewards
-     * @param roundId Voting round to end
-     * @return winningIdeaId ID of the winning idea (0 if no votes)
+     * @notice Updates the trusted backend signer
+     * @param newSigner New signer address
+     * @custom:emits TrustedSignerUpdated
+     * @custom:requires Caller must be admin
      */
-    function endVotingRound(uint256 roundId) external returns (uint256 winningIdeaId);
+    function setTrustedSigner(address newSigner) external onlyAdmin {
+        if (newSigner == address(0)) revert ZeroAddress("newSigner");
+
+        trustedSigner = newSigner;
+
+        emit TrustedSignerUpdated(newSigner);
+    }
 
     /* ========== VIEW FUNCTIONS ========== */
 
     /**
-     * @notice Retrieves voting results for a completed round
-     * @param roundId Voting round to query
-     * @return winningIdeaId ID of the winning idea
-     * @return totalVotes Total votes cast in the round
+     * @notice Returns whether a wallet currently satisfies the verified-human requirement
+     * @param account Wallet to check
+     * @return bool True if the wallet's verification has not expired
      */
-    function getRoundResults(uint256 roundId) external view returns (uint256 winningIdeaId, uint256 totalVotes);
+    function isVerifiedHuman(address account) public view returns (bool) {
+        if (account == address(0)) {
+            return false;
+        }
+
+        return verifiedUntil[account] >= block.timestamp;
+    }
 
     /**
-     * @notice Gets the winner and winning votes for a completed round
-     * @param roundId Voting round to query
-     * @return winningIdeaId ID of the winning idea
-     * @return winningVotes Votes received by the winning idea
+     * @notice Returns the current verification state for a wallet
+     * @param account Wallet to query
+     * @return verified Whether the wallet is currently verified
+     * @return until Expiration timestamp of the current verification
+     * @return nonce Latest consumed nonce for the wallet
      */
-    function getRoundWinner(uint256 roundId) external view returns(uint256 winningIdeaId, uint256 winningVotes);
+    function getVerification(address account)
+        external
+        view
+        returns (bool verified, uint64 until, uint256 nonce)
+    {
+        verified = isVerifiedHuman(account);
+        until = verifiedUntil[account];
+        nonce = latestNonce[account];
+    }
 
     /**
-     * @notice Returns votes received by a specific idea in a round
-     * @param roundId Voting round identifier
-     * @param ideaId Idea to query votes for
-     * @return votes Amount of votes received
-     * @custom:requires Round must exist
+     * @notice Exposes the domain separator used for backend signatures
+     * @return bytes32 Current EIP-712 domain separator
      */
-    function getVotesForIdea(uint256 roundId, uint256 ideaId) external view returns (uint256 votes);
+    function domainSeparator() external view returns (bytes32) {
+        return _domainSeparatorV4();
+    }
 
-    /**
-     * @notice Returns comprehensive round information
-     * @param roundId Voting round to query
-     * @return id Round identifier
-     * @return ideaIds Array of included idea IDs
-     * @return startTime Round start timestamp
-     * @return endTime Round end timestamp
-     * @return active Whether round is currently active
-     * @return ended Whether round has ended
-     * @return totalVotes Total votes cast
-     * @return winningIdeaId ID of winning idea (if ended)
-     * @return winningVotes Votes received by winner (if ended)
-     * @custom:requires Round must exist
-     */
-    function getRoundInfo(uint256 roundId) external view returns (
-        uint256 id,
-        uint256[] memory ideaIds,
-        uint256 startTime,
-        uint256 endTime,
-        bool active,
-        bool ended,
-        uint256 totalVotes,
-        uint256 winningIdeaId,
-        uint256 winningVotes
-    );
+    /* ========== UPGRADE SAFETY ========== */
 
-    /**
-     * @notice Checks if an address has voted in a specific round
-     * @param roundId Voting round identifier
-     * @param voter Address to check
-     * @return bool True if the address has voted in the round
-     */
-    function hasVoted(uint256 roundId, address voter) external view returns (bool);
-
-    /**
-     * @notice Gets all voters for a specific idea in a round
-     * @param roundId Voting round identifier
-     * @param ideaId Idea to query
-     * @return voters Array of voter addresses
-     */
-    function getVotersForIdea(uint256 roundId, uint256 ideaId) external view returns (address[] memory voters);
-
-    /**
-     * @notice Checks if a round can be started (cooldown passed and enough ideas)
-     * @return canStart True if a new round can be started
-     * @return reason Human-readable reason if cannot start
-     */
-    function canStartNewRound() external view returns (bool canStart, string memory reason);
-
-    /* ========== ADMIN FUNCTIONS ========== */
-
-    /**
-     * @notice Updates the funding pool contract address
-     * @dev Can only be called by the contract owner
-     * @param _newPool New FundingPool contract address
-     */
-    function setFundingPool(address _newPool) external;
-
-    /**
-     * @notice Updates the idea registry contract address
-     * @dev Can only be called by the contract owner
-     * @param _newRegistry New IdeaRegistry contract address
-     */
-    function setIdeaRegistry(address _newRegistry) external;
-
-    /**
-     * @notice Updates the reputation system contract address
-     * @dev Can only be called by the contract owner
-     * @param _newReputationSystem New ReputationSystem contract address
-     */
-    function setReputationSystem(address _newReputationSystem) external;
-
-    /**
-     * @notice Updates the voter progression contract address
-     * @dev Can only be called by the contract owner
-     * @param _newVoterProgression New VoterProgression contract address
-     */
-    function setVoterProgression(address _newVoterProgression) external;
-
-    /**
-     * @notice Updates the default voting duration
-     * @dev Can only be called by the contract owner
-     * @param _duration New voting duration in seconds
-     */
-    function setVotingDuration(uint256 _duration) external;
-
-    /**
-     * @notice Updates the minimum stake required to vote
-     * @dev Can only be called by the contract owner
-     * @param _minStake New minimum stake amount (in token units)
-     */
-    function setMinStake(uint256 _minStake) external;
-
-    /**
-     * @notice Updates the external human verifier contract
-     * @param _newHumanVerifier New verifier contract address
-     */
-    function setHumanVerifier(address _newHumanVerifier) external;
-
-    /**
-     * @notice Toggles verified-human voting enforcement
-     * @param enabled Whether voting should require a verified-human wallet
-     */
-    function setHumanOnlyVoting(bool enabled) external;
-
-    /**
-     * @notice Updates the maximum amount allowed for a single vote
-     * @param _maxVoteAmount New per-vote cap (0 disables the cap)
-     */
-    function setMaxVoteAmount(uint256 _maxVoteAmount) external;
-    
-    /**
-     * @notice Updates the minimum ideas per round required to start a voting round
-     * @dev Can only be called by the contract owner
-     * @param quantity New number of ideas per round
-     */
-    function setIdeaPerRound(uint256 quantity) external;
+    /// @dev Reserved storage slots for future upgrades
+    uint256[50] private __gap;
 }

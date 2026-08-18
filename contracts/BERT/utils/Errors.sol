@@ -480,6 +480,27 @@ error DuplicateIdea(uint256 roundId, uint256 ideaId);
 error MaxVotersReached(uint256 roundId, uint256 ideaId, uint256 maxVoters);
 
 /**
+ * @notice Emitted when verified-human voting is enabled but the verifier is not configured
+ * @dev Governance should not enable human gating without wiring the verifier dependency
+ */
+error HumanVerifierNotConfigured();
+
+/**
+ * @notice Emitted when a wallet tries to vote without satisfying the verified-human policy
+ * @param voter Address that failed the verification gate
+ * @dev Used when verified-human voting is enabled
+ */
+error HumanVerificationRequired(address voter);
+
+/**
+ * @notice Emitted when a vote amount exceeds the configured per-voter cap
+ * @param amount Amount attempted in the vote
+ * @param maxAllowed Maximum amount allowed for a single vote
+ * @dev Since one address can vote only once per round, this bounds single-wallet influence
+ */
+error VoteAmountCapExceeded(uint256 amount, uint256 maxAllowed);
+
+/**
  * @notice Emitted when trying to start a new round before cooldown period
  * @param lastRoundEnd Timestamp when last round ended
  * @param cooldownEnd Timestamp when cooldown period ends
@@ -774,3 +795,28 @@ error ExternalCallFailed(string contractName, string functionName);
  * @dev Used for try/catch blocks with external calls
  */
 error CannotVoteForOwnIdea(address voter, uint256 ideaId);
+
+
+// ========== PoP Verifier Errors ==========
+
+/**
+ * @notice Emitted when a submitted verification is already expired
+ * @param msgSender Wallet that attempted to submit the verification
+ * @param current Current timestamp
+ * @param required Verification expiration timestamp that was required to be in the future
+ */
+error VerifiedTimeExpired(address msgSender, uint64 current, uint64 required);
+
+/**
+ * @notice Emitted when nonce is invalid
+ * @param current Current nonce
+ * @param required Required nonce
+ */
+error InvalidNonce(uint256 current, uint256 required);
+
+/**
+ * @notice Emitted when a recovered signer does not match the trusted backend signer
+ * @param recoveredSigner Signer recovered from the provided signature
+ * @param expectedSigner Trusted signer configured in the verifier contract
+ */
+error InvalidSignatureSigner(address recoveredSigner, address expectedSigner);

@@ -387,6 +387,154 @@ describe("VotingSystemUpgradeable max voters", function () {
   });
 });
 
+/** @notice describe: VotingSystemUpgradeable verified-human gating */
+describe("VotingSystemUpgradeable verified-human gating", function () {
+  /** @notice it: blocks unverified wallets when human-only voting is enabled */
+  it("blocks unverified wallets when human-only voting is enabled", async function () {
+    const {
+      admin,
+      user1,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      usdc,
+      networkHelpers,
+      ethers,
+    } = await deploySystem();
+
+    const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    await humanVerifier.waitForDeployment();
+
+    await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+
+    await createIdeas(ideaRegistry, admin, 30);
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startVotingRound();
+
+    const minStake = await votingSystem.minStake();
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
+      .connect(user1)
+      .approve(await fundingPool.getAddress(), minStake * 2n);
+
+    await expect(
+      votingSystem.connect(user1).vote(1, 1, minStake)
+    ).to.be.revertedWithCustomError(votingSystem, "HumanVerificationRequired");
+  });
+
+  /** @notice it: allows verified wallets when human-only voting is enabled */
+  it("allows verified wallets when human-only voting is enabled", async function () {
+    const {
+      admin,
+      user1,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      usdc,
+      networkHelpers,
+      ethers,
+    } = await deploySystem();
+
+    const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    await humanVerifier.waitForDeployment();
+
+    await humanVerifier.setVerified(user1.address, true);
+    await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+
+    await createIdeas(ideaRegistry, admin, 30);
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startVotingRound();
+
+    const minStake = await votingSystem.minStake();
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
+      .connect(user1)
+      .approve(await fundingPool.getAddress(), minStake * 2n);
+
+    await expect(
+      votingSystem.connect(user1).vote(1, 1, minStake)
+    )
+      .to.emit(votingSystem, "VoteCast")
+      .withArgs(user1.address, 1n, 1n, minStake);
+  });
+
+  /** @notice it: reverts if human-only voting is enabled without a verifier */
+  it("reverts if human-only voting is enabled without a verifier", async function () {
+    const {
+      admin,
+      user1,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      usdc,
+      networkHelpers,
+    } = await deploySystem();
+
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await createIdeas(ideaRegistry, admin, 30);
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startVotingRound();
+
+    const minStake = await votingSystem.minStake();
+    await usdc.mint(user1.address, minStake * 2n);
+    await usdc
+      .connect(user1)
+      .approve(await fundingPool.getAddress(), minStake * 2n);
+
+    await expect(
+      votingSystem.connect(user1).vote(1, 1, minStake)
+    ).to.be.revertedWithCustomError(votingSystem, "HumanVerifierNotConfigured");
+  });
+});
+
+/** @notice describe: VotingSystemUpgradeable vote cap */
+describe("VotingSystemUpgradeable vote cap", function () {
+  /** @notice it: rejects votes above the configured single-vote cap */
+  it("rejects votes above the configured single-vote cap", async function () {
+    const {
+      admin,
+      user1,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      usdc,
+      networkHelpers,
+    } = await deploySystem();
+
+    await votingSystem.connect(admin).setMaxVoteAmount(15n * 10n ** 6n);
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await createIdeas(ideaRegistry, admin, 30);
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startVotingRound();
+
+    await usdc.mint(user1.address, 20n * 10n ** 6n);
+    await usdc
+      .connect(user1)
+      .approve(await fundingPool.getAddress(), 20n * 10n ** 6n);
+
+    await expect(
+      votingSystem.connect(user1).vote(1, 1, 16n * 10n ** 6n)
+    ).to.be.revertedWithCustomError(votingSystem, "VoteAmountCapExceeded");
+  });
+});
+
 /** @notice describe: VotingSystemUpgradeable extra coverage */
 describe("VotingSystemUpgradeable extra coverage", function () {
   /** @notice it: reverts on non-existent round access */
@@ -647,8 +795,10 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
   /** @notice it: updates admin parameters successfully */
   it("updates admin parameters successfully", async function () {
-    const { admin, votingSystem, fundingPool, ideaRegistry, reputationSystem, voterProgression } =
+    const { admin, votingSystem, fundingPool, ideaRegistry, reputationSystem, voterProgression, ethers } =
       await deploySystem();
+    const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    await humanVerifier.waitForDeployment();
 
     await votingSystem.connect(admin).setFundingPool(await fundingPool.getAddress());
     await votingSystem.connect(admin).setIdeaRegistry(await ideaRegistry.getAddress());
@@ -661,10 +811,16 @@ describe("VotingSystemUpgradeable extra coverage", function () {
     await votingSystem.connect(admin).setVotingDuration(1000);
     await votingSystem.connect(admin).setMinStake(1n);
     await votingSystem.connect(admin).setIdeaPerRound(10);
+    await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await votingSystem.connect(admin).setMaxVoteAmount(123n);
 
     expect(await votingSystem.VOTING_DURATION()).to.equal(1000n);
     expect(await votingSystem.minStake()).to.equal(1n);
     expect(await votingSystem.IDEAS_PER_ROUND()).to.equal(10n);
+    expect(await votingSystem.humanVerifier()).to.equal(await humanVerifier.getAddress());
+    expect(await votingSystem.humanOnlyVoting()).to.equal(true);
+    expect(await votingSystem.maxVoteAmount()).to.equal(123n);
     expect(await votingSystem.isPaused()).to.equal(true);
 
     await votingSystem.connect(admin).unpause();
@@ -721,6 +877,22 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
     await expect(
       votingSystem.connect(user1).setIdeaPerRound(1)
+    ).to.be.revertedWithCustomError(votingSystem, "NotAdmin");
+
+    await expect(
+      votingSystem.connect(user1).setHumanVerifier(ethers.ZeroAddress)
+    ).to.be.revertedWithCustomError(votingSystem, "NotAdmin");
+
+    await expect(
+      votingSystem.setHumanVerifier(ethers.ZeroAddress)
+    ).to.be.revertedWithCustomError(votingSystem, "ZeroAddress");
+
+    await expect(
+      votingSystem.connect(user1).setHumanOnlyVoting(true)
+    ).to.be.revertedWithCustomError(votingSystem, "NotAdmin");
+
+    await expect(
+      votingSystem.connect(user1).setMaxVoteAmount(1)
     ).to.be.revertedWithCustomError(votingSystem, "NotAdmin");
 
     await expect(

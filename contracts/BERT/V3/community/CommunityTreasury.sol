@@ -1,7 +1,88 @@
 // SPDX-License-Identifier: GPL-3.0
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##########################▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#######%********************%#####@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▁@###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%%******%#################%******%####@▇▇▇▇▇▇▇▇▇▇▇@####▓▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▓######▇▇▇▇▇▇▇▇▇█#####*****##############################*****%####▇▇▇▇▇▇@######▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##%####@▇▇▇▇#####****######################################****#####▇#####%##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##**%###▇@###%***############################################***%######**##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***#####***%########################*#######################%*%###***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%****%#############################%**##########################%****##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%*****%#######################%##*%**%##%#####################*****###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####*******%###############%%****##%%%***%##****%##############******%#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇█######********##%######%*********##%%%%****%#%********%#####%##*******###%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###*###%*******%#%***###%********##*%%%%*****%#%*******###%**##*******###***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%###%*******##*****###******##%*%%%%%*****%#%****%##****%#%*******####***####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%#####%*******##%**###******##%*%%%%%*******##%*****##%**##*******######%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**%########*******##%##%******##%*%%%######%****##%*****#####******%########%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%###########%*****###******%##%*##############%*###*****%##*****%###########%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***#####@#########****%##%****########################%***###****%##############***@##▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**######**%%##%*%###%***###****%##%%%###########%*%##****##%**%###%**###%**%#####**%##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%########%***%#%**%###%*%##%***%###%***%###%***%###***%##*%###%***%%****%#######%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**%###########%*********%######****####%********###%***######%*********%###########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**###############%*********%####%***#####*****####%**%####%*********%##############%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##@**%##########**%######%********%###***%#####*#####***%##%********%#####%**###########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%#########*****#########%************%#########***%*********%########****##########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**#########%****#########%###%***********#######**********%###%########%***%#########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**#########*****@##%#####****%###%********####%*******%###%****%########****%########***###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**########******###*#####%*******####%*****%#******%####*******%###%%##%*****########***###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**%######%*******##*%######****%#########%*****%#########%***%#####*###*******#######**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##@***######********###**######################%####################%**##%*******#######**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**#######********%##**%##############%%%%%###%**%#############%***##********#######%**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##%**%#######*********###%********%####%%%%%%%******%####%%*******%##%*******%########%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***@########%*********%%######%%**###%%%%%%*****%###%*%%######%*********%##########***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%#####*####%*****************###%##%%%%%*****######%***************%####*%#####%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***####%**%######%**********%##%***###%%%%****###%***###*********%######%***#####***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▓####***####****##########@######*******###%%%***%###******%#####@#########%***%####***@###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####***####****%###%##########%********###%%%*%###********#########%%###****%###@***%###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###%***######%**##%%%%%########%*******##%%**###******%########%%%%##%*%#@#####***%###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###%***############%%%%%%#######%*****%##%%###*****%######%%%%%%########%####***%####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#####***####******%#####%%%%%######****%#####****%#####%%%%%#####%******####***%####@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####***%###%******%####%%%%%%%#####%**%###%**######%%%%%#####*******####%***#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%***####%*******####%%%%%##%%####%##%%###%*##%%%%%####*******%####***%#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####****####%*******####%%%%##%%%%######%***%##%%%###%*******%####****#####@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%****#####******#%####%##%%%%%%%%******##%%#####%*****#####****%####@@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%****######***##**######%%%%%%******%#####%*%#***%#####****%#####@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇######*****########****######%%%%*****#####%***##%#####%****%######@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#######%*****######*****######%%***%####%****######%****%#######@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@#####@%*****%####%****#####%*%#####****%###%******########@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#@#######%****####%****#########****####*****%#########▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##########%*######***%#####***%#####%%#@########@█▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##############@%**%#***%################@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@@@############***#############@#@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#@@###############@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇  
 /**
- * @notice BERT V3 Community Layer.
- * @dev This contract isolates community USDC custody from CommunityHub governance state.
+ *     NOTICE
+ *
+ *     BERT V3 is the Community Layer of the BERT protocol, designed to enable
+ *     independent on-chain communities to turn proposals into transparent,
+ *     stake-backed decisions and route resulting capital automatically.
+ *
+ *     Each community operates through its own governance infrastructure,
+ *     including stake-gated membership, administrators, validators, proposal
+ *     validation, USDC-backed binary voting, community treasury management,
+ *     and integration with the global BERT reserve.
+ *
+ *     BERT V3 extends the BERT ecosystem as a separate Community Layer while
+ *     preserving the existing protocol architecture and enabling communities
+ *     to coordinate decisions and capital transparently on EVM-compatible
+ *     blockchains.
+ *
+ *     Copyright (C) 2026, BERT contributors.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 pragma solidity ^0.8.20;
 
@@ -10,76 +91,119 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {CommunityTypes} from "../utils/CommunityTypes.sol";
-import "../utils/CommunityErrors.sol";
-import "../../utils/Errors.sol";
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
 
-/// @title CommunityTreasury
-/// @notice Holds USDC and settlement accounting for one BERT V3 community.
-/// @dev Governance decisions live in CommunityHub; this contract only executes authorized fund flows.
+import "../utils/CommunityErrors.sol";
+import "../../utils/Errors.sol";
+
+/**
+ * @title CommunityTreasury
+ * @notice Holds USDC and settlement accounting for one BERT V3 community.
+ * @dev Governance decisions live in CommunityHub; this contract only executes authorized fund flows.
+ */
 contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /// @notice USDC-compatible asset accepted by this community treasury.
+    /**
+     * @notice USDC-compatible asset accepted by this community treasury.
+     */
     IERC20 public immutable usdc;
-    /// @notice Existing BERT V2 reserve receiver for protocol-level inflows.
+    /**
+     * @notice Existing BERT V2 reserve receiver for protocol-level inflows.
+     */
     address public immutable globalBertReserve;
-    /// @notice Factory allowed to bind this treasury to one CommunityHub instance.
+    /**
+     * @notice Factory allowed to bind this treasury to one CommunityHub instance.
+     */
     address public immutable factory;
-    /// @notice Paired Hub that authorizes governance-originated fund flows.
+    /**
+     * @notice Paired Hub that authorizes governance-originated fund flows.
+     */
     address public communityHub;
 
-    /// @notice Refundable member stakes; never spendable as execution funds.
+    /**
+     * @notice Refundable member stakes; never spendable as execution funds.
+     */
     uint256 public totalMembershipLocked;
-    /// @notice Funds available for approved community execution.
+    /**
+     * @notice Funds available for approved community execution.
+     */
     uint256 public executionBalance;
-    /// @notice Unclaimed rewards accrued by active validators.
+    /**
+     * @notice Unclaimed rewards accrued by active validators.
+     */
     uint256 public validatorRewardBalance;
-    /// @notice Votes-USDC awaiting settlement across active binary proposals.
+    /**
+     * @notice Votes-USDC awaiting settlement across active binary proposals.
+     */
     uint256 public totalVoteEscrow;
-    /// @notice Funds reserved for NO-voter refund claims.
+    /**
+     * @notice Funds reserved for NO-voter refund claims.
+     */
     uint256 public totalRefundLiability;
-    /// @notice Portion of executionBalance already reserved by pending withdrawals.
+    /**
+     * @notice Portion of executionBalance already reserved by pending withdrawals.
+     */
     uint256 public reservedExecutionBalance;
-    /// @notice Proposal bonds not yet returned or routed to the global reserve.
+    /**
+     * @notice Proposal bonds not yet returned or routed to the global reserve.
+     */
     uint256 public totalProposalBondLocked;
 
-    /// @notice Bond amount recorded for each member proposal.
+    /**
+     * @notice Bond amount recorded for each member proposal.
+     */
     mapping(uint256 proposalId => uint256 amount) public proposalBondById;
     mapping(uint256 proposalId => bool settled) public proposalBondSettled;
 
-    /// @notice Whether a binary proposal's vote escrow has already been settled.
+    /**
+     * @notice Whether a binary proposal's vote escrow has already been settled.
+     */
     mapping(uint256 proposalId => bool settled) public binaryVoteSettled;
     mapping(uint256 proposalId => uint256 feeBps) public rejectionFeeBpsByProposal;
 
     mapping(uint256 epochId => uint256 amount) public rewardAmountByEpoch;
     mapping(uint256 epochId => uint256 amount) public rewardPerValidatorByEpoch;
 
-    /// @notice Prevents a validator from claiming the same epoch reward twice.
+    /**
+     * @notice Prevents a validator from claiming the same epoch reward twice.
+     */
     mapping(uint256 epochId => mapping(address validator => bool claimed)) public validatorRewardClaimed;
 
-    /// @notice Voting USDC escrowed for a single proposal until its terminal outcome.
+    /**
+     * @notice Voting USDC escrowed for a single proposal until its terminal outcome.
+     */
     mapping(uint256 proposalId => uint256 amount) public voteEscrowByProposal;
     mapping(uint256 proposalId => bool noWonByProposal) public noWonByProposal;
     mapping(uint256 epochId => bool finalized) public validatorRewardEpochFinalized;
 
-    /// @notice Prevents a voter from claiming the same NO-side refund twice.
+    /**
+     * @notice Prevents a voter from claiming the same NO-side refund twice.
+     */
     mapping(uint256 proposalId => mapping(address voter => bool claimed)) public refundClaimed;
 
-    /// @notice Monotonic identifier for withdrawal requests, starting at one.
+    /**
+     * @notice Monotonic identifier for withdrawal requests, starting at one.
+     */
     uint256 public withdrawalRequestCount;
 
-    /// @dev Full withdrawal records are exposed through getWithdrawalRequest.
+    /**
+     * @dev Full withdrawal records are exposed through getWithdrawalRequest.
+     */
     mapping(uint256 requestId => CommunityTypes.WithdrawalRequest) private withdrawalRequests;
 
-    /// @notice Tracks which admins approved each withdrawal request.
+    /**
+     * @notice Tracks which admins approved each withdrawal request.
+     */
     mapping(uint256 requestId => mapping(address admin => bool)) public withdrawalApprovedBy;
 
-    /// @notice Creates an unlinked treasury that a factory binds to a Hub exactly once.
-    /// @param usdc_ USDC-compatible asset for all community flows.
-    /// @param globalBertReserve_ Global BERT reserve receiver.
-    /// @param factory_ Factory permitted to link the Hub.
+    /**
+     * @notice Creates an unlinked treasury that a factory binds to a Hub exactly once.
+     * @param usdc_ USDC-compatible asset for all community flows.
+     * @param globalBertReserve_ Global BERT reserve receiver.
+     * @param factory_ Factory permitted to link the Hub.
+     */
     constructor(
         IERC20 usdc_,
         address globalBertReserve_,
@@ -94,20 +218,26 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         factory = factory_;
     }
 
-    /// @notice Restricts a function to the deploying factory.
+    /**
+     * @notice Restricts a function to the deploying factory.
+     */
     modifier onlyFactory() {
         if (msg.sender != factory) revert NotCommunityFactory(msg.sender);
         _;
     }
 
-    /// @notice Restricts a function to the configured CommunityHub.
+    /**
+     * @notice Restricts a function to the configured CommunityHub.
+     */
     modifier onlyCommunityHub() {
         if (communityHub == address(0)) revert CommunityHubNotConfigured();
         if (msg.sender != communityHub) revert NotCommunityHub(msg.sender);
         _;
     }
 
-    /// @notice Restricts a function to a current community-local admin.
+    /**
+     * @notice Restricts a function to a current community-local admin.
+     */
     modifier onlyCommunityAdmin() {
         if (communityHub == address(0)) revert CommunityHubNotConfigured();
         if (!ICommunityHub(communityHub).isAdminAccount(msg.sender)) {
@@ -116,7 +246,9 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         _;
     }
 
-    /// @notice Restricts governance-changing actions to an active community.
+    /**
+     * @notice Restricts governance-changing actions to an active community.
+     */
     modifier onlyActiveCommunity() {
         if (communityHub == address(0)) revert CommunityHubNotConfigured();
         if (
@@ -127,15 +259,19 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         _;
     }
 
-    /// @notice Requires a factory-linked Hub before querying community state.
+    /**
+     * @notice Requires a factory-linked Hub before querying community state.
+     */
     modifier hubIsConfigured() {
         if (communityHub == address(0)) revert CommunityHubNotConfigured();
         _;
     }
 
-    /// @notice Pulls and locks a member's refundable entry stake.
-    /// @param member Member whose USDC allowance is consumed.
-    /// @param amount USDC amount in token-native units.
+    /**
+     * @notice Pulls and locks a member's refundable entry stake.
+     * @param member Member whose USDC allowance is consumed.
+     * @param amount USDC amount in token-native units.
+     */
     function depositMembershipStake(
         address member,
         uint256 amount
@@ -149,10 +285,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit MembershipStakeDeposited(member, amount);
     }
 
-    /// @notice Finalizes equal validator rewards for one epoch.
-    /// @dev Rounding dust, or all rewards when no validator is active, returns to executionBalance.
-    /// @param epochId Epoch to finalize.
-    /// @param activeValidatorCount Validators eligible to claim in the epoch.
+    /**
+     * @notice Finalizes equal validator rewards for one epoch.
+     * @dev Rounding dust, or all rewards when no validator is active, returns to executionBalance.
+     * @param epochId Epoch to finalize.
+     * @param activeValidatorCount Validators eligible to claim in the epoch.
+     */
     function finalizeValidatorRewardEpoch(
         uint256 epochId,
         uint256 activeValidatorCount
@@ -187,9 +325,11 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit ValidatorRewardEpochFinalized(epochId, rewardPerValidator, activeValidatorCount);
     }
 
-    /// @notice Releases a member stake after CommunityHub exit checks pass.
-    /// @param member Recipient of the returned USDC.
-    /// @param amount USDC amount in token-native units.
+    /**
+     * @notice Releases a member stake after CommunityHub exit checks pass.
+     * @param member Recipient of the returned USDC.
+     * @param amount USDC amount in token-native units.
+     */
     function releaseMembershipStake(
         address member,
         uint256 amount
@@ -206,10 +346,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit MembershipStakeReleased(member, amount);
     }
 
-    /// @notice Pulls and records the anti-spam bond for a member proposal.
-    /// @param proposalId Proposal that owns the bond.
-    /// @param author Proposal author whose USDC allowance is consumed.
-    /// @param amount USDC bond amount in token-native units.
+    /**
+     * @notice Pulls and records the anti-spam bond for a member proposal.
+     * @param proposalId Proposal that owns the bond.
+     * @param author Proposal author whose USDC allowance is consumed.
+     * @param amount USDC bond amount in token-native units.
+     */
     function depositProposalBond(
         uint256 proposalId,
         address author,
@@ -229,8 +371,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit ProposalBondDeposited(proposalId, author, amount);
     }
 
-    /// @notice Allows an active validator to claim one finalized epoch reward.
-    /// @param epochId Finalized reward epoch to claim.
+    /**
+     * @notice Allows an active validator to claim one finalized epoch reward.
+     * @param epochId Finalized reward epoch to claim.
+     */
     function claimValidatorReward(
         uint256 epochId
     ) external override hubIsConfigured nonReentrant {
@@ -256,8 +400,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit ValidatorRewardClaimed(epochId, msg.sender, rewardAmount);
     }
 
-    /// @notice Routes a validator-rejected member proposal bond to the global BERT reserve.
-    /// @param proposalId Proposal whose bond should be slashed.
+    /**
+     * @notice Routes a validator-rejected member proposal bond to the global BERT reserve.
+     * @param proposalId Proposal whose bond should be slashed.
+     */
     function slashProposalBond(
         uint256 proposalId
     ) external override onlyCommunityHub nonReentrant {
@@ -274,9 +420,11 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit ProposalBondSlashed(proposalId, amount);
     }
 
-    /// @notice Returns a proposal bond after a fair community voting outcome.
-    /// @param proposalId Proposal whose bond should be returned.
-    /// @param author Recipient proposal author.
+    /**
+     * @notice Returns a proposal bond after a fair community voting outcome.
+     * @param proposalId Proposal whose bond should be returned.
+     * @param author Recipient proposal author.
+     */
     function returnProposalBond(
         uint256 proposalId,
         address author
@@ -294,10 +442,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit ProposalBondReturned(proposalId, author, amount);
     }
 
-    /// @notice Pulls USDC committed by a member to a binary vote.
-    /// @param proposalId Proposal receiving the vote stake.
-    /// @param voter Member whose USDC allowance is consumed.
-    /// @param amount USDC vote stake in token-native units.
+    /**
+     * @notice Pulls USDC committed by a member to a binary vote.
+     * @param proposalId Proposal receiving the vote stake.
+     * @param voter Member whose USDC allowance is consumed.
+     * @param amount USDC vote stake in token-native units.
+     */
     function depositVoteStake(
         uint256 proposalId,
         address voter,
@@ -315,12 +465,14 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit VoteStakeDeposited(proposalId, voter, amount);
     }
 
-    /// @notice Settles a YES-winning binary proposal.
-    /// @dev YES stake splits between execution and validator rewards; NO stake routes to global reserve.
-    /// @param proposalId Settled proposal.
-    /// @param yesStake Total USDC committed to YES.
-    /// @param noStake Total USDC committed to NO.
-    /// @param epochId Validator reward epoch receiving the reward share.
+    /**
+     * @notice Settles a YES-winning binary proposal.
+     * @dev YES stake splits between execution and validator rewards; NO stake routes to global reserve.
+     * @param proposalId Settled proposal.
+     * @param yesStake Total USDC committed to YES.
+     * @param noStake Total USDC committed to NO.
+     * @param epochId Validator reward epoch receiving the reward share.
+     */
     function settleBinaryYesWin(
         uint256 proposalId,
         uint256 yesStake,
@@ -359,12 +511,14 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit BinaryYesWinSettled(proposalId, executionAmount, validatorReward, noStake);
     }
 
-    /// @notice Settles a NO-winning or tied binary proposal.
-    /// @dev YES stake and the NO-side fee route to global reserve; remaining NO stake becomes claimable.
-    /// @param proposalId Settled proposal.
-    /// @param yesStake Total USDC committed to YES.
-    /// @param noStake Total USDC committed to NO.
-    /// @param feeBps NO-side fee in basis points.
+    /**
+     * @notice Settles a NO-winning or tied binary proposal.
+     * @dev YES stake and the NO-side fee route to global reserve; remaining NO stake becomes claimable.
+     * @param proposalId Settled proposal.
+     * @param yesStake Total USDC committed to YES.
+     * @param noStake Total USDC committed to NO.
+     * @param feeBps NO-side fee in basis points.
+     */
     function settleBinaryNoWin(
         uint256 proposalId,
         uint256 yesStake,
@@ -402,8 +556,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit BinaryNoWinSettled(proposalId, refundLiability, globalReserveAmount);
     }
 
-    /// @notice Claims a NO-side refund after a rejected binary proposal.
-    /// @param proposalId Rejected proposal whose refund is claimed.
+    /**
+     * @notice Claims a NO-side refund after a rejected binary proposal.
+     * @param proposalId Rejected proposal whose refund is claimed.
+     */
     function claimNoVoteRefund(
         uint256 proposalId
     ) external override nonReentrant hubIsConfigured {
@@ -434,11 +590,13 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit RefundClaimed(proposalId, msg.sender, refundAmount);
     }
 
-    /// @notice Creates an execution withdrawal request and records the creator's first approval.
-    /// @param to Recipient of the USDC withdrawal.
-    /// @param amount Requested USDC amount in token-native units.
-    /// @param reason Human-readable execution reason.
-    /// @param metadataURI Offchain evidence or implementation metadata.
+    /**
+     * @notice Creates an execution withdrawal request and records the creator's first approval.
+     * @param to Recipient of the USDC withdrawal.
+     * @param amount Requested USDC amount in token-native units.
+     * @param reason Human-readable execution reason.
+     * @param metadataURI Offchain evidence or implementation metadata.
+     */
     function createWithdrawalRequest(
         address to,
         uint256 amount,
@@ -471,8 +629,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit WithdrawalApproved(requestId, msg.sender);
     }
 
-    /// @notice Adds the caller's approval to a pending withdrawal request.
-    /// @param requestId Withdrawal request identifier.
+    /**
+     * @notice Adds the caller's approval to a pending withdrawal request.
+     * @param requestId Withdrawal request identifier.
+     */
     function approveWithdrawal(
         uint256 requestId
     ) external override onlyCommunityAdmin onlyActiveCommunity {
@@ -489,8 +649,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit WithdrawalApproved(requestId, msg.sender);
     }
 
-    /// @notice Cancels a pending request and releases its execution reservation.
-    /// @param requestId Withdrawal request identifier.
+    /**
+     * @notice Cancels a pending request and releases its execution reservation.
+     * @param requestId Withdrawal request identifier.
+     */
     function cancelWithdrawalRequest(
         uint256 requestId
     ) external override onlyCommunityAdmin {
@@ -504,8 +666,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit WithdrawalCancelled(requestId, msg.sender);
     }
 
-    /// @notice Executes a reserved withdrawal after the configured admin quorum is reached.
-    /// @param requestId Withdrawal request identifier.
+    /**
+     * @notice Executes a reserved withdrawal after the configured admin quorum is reached.
+     * @param requestId Withdrawal request identifier.
+     */
     function executeWithdrawal(
         uint256 requestId
     ) external override onlyCommunityAdmin onlyActiveCommunity nonReentrant {
@@ -530,22 +694,28 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit WithdrawalExecuted(requestId, request.to, request.amount);
     }
 
-    /// @notice Returns execution USDC not already reserved by pending withdrawals.
+    /**
+     * @notice Returns execution USDC not already reserved by pending withdrawals.
+     */
     function availableExecutionBalance() public view override returns (uint256) {
         return executionBalance - reservedExecutionBalance;
     }
 
-    /// @notice Returns one full withdrawal request record.
-    /// @param requestId Withdrawal request identifier.
+    /**
+     * @notice Returns one full withdrawal request record.
+     * @param requestId Withdrawal request identifier.
+     */
     function getWithdrawalRequest(
         uint256 requestId
     ) external view override returns (CommunityTypes.WithdrawalRequest memory) {
         return _getWithdrawalRequest(requestId);
     }
 
-    /// @notice Reports whether an admin approved a withdrawal request.
-    /// @param requestId Withdrawal request identifier.
-    /// @param admin Admin address to inspect.
+    /**
+     * @notice Reports whether an admin approved a withdrawal request.
+     * @param requestId Withdrawal request identifier.
+     * @param admin Admin address to inspect.
+     */
     function hasApprovedWithdrawal(
         uint256 requestId,
         address admin
@@ -553,17 +723,21 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         return withdrawalApprovedBy[requestId][admin];
     }
 
-    /// @notice Returns the recorded amount and settlement state of a proposal bond.
-    /// @param proposalId Proposal identifier.
+    /**
+     * @notice Returns the recorded amount and settlement state of a proposal bond.
+     * @param proposalId Proposal identifier.
+     */
     function getProposalBond(
         uint256 proposalId
     ) external view override returns (uint256 amount, bool settled) {
         return (proposalBondById[proposalId], proposalBondSettled[proposalId]);
     }
 
-    /// @notice Calculates a voter's current NO-side refund without changing state.
-    /// @param proposalId Rejected binary proposal.
-    /// @param voter Address to inspect.
+    /**
+     * @notice Calculates a voter's current NO-side refund without changing state.
+     * @param proposalId Rejected binary proposal.
+     * @param voter Address to inspect.
+     */
     function getRefundPreview(
         uint256 proposalId,
         address voter
@@ -588,8 +762,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         return (refundAmount, refundAmount <= totalRefundLiability);
     }
 
-    /// @notice Permanently links this treasury to the Hub deployed by its factory.
-    /// @param communityHub_ Hub authorized to call governance fund-flow methods.
+    /**
+     * @notice Permanently links this treasury to the Hub deployed by its factory.
+     * @param communityHub_ Hub authorized to call governance fund-flow methods.
+     */
     function setCommunityHub(address communityHub_) external override onlyFactory {
         if (communityHub != address(0)) revert CommunityHubAlreadyConfigured();
         if (communityHub_ == address(0)) revert ZeroAddress("communityHub");
@@ -599,8 +775,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         emit CommunityHubConfigured(communityHub_);
     }
 
-    /// @dev Returns a request storage pointer after validating that it was created.
-    /// @param requestId Withdrawal request identifier.
+    /**
+     * @dev Returns a request storage pointer after validating that it was created.
+     * @param requestId Withdrawal request identifier.
+     */
     function _getWithdrawalRequest(
         uint256 requestId
     ) private view returns (CommunityTypes.WithdrawalRequest storage request) {

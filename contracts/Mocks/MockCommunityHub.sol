@@ -9,9 +9,11 @@ import {CommunityTypes} from "../BERT/V3/utils/CommunityTypes.sol";
 import {ICommunityHub} from "../BERT/V3/interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../BERT/V3/interfaces/ICommunityTreasury.sol";
 
-/// @title MockCommunityHub
-/// @notice Minimal V3 Hub double used to test Treasury authorization and settlement paths.
-/// @dev This mock deliberately exposes Treasury-only calls; production CommunityHub will enforce governance rules.
+/**
+ * @title MockCommunityHub
+ * @notice Minimal V3 Hub double used to test Treasury authorization and settlement paths.
+ * @dev This mock deliberately exposes Treasury-only calls; production CommunityHub will enforce governance rules.
+ */
 contract MockCommunityHub is ICommunityHub {
     CommunityTypes.CommunityStatus private _status = CommunityTypes.CommunityStatus.Active;
     uint256 private _validatorRewardShareBps;
@@ -22,33 +24,45 @@ contract MockCommunityHub is ICommunityHub {
     mapping(uint256 proposalId => mapping(address voter => uint256 stake)) private _voteStake;
     mapping(uint256 epochId => mapping(address validator => bool active)) private _activeValidator;
 
-    /// @notice Creates a mock Hub with a configurable validator reward share.
-    /// @param validatorRewardShareBps_ Reward share expressed in basis points.
+    /**
+     * @notice Creates a mock Hub with a configurable validator reward share.
+     * @param validatorRewardShareBps_ Reward share expressed in basis points.
+     */
     constructor(uint256 validatorRewardShareBps_) {
         _validatorRewardShareBps = validatorRewardShareBps_;
     }
 
-    /// @notice Returns the mock admin flag for an address.
+    /**
+     * @notice Returns the mock admin flag for an address.
+     */
     function isAdminAccount(address account) external view returns (bool) {
         return _admins[account];
     }
 
-    /// @notice Returns the mutable mock community status.
+    /**
+     * @notice Returns the mutable mock community status.
+     */
     function communityStatus() external view returns (CommunityTypes.CommunityStatus) {
         return _status;
     }
 
-    /// @notice Returns the mock validator reward share in basis points.
+    /**
+     * @notice Returns the mock validator reward share in basis points.
+     */
     function validatorRewardShareBps() external view returns (uint256) {
         return _validatorRewardShareBps;
     }
 
-    /// @notice Returns the mock admin approval threshold.
+    /**
+     * @notice Returns the mock admin approval threshold.
+     */
     function adminApprovalThreshold() external view returns (uint256) {
         return _adminApprovalThreshold;
     }
 
-    /// @notice Returns the mock binary vote stored for a voter and proposal.
+    /**
+     * @notice Returns the mock binary vote stored for a voter and proposal.
+     */
     function getBinaryVote(uint256 proposalId, address voter)
         external
         view
@@ -57,32 +71,44 @@ contract MockCommunityHub is ICommunityHub {
         return (_voteChoice[proposalId][voter], _voteStake[proposalId][voter]);
     }
 
-    /// @notice Returns mock validator reward eligibility for an epoch.
+    /**
+     * @notice Returns mock validator reward eligibility for an epoch.
+     */
     function isValidatorActiveForEpoch(uint256 epochId, address validator) external view returns (bool) {
         return _activeValidator[epochId][validator];
     }
 
-    /// @notice Test helper that changes the mock community status.
+    /**
+     * @notice Test helper that changes the mock community status.
+     */
     function setStatus(CommunityTypes.CommunityStatus status_) external {
         _status = status_;
     }
 
-    /// @notice Test helper that grants or revokes the mock admin flag.
+    /**
+     * @notice Test helper that grants or revokes the mock admin flag.
+     */
     function setAdmin(address account, bool active) external {
         _admins[account] = active;
     }
 
-    /// @notice Test helper that updates the validator reward share.
+    /**
+     * @notice Test helper that updates the validator reward share.
+     */
     function setValidatorRewardShareBps(uint256 rewardShareBps_) external {
         _validatorRewardShareBps = rewardShareBps_;
     }
 
-    /// @notice Test helper that updates the mock withdrawal quorum.
+    /**
+     * @notice Test helper that updates the mock withdrawal quorum.
+     */
     function setAdminApprovalThreshold(uint256 threshold) external {
         _adminApprovalThreshold = threshold;
     }
 
-    /// @notice Test helper that records an arbitrary binary vote for refund checks.
+    /**
+     * @notice Test helper that records an arbitrary binary vote for refund checks.
+     */
     function setBinaryVote(
         uint256 proposalId,
         address voter,
@@ -93,27 +119,37 @@ contract MockCommunityHub is ICommunityHub {
         _voteStake[proposalId][voter] = stake;
     }
 
-    /// @notice Test helper that sets validator reward eligibility for an epoch.
+    /**
+     * @notice Test helper that sets validator reward eligibility for an epoch.
+     */
     function setValidatorActiveForEpoch(uint256 epochId, address validator, bool active) external {
         _activeValidator[epochId][validator] = active;
     }
 
-    /// @notice Test bridge that calls the Treasury as its configured Hub.
+    /**
+     * @notice Test bridge that calls the Treasury as its configured Hub.
+     */
     function depositVoteStake(address treasury, uint256 proposalId, address voter, uint256 amount) external {
         ICommunityTreasury(treasury).depositVoteStake(proposalId, voter, amount);
     }
 
-    /// @notice Test bridge for membership stake deposits.
+    /**
+     * @notice Test bridge for membership stake deposits.
+     */
     function depositMembershipStake(address treasury, address member, uint256 amount) external {
         ICommunityTreasury(treasury).depositMembershipStake(member, amount);
     }
 
-    /// @notice Test bridge for membership stake releases.
+    /**
+     * @notice Test bridge for membership stake releases.
+     */
     function releaseMembershipStake(address treasury, address member, uint256 amount) external {
         ICommunityTreasury(treasury).releaseMembershipStake(member, amount);
     }
 
-    /// @notice Test bridge for member proposal bond deposits.
+    /**
+     * @notice Test bridge for member proposal bond deposits.
+     */
     function depositProposalBond(
         address treasury,
         uint256 proposalId,
@@ -123,17 +159,23 @@ contract MockCommunityHub is ICommunityHub {
         ICommunityTreasury(treasury).depositProposalBond(proposalId, author, amount);
     }
 
-    /// @notice Test bridge for routing a rejected proposal bond to the reserve.
+    /**
+     * @notice Test bridge for routing a rejected proposal bond to the reserve.
+     */
     function slashProposalBond(address treasury, uint256 proposalId) external {
         ICommunityTreasury(treasury).slashProposalBond(proposalId);
     }
 
-    /// @notice Test bridge for returning a settled proposal bond to its author.
+    /**
+     * @notice Test bridge for returning a settled proposal bond to its author.
+     */
     function returnProposalBond(address treasury, uint256 proposalId, address author) external {
         ICommunityTreasury(treasury).returnProposalBond(proposalId, author);
     }
 
-    /// @notice Test bridge for the YES settlement path.
+    /**
+     * @notice Test bridge for the YES settlement path.
+     */
     function settleBinaryYesWin(
         address treasury,
         uint256 proposalId,
@@ -144,7 +186,9 @@ contract MockCommunityHub is ICommunityHub {
         ICommunityTreasury(treasury).settleBinaryYesWin(proposalId, yesStake, noStake, epochId);
     }
 
-    /// @notice Test bridge for the NO settlement path.
+    /**
+     * @notice Test bridge for the NO settlement path.
+     */
     function settleBinaryNoWin(
         address treasury,
         uint256 proposalId,
@@ -155,7 +199,9 @@ contract MockCommunityHub is ICommunityHub {
         ICommunityTreasury(treasury).settleBinaryNoWin(proposalId, yesStake, noStake, feeBps);
     }
 
-    /// @notice Test bridge for validator epoch finalization.
+    /**
+     * @notice Test bridge for validator epoch finalization.
+     */
     function finalizeValidatorRewardEpoch(
         address treasury,
         uint256 epochId,

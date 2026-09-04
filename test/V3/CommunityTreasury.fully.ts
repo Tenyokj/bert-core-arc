@@ -1,7 +1,15 @@
+/**
+ * @file CommunityTreasury.fully.ts
+ * @notice Unit tests for BERT V3 USDC custody, settlement, rewards, refunds, and withdrawals.
+ * @dev V3 tests live under test/V3 so judges can distinguish them from the established V2 suite.
+ */
+
 import { expect } from "../setup.js";
 import { getConnection } from "../helpers.js";
 
-describe("CommunityTreasury binary voting", function () {
+/** @notice describe: CommunityTreasury */
+describe("CommunityTreasury", function () {
+  /** @notice Deploys an isolated Treasury with USDC and a test-only Hub. */
   async function deployTreasury() {
     const { ethers } = await getConnection();
     const [factory, voterYes, voterNo, reserve] = await ethers.getSigners();
@@ -24,6 +32,7 @@ describe("CommunityTreasury binary voting", function () {
     return { ethers, factory, voterYes, voterNo, reserve, usdc, hub, treasury };
   }
 
+  /** @notice it: escrows votes and routes a YES win into local and global balances */
   it("escrows votes and routes a YES win into execution, rewards, and global reserve", async function () {
     const { voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
     const proposalId = 1n;
@@ -51,6 +60,7 @@ describe("CommunityTreasury binary voting", function () {
     expect(await usdc.balanceOf(await treasury.getAddress())).to.equal(100_000n);
   });
 
+  /** @notice it: keeps membership stake outside execution funds until Hub release */
   it("keeps membership stake locked until the paired Hub releases it", async function () {
     const { voterYes, usdc, hub, treasury } = await deployTreasury();
     const membershipStake = 250_000n;
@@ -67,6 +77,7 @@ describe("CommunityTreasury binary voting", function () {
     expect(await usdc.balanceOf(voterYes.address)).to.equal(1_000_000n);
   });
 
+  /** @notice it: resolves proposal bonds exactly once through slash or return */
   it("slashes rejected proposal bonds to the global reserve and returns settled bonds to authors", async function () {
     const { voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
     const bondAmount = 50_000n;
@@ -90,6 +101,7 @@ describe("CommunityTreasury binary voting", function () {
       .withArgs(11n);
   });
 
+  /** @notice it: creates and settles pull-based NO-side refunds */
   it("records NO-side refunds and routes YES stake plus rejection fee to the reserve", async function () {
     const { voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
     const proposalId = 2n;
@@ -132,6 +144,7 @@ describe("CommunityTreasury binary voting", function () {
       .withArgs(proposalId, voterNo.address);
   });
 
+  /** @notice it: rejects Hub settlement inputs that disagree with per-proposal escrow */
   it("rejects settlement totals that do not match the proposal escrow", async function () {
     const { voterYes, hub, treasury } = await deployTreasury();
 
@@ -144,6 +157,7 @@ describe("CommunityTreasury binary voting", function () {
       .withArgs(3n, 100_000n, 90_001n);
   });
 
+  /** @notice it: distributes active validator rewards and returns rounding dust to execution */
   it("splits an epoch reward equally between active validators and returns rounding dust to execution", async function () {
     const { voterYes, voterNo, usdc, hub, treasury } = await deployTreasury();
     const proposalId = 4n;
@@ -176,6 +190,7 @@ describe("CommunityTreasury binary voting", function () {
       .withArgs(epochId, voterYes.address);
   });
 
+  /** @notice it: reserves execution funds and requires the configured admin quorum */
   it("reserves execution funds and requires the admin quorum before withdrawal", async function () {
     const { factory, voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
     const proposalId = 5n;
@@ -225,6 +240,7 @@ describe("CommunityTreasury binary voting", function () {
     expect(await usdc.balanceOf(reserve.address)).to.equal(withdrawalAmount);
   });
 
+  /** @notice it: releases the execution reservation when an admin cancels a request */
   it("cancels a withdrawal request and releases its execution reservation", async function () {
     const { factory, voterYes, reserve, hub, treasury } = await deployTreasury();
 

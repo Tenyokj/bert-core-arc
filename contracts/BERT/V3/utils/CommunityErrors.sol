@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
+/**
+ * @notice BERT V3 Community Layer custom errors.
+ * @dev Generic errors remain in contracts/BERT/utils/Errors.sol to preserve one protocol-wide vocabulary.
+ */
 pragma solidity ^0.8.20;
 
 // Generic errors such as ZeroAddress, ZeroAmount, InvalidId, and InvalidParameter
@@ -202,8 +206,11 @@ error WithdrawalAlreadyCancelled(uint256 requestId);
 /// @param required Required approval count.
 error WithdrawalApprovalThresholdNotMet(uint256 requestId, uint256 approvals, uint256 required);
 
+/// @notice The caller is not the factory that deployed the treasury.
+/// @param caller Unauthorized caller address.
 error NotCommunityFactory(address caller);
 
+/// @notice A treasury action requires a paired CommunityHub that has not been configured yet.
 error CommunityHubNotConfigured();
 
 /// @notice CommunityHub can be linked to a treasury only once.

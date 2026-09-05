@@ -88,6 +88,8 @@
 /**
  * @notice BERT V3 Community Layer custom errors.
  * @dev Generic errors remain in contracts/BERT/utils/Errors.sol to preserve one protocol-wide vocabulary.
+ * 
+ * @custom:version 1.0.0
  */
 pragma solidity ^0.8.20;
 
@@ -110,6 +112,20 @@ error CommunityIsPaused();
  * @notice The requested action is unavailable after a community is archived.
  */
 error CommunityIsArchived();
+
+/**
+ * @notice A community cannot archive while unresolved governance could lock user funds.
+ * @param pendingValidationProposals Member proposals still awaiting validator decisions.
+ * @param activeBinaryProposals Binary votes still open for settlement.
+ * @param activeSlateRounds Slate rounds still open for settlement.
+ * @param unresolvedMemberProposals Member proposals with bonds not yet returned or slashed.
+ */
+error CommunityArchiveBlocked(
+    uint256 pendingValidationProposals,
+    uint256 activeBinaryProposals,
+    uint256 activeSlateRounds,
+    uint256 unresolvedMemberProposals
+);
 
 /**
  * @notice The caller does not hold the community-local admin role.
@@ -159,6 +175,11 @@ error RoleNotAssigned(address account);
 error CannotRemoveLastAdmin();
 
 /**
+ * @notice The validator set cannot change while member proposal validation is open.
+ */
+error ValidatorSetLocked();
+
+/**
  * @notice A community configuration value is outside its permitted range.
  * @param field Configuration field name.
  */
@@ -185,6 +206,12 @@ error MembershipStakeTooLow(uint256 supplied, uint256 required);
  * @param account Member address.
  */
 error ExitNotRequested(address account);
+
+/**
+ * @notice A member has already started the exit process.
+ * @param account Member address.
+ */
+error ExitAlreadyRequested(address account);
 
 /**
  * @notice A member attempted to finalize exit before the cooldown ended.
@@ -254,6 +281,13 @@ error VotingWindowClosed(uint256 proposalId);
 error BinaryVoteAlreadyCast(uint256 proposalId, address voter);
 
 /**
+ * @notice A voter has already released their exit lock for a settled proposal.
+ * @param proposalId Proposal identifier.
+ * @param voter Voter address.
+ */
+error VoteLockAlreadyCleared(uint256 proposalId, address voter);
+
+/**
  * @notice The supplied voting stake is below the community minimum.
  * @param supplied Amount supplied by the voter.
  * @param required Community minimum vote amount.
@@ -277,6 +311,46 @@ error VotingStillOpen(uint256 proposalId, uint256 availableAt);
  * @param proposalId Proposal identifier.
  */
 error ProposalAlreadySettled(uint256 proposalId);
+
+/**
+ * @notice A requested action requires a binary proposal that Treasury has already settled.
+ * @param proposalId Proposal identifier.
+ */
+error ProposalNotSettled(uint256 proposalId);
+
+/**
+ * @notice A referenced slate round does not exist.
+ * @param roundId Round identifier.
+ */
+error CommunityRoundNotFound(uint256 roundId);
+
+/**
+ * @notice A proposal does not satisfy the required slate-round constraints.
+ * @param proposalId Proposal identifier.
+ */
+error InvalidRoundProposal(uint256 proposalId);
+
+/**
+ * @notice A member has not earned enough local proposal points for validator nomination.
+ * @param account Member considered for appointment.
+ * @param points Current local proposal points.
+ * @param required Minimum points required for eligibility.
+ */
+error ValidatorNotEligible(address account, uint256 points, uint256 required);
+
+/**
+ * @notice A member already selected an option in this slate round.
+ * @param roundId Round identifier.
+ * @param voter Member address.
+ */
+error RoundVoteAlreadyCast(uint256 roundId, address voter);
+
+/**
+ * @notice A voter has no unresolved vote lock for this proposal.
+ * @param proposalId Proposal identifier.
+ * @param voter Voter address.
+ */
+error VoteLockNotFound(uint256 proposalId, address voter);
 
 // ========== Treasury, Refunds, And Rewards ==========
 
@@ -436,3 +510,22 @@ error VoteEscrowMismatch(uint256 proposalId, uint256 expected, uint256 supplied)
  * @param noStake Total NO stake.
  */
 error InvalidBinarySettlement(uint256 proposalId, uint256 yesStake, uint256 noStake);
+
+/**
+ * @notice Only the creator recorded for a pending community may activate it.
+ * @param communityId Factory-assigned community identifier.
+ * @param caller Unauthorized caller address.
+ */
+error NotCommunityCreator(uint256 communityId, address caller);
+
+/**
+ * @notice A community already has a linked and registered Hub.
+ * @param communityId Factory-assigned community identifier.
+ */
+error CommunityAlreadyActivated(uint256 communityId);
+
+/**
+ * @notice The supplied Hub does not match the pending community's creator, treasury, or configuration.
+ * @param hub Supplied Hub address.
+ */
+error InvalidCommunityHub(address hub);

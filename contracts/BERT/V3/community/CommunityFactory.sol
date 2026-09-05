@@ -86,318 +86,180 @@
  */
 pragma solidity ^0.8.20;
 
-import "../utils/CommunityTypes.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
+import {ICommunityFactory} from "../interfaces/ICommunityFactory.sol";
+import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
+import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
+import {ICommunityTreasuryDeployer} from "../interfaces/ICommunityTreasuryDeployer.sol";
+import {CommunityTypes} from "../utils/CommunityTypes.sol";
+import "../../utils/Errors.sol";
+import "../utils/CommunityErrors.sol";
 
 /**
- * @title ICommunityTreasury
- * @notice Fund-flow surface used by CommunityHub for one BERT V3 community.
- * @dev Amounts are denominated in the configured USDC-compatible asset's native units.
+ * @title CommunityFactory
+ * @notice Reserves treasuries, verifies direct Hub deployments, and indexes independent BERT V3 communities.
+ * @dev Direct Hub deployment avoids storing CommunityHub creation bytecode in a contract exceeding EVM size limits.
+ * This contract never owns a community after deployment and has no withdrawal or governance authority.
+ * 
+ * @custom:version 1.0.0
  */
-interface ICommunityTreasury {
+contract CommunityFactory is Initializable, ICommunityFactory {
     /**
-     * @notice Emitted when the factory permanently links the paired CommunityHub.
+     * @notice Deployer that creates isolated CommunityTreasury contracts for this Factory proxy.
+     * @dev Stored rather than immutable because a Transparent proxy executes this implementation by delegatecall.
      */
-    event CommunityHubConfigured(address indexed communityHub);
+    ICommunityTreasuryDeployer public communityTreasuryDeployer;
+    /** @notice Last assigned monotonic community identifier. */
+    uint256 public communityCount;
+
+    /** @notice Deployment record by Factory-assigned community identifier. */
+    mapping(uint256 communityId => CommunityTypes.CommunityDeployment deployment) private communities;
+    /** @notice All community identifiers created by each creator address. */
+    mapping(address creator => uint256[] communityIds) private communityIdsByCreator;
+    /** @notice Reverse lookup from an activated CommunityHub to its community identifier. */
+    mapping(address hub => uint256 communityId) public communityIdByHub;
+    /** @notice Reverse lookup from a reserved CommunityTreasury to its community identifier. */
+    mapping(address treasury => uint256 communityId) public communityIdByTreasury;
+    /** @notice Immutable configuration hash expected from the Hub for each reserved community. */
+    mapping(uint256 communityId => bytes32 configHash) public configHashByCommunityId;
 
     /**
-     * @notice Emitted when member USDC becomes membership-locked.
+     * @notice Locks the implementation contract so only the proxy may be initialized.
      */
-    event MembershipStakeDeposited(address indexed member, uint256 amount);
-    /**
-     * @notice Emitted when a member's locked stake is returned.
-     */
-    event MembershipStakeReleased(address indexed member, uint256 amount);
+    constructor() {
+        _disableInitializers();
+    }
 
     /**
-     * @notice Emitted when a member proposal bond is recorded.
+     * @notice Initializes the CommunityFactory Transparent proxy.
+     * @param communityTreasuryDeployer_ Contract that deploys CommunityTreasury instances.
      */
-    event ProposalBondDeposited(uint256 indexed proposalId, address indexed author, uint256 amount);
-    /**
-     * @notice Emitted when a rejected proposal bond routes to the global reserve.
-     */
-    event ProposalBondSlashed(uint256 indexed proposalId, uint256 amount);
-    /**
-     * @notice Emitted when a proposal bond returns to its author.
-     */
-    event ProposalBondReturned(uint256 indexed proposalId, address indexed author, uint256 amount);
+    function initialize(ICommunityTreasuryDeployer communityTreasuryDeployer_) external initializer {
+        if (address(communityTreasuryDeployer_) == address(0)) {
+            revert ZeroAddress("communityTreasuryDeployer");
+        }
+
+        communityTreasuryDeployer = communityTreasuryDeployer_;
+    }
 
     /**
-     * @notice Emitted when a member's USDC is escrowed for a binary vote.
+     * @notice Deploys and reserves a Treasury for a creator's CommunityHub deployment.
+     * @dev The caller must later deploy a Hub with the exact config hash and activate it themselves.
+     * @param config_ Immutable configuration selected by the community creator.
+     * @return communityId Factory-assigned community identifier.
+     * @return treasury Newly deployed, pending CommunityTreasury address.
      */
-    event VoteStakeDeposited(uint256 indexed proposalId, address indexed voter, uint256 amount);
-    /**
-     * @notice Emitted when a member's USDC is escrowed for a slate round choice.
-     */
-    event RoundVoteStakeDeposited(uint256 indexed roundId, address indexed voter, uint256 amount);
-    /**
-     * @notice Emitted after all escrowed slate-round stake is allocated locally.
-     */
-    event SlateRoundSettled(uint256 indexed roundId, uint256 executionAmount, uint256 validatorReward);
-    /**
-     * @notice Emitted after a YES settlement allocates local and global flows.
-     */
-    event BinaryYesWinSettled(uint256 indexed proposalId, uint256 executionAmount, uint256 validatorReward, uint256 globalReserveAmount);
-    /**
-     * @notice Emitted after a NO settlement records refunds and global reserve flow.
-     */
-    event BinaryNoWinSettled(uint256 indexed proposalId, uint256 refundLiability, uint256 globalReserveAmount);
-    /**
-     * @notice Emitted when a voter claims a NO-side refund.
-     */
-    event RefundClaimed(uint256 indexed proposalId, address indexed voter, uint256 amount);
+    function createCommunity(CommunityTypes.CommunityConfig calldata config_)
+        external
+        override
+        returns (uint256 communityId, address treasury)
+    {
+        if (config_.usdc == address(0)) revert ZeroAddress("usdc");
+        if (config_.globalBertReserve == address(0)) revert ZeroAddress("globalBertReserve");
+
+        treasury = communityTreasuryDeployer.deployCommunityTreasury(
+            config_.usdc,
+            config_.globalBertReserve,
+            address(this)
+        );
+        communityId = ++communityCount;
+        communities[communityId] = CommunityTypes.CommunityDeployment({
+            creator: msg.sender,
+            hub: address(0),
+            treasury: treasury,
+            createdAt: uint64(block.timestamp)
+        });
+        communityIdsByCreator[msg.sender].push(communityId);
+        communityIdByTreasury[treasury] = communityId;
+        bytes32 configHash = keccak256(abi.encode(config_));
+        configHashByCommunityId[communityId] = configHash;
+
+        emit CommunityTreasuryCreated(
+            communityId,
+            msg.sender,
+            treasury,
+            configHash,
+            config_.name,
+            config_.metadataURI
+        );
+    }
 
     /**
-     * @notice Emitted when equal rewards become claimable for an epoch.
+     * @notice Verifies and activates the creator's directly deployed CommunityHub.
+     * @dev Matching creator, reserved Treasury, and full configuration hash prevent attaching an
+     * arbitrary Hub or changing immutable community parameters between both deployment steps.
+     * @param communityId Factory-assigned pending community identifier.
+     * @param hub Directly deployed CommunityHub address.
      */
-    event ValidatorRewardEpochFinalized(uint256 indexed epochId, uint256 rewardPerValidator, uint256 activeValidatorCount);
-    /**
-     * @notice Emitted when an active validator claims their epoch share.
-     */
-    event ValidatorRewardClaimed(uint256 indexed epochId, address indexed validator, uint256 amount);
+    function activateCommunity(uint256 communityId, address hub) external override {
+        if (communityId == 0 || communityId > communityCount) revert InvalidId("community");
+        CommunityTypes.CommunityDeployment storage deployment = communities[communityId];
+        if (msg.sender != deployment.creator) revert NotCommunityCreator(communityId, msg.sender);
+        if (deployment.hub != address(0)) revert CommunityAlreadyActivated(communityId);
+        if (hub == address(0) || hub.code.length == 0) revert InvalidCommunityHub(hub);
+
+        ICommunityHub communityHub = ICommunityHub(hub);
+        if (
+            communityHub.creator() != deployment.creator ||
+            communityHub.communityTreasury() != deployment.treasury ||
+            communityHub.configHash() != configHashByCommunityId[communityId]
+        ) {
+            revert InvalidCommunityHub(hub);
+        }
+
+        deployment.hub = hub;
+        communityIdByHub[hub] = communityId;
+
+        // Effects precede the trusted Treasury link; a failed link reverts these writes atomically.
+        ICommunityTreasury(deployment.treasury).setCommunityHub(hub);
+
+        emit CommunityCreated(communityId, deployment.creator, hub, deployment.treasury);
+    }
 
     /**
-     * @notice Emitted when an admin creates a reserved execution withdrawal request.
+     * @notice Returns a Factory deployment record.
+     * @param communityId Existing Factory-assigned community identifier.
+     * @return Deployment record with creator, Hub, Treasury, and creation time.
      */
-    event WithdrawalRequestCreated(uint256 indexed requestId, address indexed creator, address indexed to, uint256 amount, string reason, string metadataURI);
-    /**
-     * @notice Emitted when an admin approves a withdrawal request.
-     */
-    event WithdrawalApproved(uint256 indexed requestId, address indexed admin);
-    /**
-     * @notice Emitted when an admin cancels a pending withdrawal request.
-     */
-    event WithdrawalCancelled(uint256 indexed requestId, address indexed admin);
-    /**
-     * @notice Emitted when a quorum-approved withdrawal transfers USDC.
-     */
-    event WithdrawalExecuted(uint256 indexed requestId, address indexed to, uint256 amount);
+    function getCommunity(uint256 communityId)
+        external
+        view
+        override
+        returns (CommunityTypes.CommunityDeployment memory)
+    {
+        if (communityId == 0 || communityId > communityCount) revert InvalidId("community");
+        return communities[communityId];
+    }
 
     /**
-     * @notice Pulls and locks membership stake for a Hub-approved join.
-     * @param member Joining member whose USDC allowance is consumed.
-     * @param amount USDC membership stake in token-native units.
+     * @notice Returns all communities created by one address.
+     * @param creator Community creator address to inspect.
+     * @return Factory-assigned community identifiers in creation order.
      */
-    function depositMembershipStake(
-        address member,
-        uint256 amount
-    ) external;
+    function getCreatorCommunityIds(address creator)
+        external
+        view
+        override
+        returns (uint256[] memory)
+    {
+        return communityIdsByCreator[creator];
+    }
 
     /**
-     * @notice Finalizes equal validator rewards for an epoch.
-     * @param epochId Ended validator reward epoch.
-     * @param activeValidatorCount Number of validators eligible for equal reward shares.
+     * @notice Returns whether a Treasury belongs to a fully activated community.
+     * @dev FundingPoolUpgradeable uses this view before accepting V3 protocol-reserve inflows.
+     * @param treasury Treasury address to verify.
+     * @return True when Factory has linked the Treasury to its validated CommunityHub.
      */
-    function finalizeValidatorRewardEpoch(
-        uint256 epochId,
-        uint256 activeValidatorCount
-    ) external;
+    function isActiveCommunityTreasury(address treasury) external view override returns (bool) {
+        uint256 communityId = communityIdByTreasury[treasury];
+        return communityId != 0 && communities[communityId].hub != address(0);
+    }
 
     /**
-     * @notice Claims the caller's finalized validator reward.
-     * @param epochId Finalized epoch from which the caller claims.
+     * @notice Reserved storage slots for future CommunityFactory proxy upgrades.
+     * @dev Do not reorder existing storage variables; consume slots only by appending new state.
      */
-    function claimValidatorReward(uint256 epochId) external;
-
-    /**
-     * @notice Links the factory-deployed CommunityHub exactly once.
-     * @param communityHub_ Validated Hub address authorized to initiate Treasury flows.
-     */
-    function setCommunityHub(address communityHub_) external;
-
-    /**
-     * @notice Returns a Hub-approved member exit stake.
-     * @param member Exiting member receiving the returned stake.
-     * @param amount USDC membership stake in token-native units.
-     */
-    function releaseMembershipStake(
-        address member,
-        uint256 amount
-    ) external;
-
-    /**
-     * @notice Pulls and records the bond for a member proposal.
-     * @param proposalId Member proposal that owns the bond.
-     * @param author Member author whose allowance is consumed.
-     * @param amount USDC anti-spam bond amount.
-     */
-    function depositProposalBond(
-        uint256 proposalId,
-        address author,
-        uint256 amount
-    ) external;
-
-    /**
-     * @notice Routes a validator-rejected proposal bond to the global reserve.
-     * @param proposalId Rejected member proposal whose bond is slashed.
-     */
-    function slashProposalBond(
-        uint256 proposalId
-    ) external;
-
-    /**
-     * @notice Returns a proposal bond after an eligible voting outcome.
-     * @param proposalId Member proposal whose bond is returned.
-     * @param author Original proposal author receiving the bond.
-     */
-    function returnProposalBond(
-        uint256 proposalId,
-        address author
-    ) external;
-
-    /**
-     * @notice Pulls USDC committed to a binary vote.
-     * @param proposalId Open binary proposal receiving the stake.
-     * @param voter Member whose USDC allowance is consumed.
-     * @param amount USDC vote stake in token-native units.
-     */
-    function depositVoteStake(
-        uint256 proposalId,
-        address voter,
-        uint256 amount
-    ) external;
-
-    /**
-     * @notice Pulls USDC committed to one proposal choice in a slate round.
-     * @param roundId Open slate round receiving the stake.
-     * @param voter Member whose USDC allowance is consumed.
-     * @param amount USDC vote stake in token-native units.
-     */
-    function depositRoundVoteStake(
-        uint256 roundId,
-        address voter,
-        uint256 amount
-    ) external;
-
-    /**
-     * @notice Allocates complete slate-round escrow between execution and validator rewards.
-     * @param roundId Settled slate round identifier.
-     * @param totalStake Complete escrowed USDC amount for the round.
-     * @param epochId Validator epoch receiving the reward allocation.
-     */
-    function settleSlateRound(
-        uint256 roundId,
-        uint256 totalStake,
-        uint256 epochId
-    ) external;
-
-    /**
-     * @notice Settles a YES-winning binary proposal.
-     * @param proposalId Settled binary proposal.
-     * @param yesStake Aggregate YES USDC stake.
-     * @param noStake Aggregate NO USDC stake routed to global reserve.
-     * @param epochId Validator epoch receiving local reward allocation.
-     */
-    function settleBinaryYesWin(
-        uint256 proposalId,
-        uint256 yesStake,
-        uint256 noStake,
-        uint256 epochId
-    ) external;
-
-    /**
-     * @notice Settles a NO-winning or tied binary proposal.
-     * @param proposalId Settled binary proposal.
-     * @param yesStake Aggregate YES USDC stake routed to global reserve.
-     * @param noStake Aggregate NO USDC stake that becomes refundable less fee.
-     * @param feeBps Rejection fee in basis points.
-     */
-    function settleBinaryNoWin(
-        uint256 proposalId,
-        uint256 yesStake,
-        uint256 noStake,
-        uint256 feeBps
-    ) external;
-
-    /**
-     * @notice Creates a reserved execution withdrawal request.
-     * @param to Recipient of USDC if quorum later executes the request.
-     * @param amount Requested USDC amount.
-     * @param reason Human-readable withdrawal rationale.
-     * @param metadataURI Offchain evidence or structured request metadata.
-     */
-    function createWithdrawalRequest(
-        address to,
-        uint256 amount,
-        string calldata reason,
-        string calldata metadataURI
-    ) external;
-
-    /**
-     * @notice Claims the caller's NO-side refund for a rejected proposal.
-     * @param proposalId Rejected binary proposal whose refund is claimed.
-     */
-    function claimNoVoteRefund(
-        uint256 proposalId
-    ) external;
-
-    /**
-     * @notice Records the caller's approval for a pending withdrawal request.
-     * @param requestId Pending withdrawal request identifier.
-     */
-    function approveWithdrawal(
-        uint256 requestId
-    ) external;
-
-    /**
-     * @notice Cancels a pending withdrawal request.
-     * @param requestId Pending withdrawal request identifier.
-     */
-    function cancelWithdrawalRequest(
-        uint256 requestId
-    ) external;
-
-    /**
-     * @notice Executes a quorum-approved withdrawal request.
-     * @param requestId Quorum-approved withdrawal request identifier.
-     */
-    function executeWithdrawal(
-        uint256 requestId
-    ) external;
-
-    /**
-     * @notice Returns execution balance not reserved by pending withdrawals.
-     */
-    function availableExecutionBalance() external view returns (uint256);
-
-    /**
-     * @notice Returns a complete withdrawal request record.
-     * @param requestId Existing withdrawal request identifier.
-     * @return Full request record including approvals and terminal state.
-     */
-    function getWithdrawalRequest(
-        uint256 requestId
-    ) external view returns (CommunityTypes.WithdrawalRequest memory);
-
-    /**
-     * @notice Reports whether an admin approved a withdrawal request.
-     * @param requestId Existing withdrawal request identifier.
-     * @param admin Local admin address to inspect.
-     * @return True if the admin approved the request.
-     */
-    function hasApprovedWithdrawal(
-        uint256 requestId,
-        address admin
-    ) external view returns (bool);
-
-    /**
-     * @notice Returns a proposal bond's amount and settlement state.
-     * @param proposalId Member proposal identifier.
-     * @return amount Bond amount in USDC token-native units.
-     * @return settled True when the bond was returned or slashed.
-     */
-    function getProposalBond(
-        uint256 proposalId
-    ) external view returns (uint256 amount, bool settled);
-
-    /**
-     * @notice Returns a voter's currently claimable NO-side refund, if any.
-     * @param proposalId Rejected binary proposal identifier.
-     * @param voter Voter address to inspect.
-     * @return amount Current refundable USDC amount.
-     * @return claimable True when the voter may claim the displayed amount.
-     */
-    function getRefundPreview(
-        uint256 proposalId,
-        address voter
-    ) external view returns (uint256 amount, bool claimable);
+    uint256[50] private __gap;
 }

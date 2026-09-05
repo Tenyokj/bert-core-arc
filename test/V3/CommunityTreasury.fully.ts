@@ -12,15 +12,18 @@ describe("CommunityTreasury", function () {
   /** @notice Deploys an isolated Treasury with USDC and a test-only Hub. */
   async function deployTreasury() {
     const { ethers } = await getConnection();
-    const [factory, voterYes, voterNo, reserve] = await ethers.getSigners();
+    const [factory, voterYes, voterNo, withdrawalRecipient] = await ethers.getSigners();
 
     const usdc = await (await ethers.getContractFactory("MockUSDC", factory)).deploy();
+    const reserve = await (
+      await ethers.getContractFactory("MockGlobalBertReserve", factory)
+    ).deploy(await usdc.getAddress());
     const hub = await (
       await ethers.getContractFactory("MockCommunityHub", factory)
     ).deploy(1_500);
     const treasury = await (
       await ethers.getContractFactory("CommunityTreasury", factory)
-    ).deploy(await usdc.getAddress(), reserve.address, factory.address);
+    ).deploy(await usdc.getAddress(), await reserve.getAddress(), factory.address);
 
     await treasury.setCommunityHub(await hub.getAddress());
 
@@ -29,7 +32,7 @@ describe("CommunityTreasury", function () {
       await usdc.connect(voter).approve(await treasury.getAddress(), 1_000_000n);
     }
 
-    return { ethers, factory, voterYes, voterNo, reserve, usdc, hub, treasury };
+    return { ethers, factory, voterYes, voterNo, withdrawalRecipient, reserve, usdc, hub, treasury };
   }
 
   /** @notice it: escrows votes and routes a YES win into local and global balances */
@@ -56,7 +59,8 @@ describe("CommunityTreasury", function () {
     expect(await treasury.executionBalance()).to.equal(85_000n);
     expect(await treasury.validatorRewardBalance()).to.equal(15_000n);
     expect(await treasury.rewardAmountByEpoch(7)).to.equal(15_000n);
-    expect(await usdc.balanceOf(reserve.address)).to.equal(noStake);
+    expect(await usdc.balanceOf(await reserve.getAddress())).to.equal(noStake);
+    expect(await reserve.totalReceived()).to.equal(noStake);
     expect(await usdc.balanceOf(await treasury.getAddress())).to.equal(100_000n);
   });
 
@@ -86,7 +90,7 @@ describe("CommunityTreasury", function () {
     await hub.slashProposalBond(await treasury.getAddress(), 10);
 
     expect(await treasury.totalProposalBondLocked()).to.equal(0n);
-    expect(await usdc.balanceOf(reserve.address)).to.equal(bondAmount);
+    expect(await usdc.balanceOf(await reserve.getAddress())).to.equal(bondAmount);
     expect(await treasury.getProposalBond(10)).to.deep.equal([bondAmount, true]);
 
     await hub.depositProposalBond(await treasury.getAddress(), 11, voterNo.address, bondAmount);
@@ -124,7 +128,7 @@ describe("CommunityTreasury", function () {
     expect(await treasury.rejectionFeeBpsByProposal(proposalId)).to.equal(feeBps);
     expect(await treasury.totalVoteEscrow()).to.equal(0n);
     expect(await treasury.totalRefundLiability()).to.equal(97_000n);
-    expect(await usdc.balanceOf(reserve.address)).to.equal(43_000n);
+    expect(await usdc.balanceOf(await reserve.getAddress())).to.equal(43_000n);
     expect(await usdc.balanceOf(await treasury.getAddress())).to.equal(97_000n);
 
     expect(await treasury.getRefundPreview(proposalId, voterNo.address)).to.deep.equal([
@@ -192,7 +196,7 @@ describe("CommunityTreasury", function () {
 
   /** @notice it: reserves execution funds and requires the configured admin quorum */
   it("reserves execution funds and requires the admin quorum before withdrawal", async function () {
-    const { factory, voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
+    const { factory, voterYes, voterNo, withdrawalRecipient, usdc, hub, treasury } = await deployTreasury();
     const proposalId = 5n;
     const executionAmount = 85_000n;
     const withdrawalAmount = 60_000n;
@@ -205,7 +209,7 @@ describe("CommunityTreasury", function () {
 
     await expect(
       treasury.connect(factory).createWithdrawalRequest(
-        reserve.address,
+        withdrawalRecipient.address,
         withdrawalAmount,
         "Fund Minecraft server implementation",
         "ipfs://bert-v3/withdrawal/1"
@@ -215,7 +219,7 @@ describe("CommunityTreasury", function () {
       .withArgs(
         1n,
         factory.address,
-        reserve.address,
+        withdrawalRecipient.address,
         withdrawalAmount,
         "Fund Minecraft server implementation",
         "ipfs://bert-v3/withdrawal/1"
@@ -231,18 +235,18 @@ describe("CommunityTreasury", function () {
     await treasury.connect(voterNo).approveWithdrawal(1);
     await expect(treasury.connect(factory).executeWithdrawal(1))
       .to.emit(treasury, "WithdrawalExecuted")
-      .withArgs(1n, reserve.address, withdrawalAmount);
+      .withArgs(1n, withdrawalRecipient.address, withdrawalAmount);
 
     const request = await treasury.getWithdrawalRequest(1);
     expect(request.executed).to.equal(true);
     expect(await treasury.executionBalance()).to.equal(executionAmount - withdrawalAmount);
     expect(await treasury.reservedExecutionBalance()).to.equal(0n);
-    expect(await usdc.balanceOf(reserve.address)).to.equal(withdrawalAmount);
+    expect(await usdc.balanceOf(withdrawalRecipient.address)).to.equal(withdrawalAmount);
   });
 
   /** @notice it: releases the execution reservation when an admin cancels a request */
   it("cancels a withdrawal request and releases its execution reservation", async function () {
-    const { factory, voterYes, reserve, hub, treasury } = await deployTreasury();
+    const { factory, voterYes, withdrawalRecipient, hub, treasury } = await deployTreasury();
 
     await hub.depositVoteStake(await treasury.getAddress(), 6, voterYes.address, 100_000n);
     await hub.settleBinaryYesWin(await treasury.getAddress(), 6, 100_000n, 0, 11);
@@ -250,7 +254,7 @@ describe("CommunityTreasury", function () {
 
     await treasury
       .connect(factory)
-      .createWithdrawalRequest(reserve.address, 50_000n, "Incorrect recipient", "ipfs://bert-v3/withdrawal/2");
+      .createWithdrawalRequest(withdrawalRecipient.address, 50_000n, "Incorrect recipient", "ipfs://bert-v3/withdrawal/2");
 
     await treasury.connect(factory).cancelWithdrawalRequest(1);
 
@@ -258,5 +262,57 @@ describe("CommunityTreasury", function () {
     expect(request.cancelled).to.equal(true);
     expect(await treasury.reservedExecutionBalance()).to.equal(0n);
     expect(await treasury.availableExecutionBalance()).to.equal(85_000n);
+  });
+
+  /** @notice it: returns an epoch reward to execution when no validator met the activity requirement */
+  it("returns undistributed validator rewards to execution when an epoch has no active validators", async function () {
+    const { voterYes, hub, treasury } = await deployTreasury();
+
+    await hub.depositVoteStake(await treasury.getAddress(), 7, voterYes.address, 100_000n);
+    await hub.settleBinaryYesWin(await treasury.getAddress(), 7, 100_000n, 0, 12);
+    await hub.finalizeValidatorRewardEpoch(await treasury.getAddress(), 12, 0);
+
+    expect(await treasury.executionBalance()).to.equal(100_000n);
+    expect(await treasury.validatorRewardBalance()).to.equal(0n);
+    await expect(treasury.connect(voterYes).claimValidatorReward(12))
+      .to.be.revertedWithCustomError(treasury, "ValidatorNotActiveForEpoch")
+      .withArgs(12n, voterYes.address);
+  });
+
+  /** @notice it: blocks all Hub-driven capital movement while the community is not active */
+  it("rejects governance fund movement while the paired Hub reports a paused community", async function () {
+    const { voterYes, hub, treasury } = await deployTreasury();
+
+    await hub.setStatus(1);
+    await expect(hub.depositMembershipStake(await treasury.getAddress(), voterYes.address, 100_000n))
+      .to.be.revertedWithCustomError(treasury, "CommunityNotActive");
+  });
+
+  /** @notice it: prevents duplicate approvals and all terminal withdrawal state transitions */
+  it("protects withdrawal approvals and execution from duplicate or terminal actions", async function () {
+    const { factory, voterYes, voterNo, withdrawalRecipient, hub, treasury } = await deployTreasury();
+
+    await hub.depositVoteStake(await treasury.getAddress(), 8, voterYes.address, 100_000n);
+    await hub.settleBinaryYesWin(await treasury.getAddress(), 8, 100_000n, 0, 13);
+    await hub.setAdmin(factory.address, true);
+    await hub.setAdmin(voterNo.address, true);
+    await hub.setAdminApprovalThreshold(2);
+    await treasury
+      .connect(factory)
+      .createWithdrawalRequest(withdrawalRecipient.address, 50_000n, "Ship feature", "ipfs://withdrawal/3");
+
+    await expect(treasury.connect(factory).approveWithdrawal(1))
+      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyApproved")
+      .withArgs(1n, factory.address);
+
+    await treasury.connect(voterNo).approveWithdrawal(1);
+    await treasury.connect(factory).executeWithdrawal(1);
+
+    await expect(treasury.connect(voterNo).cancelWithdrawalRequest(1))
+      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyExecuted")
+      .withArgs(1n);
+    await expect(treasury.connect(voterNo).executeWithdrawal(1))
+      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyExecuted")
+      .withArgs(1n);
   });
 });

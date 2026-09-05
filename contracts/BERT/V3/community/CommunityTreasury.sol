@@ -91,6 +91,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {CommunityTypes} from "../utils/CommunityTypes.sol";
+import {IGlobalBertReserve} from "../interfaces/IGlobalBertReserve.sol";
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
 
@@ -101,6 +102,8 @@ import "../../utils/Errors.sol";
  * @title CommunityTreasury
  * @notice Holds USDC and settlement accounting for one BERT V3 community.
  * @dev Governance decisions live in CommunityHub; this contract only executes authorized fund flows.
+ * 
+ * @custom:version 1.0.0
  */
 contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -139,6 +142,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
      */
     uint256 public totalVoteEscrow;
     /**
+     * @notice Votes-USDC awaiting settlement across active slate rounds.
+     */
+    uint256 public totalRoundVoteEscrow;
+    /**
      * @notice Funds reserved for NO-voter refund claims.
      */
     uint256 public totalRefundLiability;
@@ -154,33 +161,51 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     /**
      * @notice Bond amount recorded for each member proposal.
      */
+    /** @notice USDC anti-spam bond amount locked for each member proposal. */
     mapping(uint256 proposalId => uint256 amount) public proposalBondById;
+    /** @notice Whether each proposal bond has already been returned or routed to global reserve. */
     mapping(uint256 proposalId => bool settled) public proposalBondSettled;
 
     /**
      * @notice Whether a binary proposal's vote escrow has already been settled.
      */
+    /** @notice Whether each binary proposal's voting escrow has completed settlement. */
     mapping(uint256 proposalId => bool settled) public binaryVoteSettled;
+    /** @notice NO-side rejection fee applied to each settled rejected binary proposal. */
     mapping(uint256 proposalId => uint256 feeBps) public rejectionFeeBpsByProposal;
 
+    /** @notice Validator reward funding allocated to each epoch before equal-share finalization. */
     mapping(uint256 epochId => uint256 amount) public rewardAmountByEpoch;
+    /** @notice Claimable equal USDC reward per active validator for each finalized epoch. */
     mapping(uint256 epochId => uint256 amount) public rewardPerValidatorByEpoch;
 
     /**
      * @notice Prevents a validator from claiming the same epoch reward twice.
      */
+    /** @notice Prevents a validator from claiming the same finalized epoch reward more than once. */
     mapping(uint256 epochId => mapping(address validator => bool claimed)) public validatorRewardClaimed;
 
     /**
      * @notice Voting USDC escrowed for a single proposal until its terminal outcome.
      */
     mapping(uint256 proposalId => uint256 amount) public voteEscrowByProposal;
+    /**
+     * @notice Escrowed USDC for each active slate round.
+     */
+    mapping(uint256 roundId => uint256 amount) public voteEscrowByRound;
+    /**
+     * @notice Whether each slate round's escrow has been settled.
+     */
+    mapping(uint256 roundId => bool settled) public slateRoundSettled;
+    /** @notice Whether a binary proposal settled through the NO/tie refund route. */
     mapping(uint256 proposalId => bool noWonByProposal) public noWonByProposal;
+    /** @notice Whether validator rewards for an epoch have been finalized. */
     mapping(uint256 epochId => bool finalized) public validatorRewardEpochFinalized;
 
     /**
      * @notice Prevents a voter from claiming the same NO-side refund twice.
      */
+    /** @notice Prevents a NO voter from claiming their refundable stake more than once. */
     mapping(uint256 proposalId => mapping(address voter => bool claimed)) public refundClaimed;
 
     /**
@@ -191,11 +216,13 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     /**
      * @dev Full withdrawal records are exposed through getWithdrawalRequest.
      */
+    /** @notice Full locally governed withdrawal request by its monotonic identifier. */
     mapping(uint256 requestId => CommunityTypes.WithdrawalRequest) private withdrawalRequests;
 
     /**
      * @notice Tracks which admins approved each withdrawal request.
      */
+    /** @notice Records which admins approved each withdrawal request exactly once. */
     mapping(uint256 requestId => mapping(address admin => bool)) public withdrawalApprovedBy;
 
     /**
@@ -415,7 +442,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         proposalBondSettled[proposalId] = true;
         totalProposalBondLocked -= amount;
 
-        usdc.safeTransfer(globalBertReserve, amount);
+        _routeToGlobalReserve(amount);
 
         emit ProposalBondSlashed(proposalId, amount);
     }
@@ -466,6 +493,53 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     }
 
     /**
+     * @notice Pulls USDC committed by a member to one slate round choice.
+     */
+    function depositRoundVoteStake(
+        uint256 roundId,
+        address voter,
+        uint256 amount
+    ) external override onlyCommunityHub onlyActiveCommunity {
+        if (roundId == 0) revert InvalidId("roundId");
+        if (voter == address(0)) revert ZeroAddress("voter");
+        if (amount == 0) revert ZeroAmount();
+        if (slateRoundSettled[roundId]) revert ProposalAlreadySettled(roundId);
+
+        usdc.safeTransferFrom(voter, address(this), amount);
+        totalRoundVoteEscrow += amount;
+        voteEscrowByRound[roundId] += amount;
+        emit RoundVoteStakeDeposited(roundId, voter, amount);
+    }
+
+    /**
+     * @notice Routes every slate-round vote into local execution and validator reward buckets.
+     * @dev Slate voting has no NO side, so no portion routes to the global reserve.
+     */
+    function settleSlateRound(
+        uint256 roundId,
+        uint256 totalStake,
+        uint256 epochId
+    ) external override onlyCommunityHub onlyActiveCommunity nonReentrant {
+        if (roundId == 0) revert InvalidId("roundId");
+        if (slateRoundSettled[roundId]) revert ProposalAlreadySettled(roundId);
+        if (voteEscrowByRound[roundId] != totalStake) {
+            revert VoteEscrowMismatch(roundId, voteEscrowByRound[roundId], totalStake);
+        }
+
+        uint256 rewardShareBps = ICommunityHub(communityHub).validatorRewardShareBps();
+        uint256 validatorReward = (totalStake * rewardShareBps) / 10_000;
+        uint256 executionAmount = totalStake - validatorReward;
+
+        slateRoundSettled[roundId] = true;
+        voteEscrowByRound[roundId] = 0;
+        totalRoundVoteEscrow -= totalStake;
+        executionBalance += executionAmount;
+        validatorRewardBalance += validatorReward;
+        rewardAmountByEpoch[epochId] += validatorReward;
+        emit SlateRoundSettled(roundId, executionAmount, validatorReward);
+    }
+
+    /**
      * @notice Settles a YES-winning binary proposal.
      * @dev YES stake splits between execution and validator rewards; NO stake routes to global reserve.
      * @param proposalId Settled proposal.
@@ -505,7 +579,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         rewardAmountByEpoch[epochId] += validatorReward;
 
         if (noStake != 0) {
-            usdc.safeTransfer(globalBertReserve, noStake);
+            _routeToGlobalReserve(noStake);
         }
 
         emit BinaryYesWinSettled(proposalId, executionAmount, validatorReward, noStake);
@@ -550,7 +624,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         totalRefundLiability += refundLiability;
 
         if (globalReserveAmount != 0) {
-            usdc.safeTransfer(globalBertReserve, globalReserveAmount);
+            _routeToGlobalReserve(globalReserveAmount);
         }
 
         emit BinaryNoWinSettled(proposalId, refundLiability, globalReserveAmount);
@@ -787,5 +861,15 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         }
 
         return withdrawalRequests[requestId];
+    }
+
+    /**
+     * @notice Routes USDC into the V2 FundingPool through its accounting-aware V3 reserve entrypoint.
+     * @dev The receiver pulls the approved amount and increments its own protocol-reserve accounting.
+     * @param amount USDC amount in token-native units.
+     */
+    function _routeToGlobalReserve(uint256 amount) private {
+        usdc.forceApprove(globalBertReserve, amount);
+        IGlobalBertReserve(globalBertReserve).receiveCommunityReserve(amount);
     }
 }

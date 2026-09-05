@@ -15,6 +15,9 @@ const require = createRequire(import.meta.url);
 const proxyArtifact = require(
   "@openzeppelin/contracts/build/contracts/ERC1967Proxy.json"
 );
+const transparentProxyArtifact = require(
+  "@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json"
+);
 
 export type Connection = {
   ethers: HardhatEthers;
@@ -49,6 +52,37 @@ export async function deployUpgradeable(
     signer
   );
   const proxy = await proxyFactory.deploy(await impl.getAddress(), initData);
+  await proxy.waitForDeployment();
+
+  return (await ethers.getContractAt(name, await proxy.getAddress(), signer)) as any;
+}
+
+/**
+ * @notice Deploys an implementation behind the production TransparentUpgradeableProxy pattern.
+ * @dev The supplied owner owns the OZ v5 ProxyAdmin created by the proxy constructor.
+ */
+export async function deployTransparentUpgradeable(
+  ethers: HardhatEthers,
+  signer: any,
+  name: string,
+  initArgs: any[],
+  proxyAdminOwner: string
+): Promise<any> {
+  const implFactory = await ethers.getContractFactory(name, signer);
+  const impl = await implFactory.deploy();
+  await impl.waitForDeployment();
+
+  const initData = implFactory.interface.encodeFunctionData("initialize", initArgs);
+  const proxyFactory = new ethers.ContractFactory(
+    transparentProxyArtifact.abi,
+    transparentProxyArtifact.bytecode,
+    signer
+  );
+  const proxy = await proxyFactory.deploy(
+    await impl.getAddress(),
+    proxyAdminOwner,
+    initData
+  );
   await proxy.waitForDeployment();
 
   return (await ethers.getContractAt(name, await proxy.getAddress(), signer)) as any;

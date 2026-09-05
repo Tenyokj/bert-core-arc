@@ -15,6 +15,9 @@ import {ICommunityTreasury} from "../BERT/V3/interfaces/ICommunityTreasury.sol";
  * @dev This mock deliberately exposes Treasury-only calls; production CommunityHub will enforce governance rules.
  */
 contract MockCommunityHub is ICommunityHub {
+    address private immutable _creator;
+    address private immutable _communityTreasury;
+    bytes32 private immutable _configHash;
     CommunityTypes.CommunityStatus private _status = CommunityTypes.CommunityStatus.Active;
     uint256 private _validatorRewardShareBps;
     uint256 private _adminApprovalThreshold = 1;
@@ -30,6 +33,30 @@ contract MockCommunityHub is ICommunityHub {
      */
     constructor(uint256 validatorRewardShareBps_) {
         _validatorRewardShareBps = validatorRewardShareBps_;
+        _creator = msg.sender;
+        _communityTreasury = address(0);
+        _configHash = bytes32(0);
+    }
+
+    /**
+     * @notice Returns the mock creator address.
+     */
+    function creator() external view returns (address) {
+        return _creator;
+    }
+
+    /**
+     * @notice Returns the mock's unset Treasury address.
+     */
+    function communityTreasury() external view returns (address) {
+        return _communityTreasury;
+    }
+
+    /**
+     * @notice Returns the mock's empty configuration hash.
+     */
+    function configHash() external view returns (bytes32) {
+        return _configHash;
     }
 
     /**

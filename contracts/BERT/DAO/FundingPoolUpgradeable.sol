@@ -86,6 +86,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import { RolesAwareUpgradeable } from "../extensions/Roles/RolesAwareUpgradeable.sol";
 import { IFundingPool } from "../interfaces/IFundingPool.sol";
 import { IIdeaRegistry } from "../interfaces/IIdeaRegistry.sol";
+import { ICommunityFactoryRegistry } from "../interfaces/ICommunityFactoryRegistry.sol";
 import "../utils/Errors.sol";
 
 /**
@@ -155,6 +156,9 @@ contract FundingPoolUpgradeable is
     /// @dev Tracks per-idea author deposits in 6-decimal USDC units.
     mapping(uint256 => uint256) public authorStakeByIdea;
 
+    /// @notice BERT V3 Factory authorized to authenticate CommunityTreasury reserve inflows
+    address public communityFactory;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -213,6 +217,27 @@ contract FundingPoolUpgradeable is
         totalPoolBalance += amount;
 
         emit FundsDeposited(msg.sender, amount);
+        emit PoolBalanceUpdated(totalPoolBalance);
+    }
+
+    /**
+     * @notice Pulls USDC routed by an active BERT V3 CommunityTreasury into protocol reserve
+     * @dev Unlike `deposit`, this does not create a donor balance because V3 outcomes are protocol revenue.
+     * @param amount Amount of USDC to move from the calling CommunityTreasury
+     * @custom:requires V3 Factory configured and caller is an activated Treasury in that Factory
+     */
+    function receiveCommunityReserve(uint256 amount) external nonReentrant whenNotPaused {
+        if (amount == 0) revert ZeroAmount();
+        if (communityFactory == address(0)) revert CommunityFactoryNotConfigured();
+        if (!ICommunityFactoryRegistry(communityFactory).isActiveCommunityTreasury(msg.sender)) {
+            revert UnauthorizedCommunityTreasury(msg.sender);
+        }
+
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
+        totalPoolBalance += amount;
+        protocolReserve += amount;
+
+        emit CommunityReserveReceived(msg.sender, amount);
         emit PoolBalanceUpdated(totalPoolBalance);
     }
 
@@ -549,6 +574,19 @@ contract FundingPoolUpgradeable is
     }
 
     /**
+     * @notice Configures the BERT V3 CommunityFactory that authenticates reserve contributors
+     * @param _communityFactory Factory address for active CommunityTreasury validation
+     */
+    function setCommunityFactory(address _communityFactory) external onlyAdmin {
+        if (_communityFactory == address(0)) {
+            revert ZeroAddress("communityFactory");
+        }
+
+        communityFactory = _communityFactory;
+        emit CommunityFactoryUpdated(_communityFactory);
+    }
+
+    /**
      * @notice Checks real pool balance
      * @dev Can only be called by the contract admin.
      *      Reconciles `totalPoolBalance` with the actual token balance while keeping
@@ -594,8 +632,8 @@ contract FundingPoolUpgradeable is
      * @dev Reserved storage space to allow for new variables in upgrades
      * @dev Prevents storage collisions when adding new state variables
      * 
-     * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
-     * @custom:warning Do not remove or reduce this gap in future versions
+     * @custom:upgrade-safety Reserve slots after newly added variables when upgrading
+     * @custom:warning Do not reorder existing storage variables in future versions
      */
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 }

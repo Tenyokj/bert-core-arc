@@ -31,6 +31,47 @@ describe("FundingPoolUpgradeable", function () {
     expect(await fundingPool.totalPoolBalance()).to.equal(100n);
   });
 
+  /** @notice it: records authenticated V3 reserve inflows without creating a donor balance */
+  it("accounts for reserve capital routed by an active V3 community treasury", async function () {
+    const { admin, ethers, fundingPool, usdc } = await deploySystem();
+    const registry = await (
+      await ethers.getContractFactory("MockCommunityFactoryRegistry", admin)
+    ).deploy();
+    const treasury = await (
+      await ethers.getContractFactory("MockCommunityReserveTreasury", admin)
+    ).deploy(await usdc.getAddress());
+    const amount = 125_000n;
+
+    await fundingPool.connect(admin).setCommunityFactory(await registry.getAddress());
+    await registry.setActiveCommunityTreasury(await treasury.getAddress(), true);
+    await usdc.mint(await treasury.getAddress(), amount);
+    await fundingPool.connect(admin).unpause();
+
+    await expect(treasury.routeReserve(await fundingPool.getAddress(), amount))
+      .to.emit(fundingPool, "CommunityReserveReceived")
+      .withArgs(await treasury.getAddress(), amount);
+
+    expect(await fundingPool.totalPoolBalance()).to.equal(amount);
+    expect(await fundingPool.protocolReserve()).to.equal(amount);
+    expect(await fundingPool.donorBalances(await treasury.getAddress())).to.equal(0n);
+    expect(await usdc.balanceOf(await fundingPool.getAddress())).to.equal(amount);
+  });
+
+  /** @notice it: rejects V3 reserve inflows from callers that Factory has not activated */
+  it("rejects reserve routing from an unauthenticated V3 treasury", async function () {
+    const { admin, user1, ethers, fundingPool } = await deploySystem();
+    const registry = await (
+      await ethers.getContractFactory("MockCommunityFactoryRegistry", admin)
+    ).deploy();
+
+    await fundingPool.connect(admin).setCommunityFactory(await registry.getAddress());
+    await fundingPool.connect(admin).unpause();
+
+    await expect(fundingPool.connect(user1).receiveCommunityReserve(1n))
+      .to.be.revertedWithCustomError(fundingPool, "UnauthorizedCommunityTreasury")
+      .withArgs(user1.address);
+  });
+
   /** @notice it: allows voting system deposits for ideas */
   it("allows voting system deposits for ideas", async function () {
     const { admin, user1, roles, fundingPool, usdc } =

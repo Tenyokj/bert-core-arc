@@ -91,6 +91,8 @@ pragma solidity ^0.8.20;
  * @title CommunityTypes
  * @notice Shared V3 data shapes used by CommunityFactory, CommunityHub, and CommunityTreasury.
  * @dev This library is a namespace only. It has no storage, executable business logic, or access control.
+ * 
+ * @custom:version 1.0.0
  */
 library CommunityTypes {
     /**
@@ -118,6 +120,14 @@ library CommunityTypes {
     }
 
     /**
+     * @notice Voting mechanism assigned to a proposal.
+     */
+    enum ProposalMode {
+        Binary,
+        Slate
+    }
+
+    /**
      * @notice Lifecycle state for the binary-proposal MVP.
      * @dev Variants:
      * - PendingValidation: member proposal is awaiting validator decisions.
@@ -132,9 +142,13 @@ library CommunityTypes {
         PendingValidation,
         RejectedByValidators,
         ApprovedForVoting,
+        ApprovedForRound,
         InVoting,
+        InRoundVoting,
         Accepted,
         Rejected,
+        WonRound,
+        LostRound,
         Settled
     }
 
@@ -171,6 +185,7 @@ library CommunityTypes {
      * - validatorRewardShareBps: YES settlement share reserved for active validators, in basis points.
      * - validationWindow: duration of the member-proposal validation period.
      * - binaryVotingDuration: duration of binary voting.
+     * - roundVotingDuration: duration of slate round voting.
      * - validatorRewardEpoch: duration of one validator reward epoch.
      * - validatorActiveThresholdBps: minimum validation-case participation, in basis points.
      */
@@ -191,6 +206,7 @@ library CommunityTypes {
         uint256 validatorRewardShareBps;
         uint256 validationWindow;
         uint256 binaryVotingDuration;
+        uint256 roundVotingDuration;
         uint256 validatorRewardEpoch;
         uint256 validatorActiveThresholdBps;
     }
@@ -213,11 +229,12 @@ library CommunityTypes {
     }
 
     /**
-     * @notice Onchain metadata and lifecycle state for one binary proposal.
+     * @notice Onchain metadata and lifecycle state for one binary or slate proposal.
      * @dev Validator choices and voter choices live in mappings on CommunityHub, not in this struct.
      * @dev Fields:
      * - creator: address that created the proposal.
      * - origin: admin or member proposal lane.
+     * - mode: binary YES/NO or slate-round choice.
      * - status: current lifecycle status.
      * - title: short proposal title.
      * - description: proposal body or summary.
@@ -231,11 +248,15 @@ library CommunityTypes {
      * - noVotes: aggregate NO stake.
      * - approvalCount: validator approvals.
      * - rejectionCount: validator rejections.
+     * - assignedRoundId: slate round containing this proposal, if any.
+     * - roundVotes: USDC votes assigned to this proposal in its slate round.
+     * - accepted: whether YES won the binary vote.
      * - settled: whether Treasury settled the voting escrow.
      */
     struct Proposal {
         address creator;
         ProposalOrigin origin;
+        ProposalMode mode;
         ProposalStatus status;
         string title;
         string description;
@@ -249,6 +270,30 @@ library CommunityTypes {
         uint256 noVotes;
         uint256 approvalCount;
         uint256 rejectionCount;
+        uint256 assignedRoundId;
+        uint256 roundVotes;
+        bool accepted;
+        bool settled;
+    }
+
+    /**
+     * @notice One single-choice slate voting round.
+     * @dev Fields:
+     * - origin: proposal lane permitted in the round.
+     * - startTime: community-clock timestamp when voting starts.
+     * - endTime: community-clock timestamp when voting ends.
+     * - totalVotes: USDC escrowed across all choices.
+     * - winningProposalId: first proposal with the highest vote total.
+     * - winningVotes: vote total of the selected winner.
+     * - settled: whether Treasury routed the full round escrow.
+     */
+    struct CommunityRound {
+        ProposalOrigin origin;
+        uint64 startTime;
+        uint64 endTime;
+        uint256 totalVotes;
+        uint256 winningProposalId;
+        uint256 winningVotes;
         bool settled;
     }
 
@@ -295,5 +340,20 @@ library CommunityTypes {
         string metadataURI;
         bool executed;
         bool cancelled;
+    }
+
+    /**
+     * @notice Immutable deployment record registered by CommunityFactory.
+     * @dev Fields:
+     * - creator: account that created the community and its initial admin.
+     * - hub: CommunityHub that stores governance state.
+     * - treasury: CommunityTreasury that holds the community's USDC.
+     * - createdAt: block timestamp at which Factory registered the deployment.
+     */
+    struct CommunityDeployment {
+        address creator;
+        address hub;
+        address treasury;
+        uint64 createdAt;
     }
 }

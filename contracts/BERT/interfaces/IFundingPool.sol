@@ -163,6 +163,19 @@ interface IFundingPool {
      */
     event IdeaFundsReserved(uint256 indexed roundId, uint256 indexed ideaId, uint256 amount);
 
+    /**
+     * @notice Emitted when the Factory authorized to authenticate V3 Treasuries is updated
+     * @param communityFactory BERT V3 CommunityFactory address
+     */
+    event CommunityFactoryUpdated(address indexed communityFactory);
+
+    /**
+     * @notice Emitted when an active V3 Treasury contributes USDC to protocol reserve
+     * @param communityTreasury Authenticated V3 Treasury that supplied the reserve capital
+     * @param amount USDC amount routed to protocol reserve
+     */
+    event CommunityReserveReceived(address indexed communityTreasury, uint256 amount);
+
     /* ========== DEPOSIT FUNCTIONS ========== */
 
     /**
@@ -171,6 +184,19 @@ interface IFundingPool {
      * @param amount Amount of tokens to deposit
      */
     function deposit(uint256 amount) external;
+
+    /**
+     * @notice Pulls and accounts for USDC routed from an active BERT V3 CommunityTreasury
+     * @dev The amount increases protocol reserve, not donor balances
+     * @param amount USDC amount in token-native units
+     */
+    function receiveCommunityReserve(uint256 amount) external;
+
+    /**
+     * @notice Configures the BERT V3 Factory used to authenticate CommunityTreasury callers
+     * @param communityFactory V3 CommunityFactory address
+     */
+    function setCommunityFactory(address communityFactory) external;
 
     /**
      * @notice Deposits author stake for an idea directly from the author

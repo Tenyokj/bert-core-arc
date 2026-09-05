@@ -129,6 +129,18 @@ error InvalidParameter(string paramName, string reason);
  */
 error ZeroLength(string field);
 
+/**
+ * @notice Emitted when V3 reserve routing is attempted before a CommunityFactory is configured
+ * @dev FundingPoolUpgradeable needs the Factory registry to authenticate CommunityTreasury callers
+ */
+error CommunityFactoryNotConfigured();
+
+/**
+ * @notice Emitted when an unregistered or inactive V3 treasury routes funds to protocol reserve
+ * @param treasury Treasury caller that failed Factory validation
+ */
+error UnauthorizedCommunityTreasury(address treasury);
+
 
 // ========== Transfer Errors ==========
 

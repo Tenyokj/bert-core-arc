@@ -1,4 +1,4 @@
-![LOGO](./docs//assets/v3-banner.png)
+![LOGO](/docs//assets/v3-banner.png)
 
 # BERT V3 Community Layer
 

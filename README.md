@@ -79,6 +79,7 @@ Each later tranche requires milestone approval
 4. `GrantManagerUpgradeable` coordinates claim flow and milestone-based releases.
 5. `RolesRegistryUpgradeable` and `RolesAwareUpgradeable` enforce protocol permissions.
 6. `PoPVerifierUpgradeable` stores trusted verified-human attestations used by voting access control.
+7. [BERT V3 Community Layer](contracts/BERT/V3/README.md) adds isolated stake-gated governance communities with local Treasuries and V2 reserve integration.
 
 ## Security
 
@@ -121,6 +122,8 @@ If `USDC_ADDRESS` is not set, the deploy script falls back to `MockUSDC` for loc
 4. [Migration notes](docs/MIGRATION_NOTES.md)
 5. [Arc deployment guide](scripts/deploy/docs_deploy/DEPLOY.md)
 6. [Upgrades](docs/UPGRADES.md)
+7. [BERT V3 Community Layer](contracts/BERT/V3/README.md)
+8. [BERT V3 file index](docs/V3-FILE-INDEX.md)
 
 **Disclaimer**
 This repository contains the core smart contracts of the protocol. The codebase may evolve rapidly, so older guides may not match the current layout. Refer to the latest docs for accurate integration guidance.

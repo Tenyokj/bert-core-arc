@@ -12,6 +12,8 @@ V3 custom errors provide compact, machine-readable failure reasons across commun
 - Validator reward epoch eligibility and claim checks
 - Treasury escrow, bond, refund, reserve, and withdrawal checks
 - Factory reservation, creator, and Hub activation checks
+- Admin-action request existence, expiry, duplicate approval, quorum, and parameter checks
+- Duplicate pending withdrawal-cancellation request checks
 
 **Related Errors**
 Generic protocol errors such as `ZeroAddress`, `ZeroAmount`, `InvalidId`, and `InvalidParameter` remain in `contracts/BERT/utils/Errors.sol` so V2 and V3 share one base error vocabulary.

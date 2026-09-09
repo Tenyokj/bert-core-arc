@@ -157,6 +157,18 @@ interface IIdeaRegistry {
      */
     event AuthorMinStakeUpdated(uint256 newAuthorMinStake);
 
+    /**
+     * @notice Emitted when the proof-of-personhood verifier is updated.
+     * @param newHumanVerifier New verifier contract address.
+     */
+    event HumanVerifierUpdated(address newHumanVerifier);
+
+    /**
+     * @notice Emitted when verified-human enforcement for idea creation changes.
+     * @param enabled Whether new ideas require a verified-human wallet.
+     */
+    event HumanOnlyIdeaCreationUpdated(bool enabled);
+
     /* ========== IDEA MANAGEMENT FUNCTIONS ========== */
 
     /**
@@ -305,4 +317,16 @@ interface IIdeaRegistry {
      * @param _newAuthorMinStake New minimum stake amount
      */
     function setAuthorMinStake(uint256 _newAuthorMinStake) external;
+
+    /**
+     * @notice Updates the proof-of-personhood verifier used for idea creation.
+     * @param _newHumanVerifier New verifier contract address.
+     */
+    function setHumanVerifier(address _newHumanVerifier) external;
+
+    /**
+     * @notice Enables or disables verified-human enforcement for new ideas.
+     * @param enabled Whether new ideas require a verified-human wallet.
+     */
+    function setHumanOnlyIdeaCreation(bool enabled) external;
 }

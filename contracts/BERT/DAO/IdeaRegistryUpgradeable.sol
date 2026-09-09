@@ -86,6 +86,7 @@ import { IIdeaRegistry } from "../interfaces/IIdeaRegistry.sol";
 import { IReputationSystem } from "../interfaces/IReputationSystem.sol";
 import { IVoterProgression } from "../interfaces/IVoterProgression.sol";
 import { IFundingPool } from "../interfaces/IFundingPool.sol";
+import { IHumanVerifier } from "../interfaces/IHumanVerifier.sol";
 import "../utils/IdeaStatus.sol";
 import "../utils/Errors.sol";
 
@@ -185,6 +186,18 @@ contract IdeaRegistryUpgradeable is
     /// @dev Expressed in 6-decimal USDC base units.
     uint256 public authorMinStake;
 
+    /**
+     * @notice Shared proof-of-personhood verifier used to protect idea creation from sybil spam.
+     * @dev Configured after deployment so this proxy keeps its established initializer and storage layout.
+     */
+    IHumanVerifier public humanVerifier;
+
+    /**
+     * @notice Whether new ideas require a verified-human wallet.
+     * @dev Disabled by default after upgrade until an administrator configures the verifier and enables this gate.
+     */
+    bool public humanOnlyIdeaCreation;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -266,6 +279,10 @@ contract IdeaRegistryUpgradeable is
         string memory _link,
         uint256 _amount
     ) internal {
+        if (humanOnlyIdeaCreation) {
+            if (address(humanVerifier) == address(0)) revert HumanVerifierNotConfigured();
+            if (!humanVerifier.isVerifiedHuman(msg.sender)) revert HumanVerificationRequired(msg.sender);
+        }
         if (bytes(_title).length == 0) {
             revert ZeroLength("title");
         }
@@ -680,6 +697,28 @@ contract IdeaRegistryUpgradeable is
         emit AuthorMinStakeUpdated(_newAuthorMinStake);
     }
 
+    /**
+     * @notice Updates the proof-of-personhood verifier used by the idea-creation gate.
+     * @dev Only an administrator may change the verifier. The gate is enabled separately so deployments
+     * can be wired atomically without blocking users on a zero address.
+     * @param _newHumanVerifier New verifier contract address.
+     */
+    function setHumanVerifier(address _newHumanVerifier) external onlyAdmin {
+        if (_newHumanVerifier == address(0)) revert ZeroAddress("newHumanVerifier");
+        humanVerifier = IHumanVerifier(_newHumanVerifier);
+        emit HumanVerifierUpdated(_newHumanVerifier);
+    }
+
+    /**
+     * @notice Enables or disables verified-human enforcement for new idea creation.
+     * @dev Only an administrator may update this anti-spam policy.
+     * @param enabled True to require a verified-human wallet for createIdea.
+     */
+    function setHumanOnlyIdeaCreation(bool enabled) external onlyAdmin {
+        humanOnlyIdeaCreation = enabled;
+        emit HumanOnlyIdeaCreationUpdated(enabled);
+    }
+
     /* ========== UPGRADE SAFETY ========== */
 
     /**
@@ -690,5 +729,5 @@ contract IdeaRegistryUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[50] private __gap;
+    uint256[48] private __gap;
 }

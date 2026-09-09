@@ -53,6 +53,25 @@ describe("IdeaRegistry", function () {
       // Репутация должна быть инициализирована
       expect(await reputationSystem.isInitialized(user1.address)).to.be.true;
     });
+
+    /** @notice it: requires a configured, verified-human wallet when the creation gate is enabled */
+    it("gates idea creation with the shared proof-of-personhood verifier", async function () {
+      const { ethers, ideaRegistry, user1 } = await deploySystem();
+
+      await ideaRegistry.setHumanOnlyIdeaCreation(true);
+      await expect(ideaRegistry.connect(user1).createIdea("PoP", "Protected idea", "", 1n))
+        .to.be.revertedWithCustomError(ideaRegistry, "HumanVerifierNotConfigured");
+
+      const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+      await ideaRegistry.setHumanVerifier(await humanVerifier.getAddress());
+      await expect(ideaRegistry.connect(user1).createIdea("PoP", "Protected idea", "", 1n))
+        .to.be.revertedWithCustomError(ideaRegistry, "HumanVerificationRequired")
+        .withArgs(user1.address);
+
+      await humanVerifier.setVerified(user1.address, true);
+      await expect(ideaRegistry.connect(user1).createIdea("PoP", "Protected idea", "", 1n))
+        .to.emit(ideaRegistry, "IdeaCreated");
+    });
     
     /** @notice it: should validate input parameters */
     it("should validate input parameters", async function () {

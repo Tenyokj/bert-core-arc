@@ -86,7 +86,7 @@
  */
 pragma solidity ^0.8.20;
 
-import "../utils/CommunityTypes.sol";
+import "../libraries/CommunityTypes.sol";
 
 /**
  * @title ICommunityTreasury
@@ -272,7 +272,7 @@ interface ICommunityTreasury {
      * @notice Allocates complete slate-round escrow between execution and validator rewards.
      * @param roundId Settled slate round identifier.
      * @param totalStake Complete escrowed USDC amount for the round.
-     * @param epochId Validator epoch receiving the reward allocation.
+     * @param epochId Validator epoch receiving the reward allocation; zero disables validator rewards.
      */
     function settleSlateRound(
         uint256 roundId,
@@ -285,7 +285,7 @@ interface ICommunityTreasury {
      * @param proposalId Settled binary proposal.
      * @param yesStake Aggregate YES USDC stake.
      * @param noStake Aggregate NO USDC stake routed to global reserve.
-     * @param epochId Validator epoch receiving local reward allocation.
+     * @param epochId Validator epoch receiving local reward allocation; zero disables validator rewards.
      */
     function settleBinaryYesWin(
         uint256 proposalId,
@@ -339,10 +339,10 @@ interface ICommunityTreasury {
     ) external;
 
     /**
-     * @notice Cancels a pending withdrawal request.
+     * @notice Cancels a pending withdrawal request after CommunityHub Admin-action quorum.
      * @param requestId Pending withdrawal request identifier.
      */
-    function cancelWithdrawalRequest(
+    function cancelWithdrawalRequestByGovernance(
         uint256 requestId
     ) external;
 

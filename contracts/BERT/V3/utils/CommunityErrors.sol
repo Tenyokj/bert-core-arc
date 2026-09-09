@@ -127,6 +127,23 @@ error CommunityArchiveBlocked(
     uint256 unresolvedMemberProposals
 );
 
+/** @notice An Admin action request identifier does not exist. @param requestId Missing request identifier. */
+error AdminActionRequestNotFound(uint256 requestId);
+/** @notice An Admin action request has already reached a terminal state. @param requestId Terminal request identifier. */
+error AdminActionRequestClosed(uint256 requestId);
+/** @notice An Admin action request has exceeded its Community-clock approval lifetime. @param requestId Expired request identifier. */
+error AdminActionRequestExpired(uint256 requestId);
+/** @notice An Admin already approved this action request. @param requestId Request identifier. @param admin Duplicate approver. */
+error AdminActionAlreadyApproved(uint256 requestId, address admin);
+/** @notice A request lacks the configured Admin approval quorum. @param requestId Request identifier. @param approvals Recorded approvals. @param required Required approvals. */
+error AdminActionApprovalThresholdNotMet(uint256 requestId, uint256 approvals, uint256 required);
+/** @notice Only the request proposer may cancel a pending Admin action request. @param requestId Request identifier. @param caller Unauthorized caller. */
+error NotAdminActionProposer(uint256 requestId, address caller);
+/** @notice The selected Admin action parameters do not match its declared action type. */
+error InvalidAdminActionParameters();
+/** @notice A live quorum cancellation request already targets this withdrawal. @param withdrawalRequestId Treasury withdrawal identifier. @param actionRequestId Existing Admin action identifier. */
+error WithdrawalCancellationAlreadyRequested(uint256 withdrawalRequestId, uint256 actionRequestId);
+
 /**
  * @notice The caller does not hold the community-local admin role.
  * @param account Address that attempted the admin-only action.
@@ -152,8 +169,8 @@ error NotCommunityMember(address account);
 error AlreadyCommunityMember(address account);
 
 /**
- * @notice An address cannot hold the admin and validator roles in one community.
- * @param account Address that would violate the role-separation invariant.
+ * @notice An address cannot hold more than one active Community state.
+ * @param account Address that would violate the local role-separation invariant.
  */
 error AdminValidatorRoleConflict(address account);
 
@@ -184,6 +201,12 @@ error ValidatorSetLocked();
  * @param field Configuration field name.
  */
 error InvalidCommunityConfig(string field);
+
+/** @notice Raised when a compact V3 Community configuration validation code fails. */
+error InvalidCommunityConfigCode(uint8 code);
+
+/** @notice Raised when a named V3 Community address field is zero, encoded as a compact code. */
+error CommunityZeroAddress(uint8 field);
 
 /**
  * @notice The rejection fee exceeds the protocol's hard cap.
@@ -279,6 +302,14 @@ error VotingWindowClosed(uint256 proposalId);
  * @param voter Member address.
  */
 error BinaryVoteAlreadyCast(uint256 proposalId, address voter);
+
+/**
+ * @notice A proposal author attempted to vote on their own binary proposal.
+ * @dev Authors must not influence the direct outcome of a proposal they submitted.
+ * @param proposalId Proposal identifier.
+ * @param author Proposal creator that attempted the vote.
+ */
+error ProposalAuthorCannotVote(uint256 proposalId, address author);
 
 /**
  * @notice A voter has already released their exit lock for a settled proposal.

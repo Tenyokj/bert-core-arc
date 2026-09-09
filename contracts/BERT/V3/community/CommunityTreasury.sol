@@ -90,10 +90,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {CommunityTypes} from "../utils/CommunityTypes.sol";
+import {CommunityTypes} from "../libraries/CommunityTypes.sol";
 import {IGlobalBertReserve} from "../interfaces/IGlobalBertReserve.sol";
+import {ICommunityFactory} from "../interfaces/ICommunityFactory.sol";
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
+import {IHumanVerifier} from "../../interfaces/IHumanVerifier.sol";
 
 import "../utils/CommunityErrors.sol";
 import "../../utils/Errors.sol";
@@ -305,6 +307,9 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     ) external override onlyCommunityHub onlyActiveCommunity {
         if (amount == 0) revert ZeroAmount();
         if (member == address(0)) revert ZeroAddress("member");
+        if (!IHumanVerifier(ICommunityFactory(factory).humanVerifier()).isVerifiedHuman(member)) {
+            revert HumanVerificationRequired(member);
+        }
 
         usdc.safeTransferFrom(member, address(this), amount);
         totalMembershipLocked += amount;
@@ -328,7 +333,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         }
 
         uint256 epochReward = rewardAmountByEpoch[epochId];
-        if (epochReward == 0) revert ValidatorRewardEpochNotFound(epochId);
+        if (epochReward == 0) {
+            // Empty epochs are still finalized so their lifecycle is observable and immutable.
+            validatorRewardEpochFinalized[epochId] = true;
+            emit ValidatorRewardEpochFinalized(epochId, 0, activeValidatorCount);
+            return;
+        }
 
         uint256 rewardPerValidator;
         if (activeValidatorCount == 0) {
@@ -512,8 +522,9 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     }
 
     /**
-     * @notice Routes every slate-round vote into local execution and validator reward buckets.
-     * @dev Slate voting has no NO side, so no portion routes to the global reserve.
+     * @notice Routes every slate-round vote into local execution and optional validator reward buckets.
+     * @dev Slate voting has no NO side, so no portion routes to the global reserve. Epoch ID zero
+     * disables validator rewards for Admin rounds that required no validator review.
      */
     function settleSlateRound(
         uint256 roundId,
@@ -526,8 +537,11 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
             revert VoteEscrowMismatch(roundId, voteEscrowByRound[roundId], totalStake);
         }
 
-        uint256 rewardShareBps = ICommunityHub(communityHub).validatorRewardShareBps();
-        uint256 validatorReward = (totalStake * rewardShareBps) / 10_000;
+        uint256 validatorReward;
+        if (epochId != 0) {
+            uint256 rewardShareBps = ICommunityHub(communityHub).validatorRewardShareBps();
+            validatorReward = (totalStake * rewardShareBps) / 10_000;
+        }
         uint256 executionAmount = totalStake - validatorReward;
 
         slateRoundSettled[roundId] = true;
@@ -541,11 +555,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
 
     /**
      * @notice Settles a YES-winning binary proposal.
-     * @dev YES stake splits between execution and validator rewards; NO stake routes to global reserve.
+     * @dev Member-proposal YES stake splits between execution and validator rewards; Admin-proposal
+     * YES stake routes entirely to execution by passing epoch ID zero. NO stake routes to global reserve.
      * @param proposalId Settled proposal.
      * @param yesStake Total USDC committed to YES.
      * @param noStake Total USDC committed to NO.
-     * @param epochId Validator reward epoch receiving the reward share.
+     * @param epochId Validator reward epoch receiving the reward share; zero disables rewards.
      */
     function settleBinaryYesWin(
         uint256 proposalId,
@@ -565,10 +580,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
             revert VoteEscrowMismatch(proposalId, proposalEscrow, totalStake);
         }
 
-        uint256 rewardShareBps = ICommunityHub(communityHub).validatorRewardShareBps();
-        if (rewardShareBps > 10_000) revert InvalidCommunityConfig("validatorRewardShareBps");
-
-        uint256 validatorReward = (yesStake * rewardShareBps) / 10_000;
+        uint256 validatorReward;
+        if (epochId != 0) {
+            uint256 rewardShareBps = ICommunityHub(communityHub).validatorRewardShareBps();
+            if (rewardShareBps > 10_000) revert InvalidCommunityConfig("validatorRewardShareBps");
+            validatorReward = (yesStake * rewardShareBps) / 10_000;
+        }
         uint256 executionAmount = yesStake - validatorReward;
 
         binaryVoteSettled[proposalId] = true;
@@ -724,12 +741,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     }
 
     /**
-     * @notice Cancels a pending request and releases its execution reservation.
+     * @notice Cancels a pending request after CommunityHub executes a quorum-approved control-plane action.
      * @param requestId Withdrawal request identifier.
      */
-    function cancelWithdrawalRequest(
+    function cancelWithdrawalRequestByGovernance(
         uint256 requestId
-    ) external override onlyCommunityAdmin {
+    ) external override onlyCommunityHub {
         CommunityTypes.WithdrawalRequest storage request = _getWithdrawalRequest(requestId);
         if (request.executed) revert WithdrawalAlreadyExecuted(requestId);
         if (request.cancelled) revert WithdrawalAlreadyCancelled(requestId);

@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "te": "hardhat test",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "mint:local-v3-usdc": "hardhat run scripts/local/mint-v3-test-usdc.ts --network localhost"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "4.0.3",

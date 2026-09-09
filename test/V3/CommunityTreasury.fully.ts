@@ -21,18 +21,39 @@ describe("CommunityTreasury", function () {
     const hub = await (
       await ethers.getContractFactory("MockCommunityHub", factory)
     ).deploy(1_500);
+    const factoryRegistry = await (
+      await ethers.getContractFactory("MockCommunityFactoryRegistry", factory)
+    ).deploy();
+    const humanVerifier = await (
+      await ethers.getContractFactory("MockHumanVerifier", factory)
+    ).deploy();
+    await factoryRegistry.setHumanVerifier(await humanVerifier.getAddress());
+    await humanVerifier.setVerified(voterYes.address, true);
+    await humanVerifier.setVerified(voterNo.address, true);
     const treasury = await (
       await ethers.getContractFactory("CommunityTreasury", factory)
-    ).deploy(await usdc.getAddress(), await reserve.getAddress(), factory.address);
+    ).deploy(await usdc.getAddress(), await reserve.getAddress(), await factoryRegistry.getAddress());
 
-    await treasury.setCommunityHub(await hub.getAddress());
+    await factoryRegistry.setCommunityHub(await treasury.getAddress(), await hub.getAddress());
 
     for (const voter of [voterYes, voterNo]) {
       await usdc.mint(voter.address, 1_000_000n);
       await usdc.connect(voter).approve(await treasury.getAddress(), 1_000_000n);
     }
 
-    return { ethers, factory, voterYes, voterNo, withdrawalRecipient, reserve, usdc, hub, treasury };
+    return {
+      ethers,
+      factory,
+      factoryRegistry,
+      humanVerifier,
+      voterYes,
+      voterNo,
+      withdrawalRecipient,
+      reserve,
+      usdc,
+      hub,
+      treasury,
+    };
   }
 
   /** @notice it: escrows votes and routes a YES win into local and global balances */
@@ -256,7 +277,7 @@ describe("CommunityTreasury", function () {
       .connect(factory)
       .createWithdrawalRequest(withdrawalRecipient.address, 50_000n, "Incorrect recipient", "ipfs://bert-v3/withdrawal/2");
 
-    await treasury.connect(factory).cancelWithdrawalRequest(1);
+    await hub.cancelWithdrawalRequestByGovernance(await treasury.getAddress(), 1);
 
     const request = await treasury.getWithdrawalRequest(1);
     expect(request.cancelled).to.equal(true);
@@ -308,7 +329,7 @@ describe("CommunityTreasury", function () {
     await treasury.connect(voterNo).approveWithdrawal(1);
     await treasury.connect(factory).executeWithdrawal(1);
 
-    await expect(treasury.connect(voterNo).cancelWithdrawalRequest(1))
+    await expect(hub.cancelWithdrawalRequestByGovernance(await treasury.getAddress(), 1))
       .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyExecuted")
       .withArgs(1n);
     await expect(treasury.connect(voterNo).executeWithdrawal(1))

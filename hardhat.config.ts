@@ -21,15 +21,31 @@ const deployerKey = process.env.DEPLOYER_KEY;
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.28",
-    settings: {
-      evmVersion: "prague",
+    compilers: [{
+      version: "0.8.28",
+      settings: {
+        evmVersion: "prague",
         optimizer: {
           enabled: true,
           runs: 200,
         },
       },
+    }],
+    // CommunityHub is deployed directly for each Community, so size outweighs gas savings.
+    overrides: {
+      "contracts/BERT/V3/community/CommunityHub.sol": {
+        version: "0.8.28",
+        settings: {
+          evmVersion: "prague",
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+          viaIR: true,
+        },
+      },
     },
+  },
 
   networks: {
     hardhat: {

@@ -8,7 +8,7 @@ Receives membership stake, proposal bonds, binary vote escrow, and slate-round e
 
 **Key Features**
 - Separates membership lock, proposal bond lock, vote escrow, execution balance, validator rewards, and refund liability
-- Splits accepted and slate capital between execution and validator reward buckets
+- Splits Member-proposal capital between execution and validator reward buckets; Admin-proposal capital goes entirely to execution because no validator review occurred
 - Stores pull-based NO-side refunds
 - Finalizes validator reward epochs with equal active-validator claims and execution dust handling
 - Routes global reserve flows through V2 `FundingPoolUpgradeable.receiveCommunityReserve`

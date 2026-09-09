@@ -95,6 +95,7 @@ async function main() {
   const configuredAuthorMinStake = process.env.AUTHOR_MIN_STAKE_USDC?.trim();
   const configuredTrustedSigner = process.env.TRUSTED_SIGNER_ADDRESS?.trim();
   const configuredHumanOnlyVoting = process.env.HUMAN_ONLY_VOTING?.trim();
+  const configuredHumanOnlyIdeaCreation = process.env.HUMAN_ONLY_IDEA_CREATION?.trim();
   const configuredMaxVoteAmount = process.env.MAX_VOTE_AMOUNT_USDC?.trim();
 
   console.log("🚀 Deploying BERT USDC-native funding system with Transparent Proxies");
@@ -266,10 +267,15 @@ async function main() {
   }
   if (popVerifier) {
     await votingSystemContract.setHumanVerifier(popVerifier.proxyAddress);
+    await ideaRegistryContract.setHumanVerifier(popVerifier.proxyAddress);
   }
   if (configuredHumanOnlyVoting) {
     const enabled = configuredHumanOnlyVoting.toLowerCase() === "true";
     await votingSystemContract.setHumanOnlyVoting(enabled);
+  }
+  if (configuredHumanOnlyIdeaCreation) {
+    const enabled = configuredHumanOnlyIdeaCreation.toLowerCase() === "true";
+    await ideaRegistryContract.setHumanOnlyIdeaCreation(enabled);
   }
   if (configuredMaxVoteAmount) {
     await votingSystemContract.setMaxVoteAmount(
@@ -303,6 +309,10 @@ async function main() {
   if (popVerifierContract) {
     console.log("Trusted signer:", await popVerifierContract.trustedSigner());
     console.log("PoP verification enabled:", await votingSystemContract.humanOnlyVoting());
+    console.log(
+      "PoP-gated idea creation enabled:",
+      await ideaRegistryContract.humanOnlyIdeaCreation()
+    );
     console.log(
       "Max vote amount (USDC):",
       ethers.formatUnits(await votingSystemContract.maxVoteAmount(), 6)

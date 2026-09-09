@@ -33,11 +33,16 @@ async function main() {
   );
   const currentFactory = await fundingPool.communityFactory();
   const expectedFactory = ethers.getAddress(factoryAddress);
+  const allowFactoryReplacement = process.env.ALLOW_V3_FACTORY_REPLACEMENT === "true";
 
   if (currentFactory !== ethers.ZeroAddress && ethers.getAddress(currentFactory) !== expectedFactory) {
-    throw new Error(
-      `FundingPool already points to ${currentFactory}; refusing to replace it automatically`
-    );
+    if (!allowFactoryReplacement) {
+      throw new Error(
+        `FundingPool already points to ${currentFactory}; refusing to replace it automatically. ` +
+          "Set ALLOW_V3_FACTORY_REPLACEMENT=true only when intentionally replacing a V3 Factory."
+      );
+    }
+    console.warn("Replacing previously configured V3 Factory:", currentFactory);
   }
   if (ethers.getAddress(currentFactory) === expectedFactory) {
     console.log("FundingPool is already configured for this V3 Factory:", expectedFactory);

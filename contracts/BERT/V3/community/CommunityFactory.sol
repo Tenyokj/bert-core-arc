@@ -92,7 +92,8 @@ import {ICommunityFactory} from "../interfaces/ICommunityFactory.sol";
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
 import {ICommunityTreasuryDeployer} from "../interfaces/ICommunityTreasuryDeployer.sol";
-import {CommunityTypes} from "../utils/CommunityTypes.sol";
+import {CommunityTypes} from "../libraries/CommunityTypes.sol";
+import {IHumanVerifier} from "../../interfaces/IHumanVerifier.sol";
 import "../../utils/Errors.sol";
 import "../utils/CommunityErrors.sol";
 
@@ -110,6 +111,8 @@ contract CommunityFactory is Initializable, ICommunityFactory {
      * @dev Stored rather than immutable because a Transparent proxy executes this implementation by delegatecall.
      */
     ICommunityTreasuryDeployer public communityTreasuryDeployer;
+    /** @notice Protocol-wide PoP verifier that every community created through this Factory must use. */
+    address public humanVerifier;
     /** @notice Last assigned monotonic community identifier. */
     uint256 public communityCount;
 
@@ -134,13 +137,21 @@ contract CommunityFactory is Initializable, ICommunityFactory {
     /**
      * @notice Initializes the CommunityFactory Transparent proxy.
      * @param communityTreasuryDeployer_ Contract that deploys CommunityTreasury instances.
+     * @param humanVerifier_ Shared BERT proof-of-personhood verifier for all Factory communities.
      */
-    function initialize(ICommunityTreasuryDeployer communityTreasuryDeployer_) external initializer {
+    function initialize(ICommunityTreasuryDeployer communityTreasuryDeployer_, address humanVerifier_) external initializer {
         if (address(communityTreasuryDeployer_) == address(0)) {
             revert ZeroAddress("communityTreasuryDeployer");
         }
+        if (address(humanVerifier_) == address(0)) {
+            revert ZeroAddress("humanVerifier");
+        }
+        if (humanVerifier_.code.length == 0) {
+            revert InvalidParameter("humanVerifier", "must be a contract");
+        }
 
         communityTreasuryDeployer = communityTreasuryDeployer_;
+        humanVerifier = humanVerifier_;
     }
 
     /**
@@ -157,6 +168,9 @@ contract CommunityFactory is Initializable, ICommunityFactory {
     {
         if (config_.usdc == address(0)) revert ZeroAddress("usdc");
         if (config_.globalBertReserve == address(0)) revert ZeroAddress("globalBertReserve");
+        if (!IHumanVerifier(humanVerifier).isVerifiedHuman(msg.sender)) {
+            revert HumanVerificationRequired(msg.sender);
+        }
 
         treasury = communityTreasuryDeployer.deployCommunityTreasury(
             config_.usdc,
@@ -261,5 +275,5 @@ contract CommunityFactory is Initializable, ICommunityFactory {
      * @notice Reserved storage slots for future CommunityFactory proxy upgrades.
      * @dev Do not reorder existing storage variables; consume slots only by appending new state.
      */
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 }

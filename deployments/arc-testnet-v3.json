@@ -1,0 +1,34 @@
+{
+  "network": "arcTestnet",
+  "chainId": 5042002,
+  "deployedAt": "2026-09-09",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "rolesRegistry": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
+  "popVerifier": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
+  "v2": {
+    "ideaRegistry": {
+      "proxy": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
+      "implementation": "0x1d9efBE1c6bC8c1052f116E200f9CD83944bB842",
+      "proxyAdmin": "0xc56a44edE787c5C046c79E1BA5b1236Aec0C7347",
+      "upgradeBlock": 61277189,
+      "upgradeTransaction": "0x770192ab591bd70c08c2a21fb20b02babc5abbf1dcb02ea37e236238f1398d30"
+    },
+    "fundingPool": {
+      "proxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
+      "implementation": "0x821E23Cf1a6E34f26544522965cb02D1da3B3d61",
+      "proxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
+      "upgradeBlock": 61277325,
+      "upgradeTransaction": "0x7f66bc89ee0bff9508a2ca58af4345acc3aefe6a48dfed560d57ad3ff03706ec"
+    },
+    "votingSystem": "0xD008fC96902A9680FF77305881Ad6C6C075e7a68"
+  },
+  "v3": {
+    "factory": "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",
+    "factoryImplementation": "0x53532C921EC65e71d89Eb54D2A767d6AbA3D818c",
+    "factoryProxyAdmin": "0x7CeA6Fd35d8248d0691686Db10fCd94849Cd3a79",
+    "factoryDeploymentBlock": 61277385,
+    "treasuryDeployer": "0x84594a42E59789C687e9397a994D71CFfa522409",
+    "adminActionsLibrary": "0x5EA79A8a98f588aa342f53baCBC8729A6Ea1177E",
+    "fundingPoolConfigurationTransaction": "0x64f72f6faa86dab29a674a8da8ded1e4440661f31e15d16a1f966f33530e0dd8"
+  }
+}

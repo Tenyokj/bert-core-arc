@@ -16,11 +16,15 @@ describe("V3 Community reserve integration", function () {
     const treasuryDeployer = await (
       await ethers.getContractFactory("CommunityTreasuryDeployer", admin)
     ).deploy();
+    const humanVerifier = await (await ethers.getContractFactory("MockHumanVerifier", admin)).deploy();
+    for (const signer of [admin, user1, user2, user3, user4]) {
+      await humanVerifier.setVerified(signer.address, true);
+    }
     const factory = await deployTransparentUpgradeable(
       ethers,
       admin,
       "CommunityFactory",
-      [await treasuryDeployer.getAddress()],
+      [await treasuryDeployer.getAddress(), await humanVerifier.getAddress()],
       admin.address
     );
 
@@ -44,12 +48,17 @@ describe("V3 Community reserve integration", function () {
       roundVotingDuration: 172_800n,
       validatorRewardEpoch: 604_800n,
       validatorActiveThresholdBps: 6_000n,
+      validatorProposalPointsThreshold: 15n,
     };
 
     const [communityId, treasuryAddress] = await factory.createCommunity.staticCall(config);
     await factory.createCommunity(config);
 
-    const hub = await (await ethers.getContractFactory("CommunityHub", admin)).deploy(
+    const adminActions = await (await ethers.getContractFactory("CommunityAdminActions", admin)).deploy();
+    const CommunityHub = await ethers.getContractFactory("CommunityHub", {
+      libraries: { CommunityAdminActions: await adminActions.getAddress() },
+    });
+    const hub = await CommunityHub.connect(admin).deploy(
       config,
       treasuryAddress,
       admin.address

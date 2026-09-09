@@ -16,17 +16,23 @@ async function main() {
   const { ethers } = connection;
   const factoryAddress = requiredAddress("V3_FACTORY_ADDRESS");
   const treasuryDeployerAddress = requiredAddress("V3_TREASURY_DEPLOYER_ADDRESS");
+  const popVerifierAddress = requiredAddress("POP_VERIFIER_ADDRESS");
 
-  if (!ethers.isAddress(factoryAddress) || !ethers.isAddress(treasuryDeployerAddress)) {
+  if (
+    !ethers.isAddress(factoryAddress) ||
+    !ethers.isAddress(treasuryDeployerAddress) ||
+    !ethers.isAddress(popVerifierAddress)
+  ) {
     throw new Error("V3 deployment addresses must be valid addresses");
   }
 
-  const [factoryCode, treasuryDeployerCode] = await Promise.all([
+  const [factoryCode, treasuryDeployerCode, popVerifierCode] = await Promise.all([
     ethers.provider.getCode(factoryAddress),
     ethers.provider.getCode(treasuryDeployerAddress),
+    ethers.provider.getCode(popVerifierAddress),
   ]);
-  if (factoryCode === "0x" || treasuryDeployerCode === "0x") {
-    throw new Error("V3 Factory or TreasuryDeployer has no deployed contract code");
+  if (factoryCode === "0x" || treasuryDeployerCode === "0x" || popVerifierCode === "0x") {
+    throw new Error("V3 Factory, TreasuryDeployer, or PoPVerifier has no deployed contract code");
   }
 
   const factory = await ethers.getContractAt("CommunityFactory", factoryAddress);
@@ -34,10 +40,14 @@ async function main() {
   if (ethers.getAddress(configuredTreasuryDeployer) !== ethers.getAddress(treasuryDeployerAddress)) {
     throw new Error("Factory points to a different CommunityTreasuryDeployer");
   }
+  if (ethers.getAddress(await factory.humanVerifier()) !== ethers.getAddress(popVerifierAddress)) {
+    throw new Error("Factory points to a different PoP verifier");
+  }
 
   console.log("BERT V3 infrastructure verified");
   console.log("CommunityFactory:", ethers.getAddress(factoryAddress));
   console.log("CommunityTreasuryDeployer:", ethers.getAddress(treasuryDeployerAddress));
+  console.log("PoPVerifier:", ethers.getAddress(popVerifierAddress));
   console.log("Community count:", (await factory.communityCount()).toString());
 
   const fundingPoolAddress = process.env.FUNDING_POOL_ADDRESS?.trim();

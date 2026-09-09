@@ -166,6 +166,46 @@ library CommunityTypes {
     }
 
     /**
+     * @notice Describes a security-sensitive action that requires local Admin quorum.
+     * @dev Admin quorum protects Community control-plane changes as well as Treasury withdrawals.
+     * - Pause/Unpause: changes the Community governance clock state.
+     * - Archive: permanently closes governance once all fund-bearing flows are resolved.
+     * - AddAdmin/RemoveAdmin: changes the local Treasury control set through a quorum-approved request.
+     * - AddValidator/RemoveValidator: changes the member-proposal review set.
+     * - CancelWithdrawal: releases a Treasury withdrawal reservation after Admin quorum.
+     */
+    enum AdminActionType {
+        Pause,
+        Unpause,
+        Archive,
+        AddAdmin,
+        RemoveAdmin,
+        AddValidator,
+        RemoveValidator,
+        CancelWithdrawal
+    }
+
+    /**
+     * @notice One immutable-intent, quorum-approved Community control-plane request.
+     * @dev Approval membership is stored separately in CommunityHub to avoid copying mappings.
+     * @dev Fields:
+     * - action: protected action to execute after quorum.
+     * - target: role recipient or role holder for role-management actions; zero otherwise.
+     * - value: Treasury withdrawal request ID for CancelWithdrawal; zero otherwise.
+     * - expiresAt: Community-clock deadline after which the request cannot execute.
+     * - approvalCount: recorded Admin approvals, including the proposer.
+     * - executed: whether the requested state change has completed.
+     */
+    struct AdminActionRequest {
+        AdminActionType action;
+        address target;
+        uint256 value;
+        uint64 expiresAt;
+        uint256 approvalCount;
+        bool executed;
+    }
+
+    /**
      * @notice Per-community configuration selected when the community is created.
      * @dev USDC values use the asset's native units. Arc USDC uses 6 decimals.
      * @dev Fields:
@@ -188,6 +228,7 @@ library CommunityTypes {
      * - roundVotingDuration: duration of slate round voting.
      * - validatorRewardEpoch: duration of one validator reward epoch.
      * - validatorActiveThresholdBps: minimum validation-case participation, in basis points.
+     * - validatorProposalPointsThreshold: winning member proposals required before validator nomination.
      */
     struct CommunityConfig {
         string name;
@@ -209,6 +250,7 @@ library CommunityTypes {
         uint256 roundVotingDuration;
         uint256 validatorRewardEpoch;
         uint256 validatorActiveThresholdBps;
+        uint256 validatorProposalPointsThreshold;
     }
 
     /**

@@ -86,13 +86,19 @@
  */
 pragma solidity ^0.8.20;
 
-import {CommunityTypes} from "../utils/CommunityTypes.sol";
+import {CommunityTypes} from "../libraries/CommunityTypes.sol";
 
 /**
  * @title ICommunityFactory
  * @notice Registry and deployment entrypoint for BERT V3 communities.
  */
 interface ICommunityFactory {
+    /**
+     * @notice Returns the protocol-wide proof-of-personhood verifier required by new communities.
+     * @return Verifier contract address fixed when the Factory proxy is initialized.
+     */
+    function humanVerifier() external view returns (address);
+
     /**
      * @notice Emitted when Factory deploys and reserves a Treasury for a new community.
      * @param communityId Monotonic Factory-assigned community identifier.

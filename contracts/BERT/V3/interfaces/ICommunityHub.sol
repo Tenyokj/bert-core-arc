@@ -86,7 +86,7 @@
  */
 pragma solidity ^0.8.20;
 
-import {CommunityTypes} from "../utils/CommunityTypes.sol";
+import {CommunityTypes} from "../libraries/CommunityTypes.sol";
 
 /**
  * @title ICommunityHub
@@ -111,6 +111,11 @@ interface ICommunityHub {
     function configHash() external view returns (bytes32);
 
     /**
+     * @notice Returns the immutable winning-proposal threshold for local validator nomination.
+     */
+    function validatorProposalPointsThreshold() external view returns (uint256);
+
+    /**
      * @notice Emitted whenever the lifecycle status changes.
      * @param newStatus New Active, Paused, or Archived status.
      */
@@ -128,6 +133,34 @@ interface ICommunityHub {
     event ValidatorAdded(address indexed validator);
     /** @notice Emitted when an account loses the local validator role. @param validator Removed validator address. */
     event ValidatorRemoved(address indexed validator);
+
+    /**
+     * @notice Emitted when an Admin opens a quorum-protected Community control-plane request.
+     * @param requestId New request identifier.
+     * @param action Requested protected action.
+     * @param proposer Admin that created and first-approved the request.
+     * @param target Role-action account, or zero for non-role actions.
+     * @param value Treasury withdrawal request ID for cancellation, or zero otherwise.
+     * @param expiresAt Community-clock approval deadline.
+     */
+    event AdminActionRequested(
+        uint256 indexed requestId,
+        CommunityTypes.AdminActionType action,
+        address indexed proposer,
+        address indexed target,
+        uint256 value,
+        uint256 expiresAt
+    );
+    /** @notice Emitted when one current Admin approves a pending control-plane request. */
+    event AdminActionApproved(uint256 indexed requestId, address indexed admin);
+    /** @notice Emitted when the original proposer cancels a pending control-plane request. */
+    event AdminActionCancelled(uint256 indexed requestId, address indexed proposer);
+    /** @notice Emitted after a quorum-approved control-plane request executes. */
+    event AdminActionExecuted(
+        uint256 indexed requestId,
+        CommunityTypes.AdminActionType action,
+        address indexed executor
+    );
 
     /** @notice Emitted after membership stake is locked. @param member Joining address. @param stake Locked USDC amount. */
     event MemberJoined(address indexed member, uint256 stake);

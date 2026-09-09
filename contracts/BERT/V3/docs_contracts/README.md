@@ -8,6 +8,7 @@ This directory documents the BERT V3 Community Layer contracts. V3 is an extensi
 2. [CommunityHub](CommunityHub.md) - local governance state machine for roles, membership, proposals, votes, rounds, and validator epochs.
 3. [CommunityTreasury](CommunityTreasury.md) - USDC custody, settlements, refunds, rewards, and admin-quorum withdrawals.
 4. [CommunityTreasuryDeployer](CommunityTreasuryDeployer.md) - deploys isolated Treasury instances without increasing Factory bytecode size.
+5. [CommunityAdminActions](CommunityAdminActions.md) - linked quorum engine for protected Community control-plane actions.
 
 ## Shared Definitions
 

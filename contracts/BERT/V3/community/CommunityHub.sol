@@ -90,7 +90,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
-import {CommunityTypes} from "../utils/CommunityTypes.sol";
+import {CommunityAdminActions} from "../libraries/CommunityAdminActions.sol";
+import {CommunityTypes} from "../libraries/CommunityTypes.sol";
 import "../../utils/Errors.sol";
 import "../utils/CommunityErrors.sol";
 
@@ -103,8 +104,8 @@ import "../utils/CommunityErrors.sol";
  * @custom:version 1.0.0
  */
 contract CommunityHub is ICommunityHub, ReentrancyGuard {
-    /** @notice Winning member proposals required before a member may be nominated as a validator. */
-    uint256 public constant VALIDATOR_PROPOSAL_POINTS_THRESHOLD = 15;
+    /** @notice Highest configurable winning-proposal threshold for local validator nomination. */
+    uint256 private constant MAX_VALIDATOR_PROPOSAL_POINTS_THRESHOLD = 100;
     /** @notice Maximum simultaneous local validators, limiting validation-set iteration cost. */
     uint256 public constant MAX_ACTIVE_VALIDATORS = 50;
     /** @notice Maximum proposals that one slate round may contain. */
@@ -149,6 +150,8 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
     uint256 public immutable validatorRewardEpoch;
     /** @notice Required share of available validation cases, in basis points, for epoch rewards. */
     uint256 public immutable validatorActiveThresholdBps;
+    /** @notice Winning member proposals required before a former member becomes eligible for validator nomination. */
+    uint256 public immutable override validatorProposalPointsThreshold;
 
     /** @notice Wall-clock timestamp at which the current pause began; zero while unpaused. */
     uint64 public pausedAt;
@@ -255,6 +258,12 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         _;
     }
 
+    /** @notice Restricts a call to this Hub itself through its linked Admin-action library. */
+    modifier onlySelf() {
+        if (msg.sender != address(this)) revert NotCommunityAdmin(msg.sender);
+        _;
+    }
+
     /** @notice Restricts a call to an account with the local validator role. */
     modifier onlyValidator() {
         if (!validators[msg.sender]) revert NotCommunityValidator(msg.sender);
@@ -307,12 +316,13 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         roundVotingDuration = config_.roundVotingDuration;
         validatorRewardEpoch = config_.validatorRewardEpoch;
         validatorActiveThresholdBps = config_.validatorActiveThresholdBps;
+        validatorProposalPointsThreshold = config_.validatorProposalPointsThreshold;
         communityStatus = CommunityTypes.CommunityStatus.Active;
 
         for (uint256 i; i < config_.initialAdmins.length; ++i) {
             _addAdmin(config_.initialAdmins[i]);
         }
-        if (!admins[creator_]) revert InvalidCommunityConfig("creator must be an initial admin");
+        if (!admins[creator_]) revert InvalidCommunityConfigCode(1);
 
         for (uint256 i; i < config_.initialValidators.length; ++i) {
             _addValidator(config_.initialValidators[i]);
@@ -425,107 +435,36 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         return (voteChoiceByProposal[proposalId][voter], voteStakeByProposal[proposalId][voter]);
     }
 
-    /** @notice Pauses new governance actions and freezes the community clock. */
-    function pauseCommunity() external onlyAdmin onlyActiveCommunity {
-        pausedAt = uint64(block.timestamp);
-        communityStatus = CommunityTypes.CommunityStatus.Paused;
-        emit CommunityStatusChanged(communityStatus);
-    }
-
-    /** @notice Resumes governance and excludes the paused real-time duration from all deadlines. */
-    function unpauseCommunity() external onlyAdmin {
-        if (communityStatus != CommunityTypes.CommunityStatus.Paused) revert CommunityNotActive();
-
-        totalPausedDuration += block.timestamp - pausedAt;
-        pausedAt = 0;
-        communityStatus = CommunityTypes.CommunityStatus.Active;
-        emit CommunityStatusChanged(communityStatus);
+    /**
+     * @notice Creates a quorum-protected request for a Community control-plane action.
+     * @dev The proposer records the first approval. Requests expire after seven Community-clock days.
+     * @param action Security-sensitive operation to execute after Admin quorum.
+     * @param target Role recipient or role holder; must be zero for status and Treasury-cancellation actions.
+     * @param value Treasury withdrawal request ID for CancelWithdrawal; zero for every other action.
+     * @return requestId Newly assigned Admin action request identifier.
+     */
+    function createAdminActionRequest(
+        CommunityTypes.AdminActionType action,
+        address target,
+        uint256 value
+    ) external onlyAdmin onlyNotArchived returns (uint256 requestId) {
+        return CommunityAdminActions.create(action, target, value);
     }
 
     /**
-     * @notice Permanently closes governance after every fund-bearing proposal and round is resolved.
-     * @dev Archival blocks new governance and withdrawals, while allowing exits, refunds, and accrued rewards.
+     * @notice Adds the caller's approval to an open Admin action request.
+     * @param requestId Existing request identifier.
      */
-    function archiveCommunity() external onlyAdmin {
-        if (communityStatus == CommunityTypes.CommunityStatus.Archived) revert CommunityIsArchived();
-        if (
-            pendingValidationProposalCount != 0 ||
-            activeBinaryProposalCount != 0 ||
-            activeSlateRoundCount != 0 ||
-            unresolvedMemberProposalCount != 0
-        ) {
-            revert CommunityArchiveBlocked(
-                pendingValidationProposalCount,
-                activeBinaryProposalCount,
-                activeSlateRoundCount,
-                unresolvedMemberProposalCount
-            );
-        }
-
-        archivedAt = _communityTime();
-        pausedAt = 0;
-        communityStatus = CommunityTypes.CommunityStatus.Archived;
-        emit CommunityStatusChanged(communityStatus);
-        emit CommunityArchived(archivedAt);
+    function approveAdminActionRequest(uint256 requestId) external onlyAdmin onlyNotArchived {
+        CommunityAdminActions.approve(requestId);
     }
 
     /**
-     * @notice Grants the local admin role to an address that is not a validator.
-     * @param account Address to receive the admin role.
+     * @notice Executes an approved Admin action after the immutable local Admin quorum is met.
+     * @param requestId Existing request identifier.
      */
-    function addAdmin(address account) external onlyAdmin onlyNotArchived {
-        _addAdmin(account);
-    }
-
-    /**
-     * @notice Removes a local admin while preserving at least one active admin.
-     * @param account Admin address to remove.
-     */
-    function removeAdmin(address account) external onlyAdmin onlyNotArchived {
-        _removeAdmin(account);
-    }
-
-    /**
-     * @notice Atomically grants another address admin status and removes the caller's admin role.
-     * @param newAdmin Address receiving the caller's local admin position.
-     */
-    function transferAdminRole(address newAdmin) external onlyAdmin onlyNotArchived {
-        _addAdmin(newAdmin);
-        _removeAdmin(msg.sender);
-    }
-
-    /**
-     * @notice Lets an admin drop their local role after archival so a membership stake can be released.
-     * @dev The final admin may renounce because archived communities no longer permit governance actions.
-     */
-    function renounceAdminRole() external onlyAdmin {
-        if (communityStatus != CommunityTypes.CommunityStatus.Archived) revert CommunityNotActive();
-
-        admins[msg.sender] = false;
-        adminCount -= 1;
-        emit AdminRemoved(msg.sender);
-    }
-
-    /**
-     * @notice Appoints an eligible active member to the local validator set.
-     * @dev Constructor-supplied initial validators are the bootstrap exception; all later appointments
-     * require local proposal-point eligibility and remain incompatible with the admin role.
-     * @param account Eligible member to appoint.
-     */
-    function addValidator(address account) external onlyAdmin onlyNotArchived {
-        _requireValidatorSetUnlocked();
-        if (admins[account]) revert AdminValidatorRoleConflict(account);
-        _requireValidatorEligibility(account);
-        _addValidator(account);
-    }
-
-    /**
-     * @notice Removes a validator when no proposal is awaiting validator review.
-     * @param account Validator address to remove.
-     */
-    function removeValidator(address account) external onlyAdmin onlyNotArchived {
-        _requireValidatorSetUnlocked();
-        _removeValidator(account);
+    function executeAdminActionRequest(uint256 requestId) external onlyAdmin onlyNotArchived nonReentrant {
+        CommunityAdminActions.execute(requestId);
     }
 
     /** @notice Lets a validator resign when no proposal is awaiting validator review. */
@@ -535,23 +474,24 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
     }
 
     /**
-     * @notice Reports whether an active member may be nominated as a local validator.
-     * @dev Eligibility is a qualification only; a community admin must still call addValidator.
+     * @notice Reports whether an inactive member has accumulated the validator nomination qualification.
+     * @dev Existing role conflicts are enforced separately when an admin calls addValidator.
      * @param account Address to inspect.
      */
     function isValidatorEligible(address account) external view returns (bool) {
         return
-            members[account].active &&
-            members[account].proposalPoints >= VALIDATOR_PROPOSAL_POINTS_THRESHOLD;
+            !members[account].active &&
+            members[account].proposalPoints >= validatorProposalPointsThreshold;
     }
 
     /**
      * @notice Pulls the configured entry stake into Treasury and activates the caller's membership.
-     * @dev Caller must approve Treasury for entryStakeUSDC before calling.
+     * @dev Caller must approve Treasury for entryStakeUSDC before calling and cannot be an admin or validator.
      */
     function joinCommunity() external onlyActiveCommunity nonReentrant {
         CommunityTypes.MemberInfo storage member = members[msg.sender];
         if (member.active) revert AlreadyCommunityMember(msg.sender);
+        if (admins[msg.sender] || validators[msg.sender]) revert AdminValidatorRoleConflict(msg.sender);
 
         treasury.depositMembershipStake(msg.sender, entryStakeUSDC);
 
@@ -868,6 +808,9 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         ) revert VotingNotOpen(proposalId);
         if (_communityTime() >= proposal.votingDeadline) revert VotingWindowClosed(proposalId);
         if (choice == CommunityTypes.VoteChoice.None) revert InvalidVoteChoice();
+        if (proposal.creator == msg.sender) {
+            revert ProposalAuthorCannotVote(proposalId, msg.sender);
+        }
         if (voteChoiceByProposal[proposalId][msg.sender] != CommunityTypes.VoteChoice.None) {
             revert BinaryVoteAlreadyCast(proposalId, msg.sender);
         }
@@ -914,11 +857,16 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         bool accepted = proposal.yesVotes > proposal.noVotes;
         if (accepted) {
             _rollValidatorRewardEpoch();
+            // Admin proposals do not enter validator review, so epoch zero disables validator rewards.
+            // Member-proposal rewards belong to the epoch that measured the validators' work.
+            uint256 rewardEpochId = proposal.origin == CommunityTypes.ProposalOrigin.Member
+                ? validationEpochIdByProposal[proposalId]
+                : 0;
             treasury.settleBinaryYesWin(
                 proposalId,
                 proposal.yesVotes,
                 proposal.noVotes,
-                currentValidatorRewardEpochId
+                rewardEpochId
             );
         } else {
             treasury.settleBinaryNoWin(
@@ -977,7 +925,8 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
     /**
      * @notice Commits one member's USDC stake to exactly one proposal in an open slate round.
      * @dev The stake is non-refundable and the full round escrow is routed to local community buckets
-     * when the round settles. A member cannot vote while their membership exit is pending.
+     * when the round settles. A member cannot vote while their membership exit is pending or select
+     * their own proposal.
      * @param roundId Slate round identifier.
      * @param proposalId Included slate proposal selected by the voter.
      * @param amount USDC stake in token-native units.
@@ -992,6 +941,9 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         CommunityTypes.CommunityRound storage round = rounds[roundId];
         if (round.settled || _communityTime() >= round.endTime) revert VotingWindowClosed(roundId);
         if (!proposalIncludedInRound[roundId][proposalId]) revert InvalidRoundProposal(proposalId);
+        if (proposals[proposalId].creator == msg.sender) {
+            revert ProposalAuthorCannotVote(proposalId, msg.sender);
+        }
         if (selectedProposalByRound[roundId][msg.sender] != 0) {
             revert RoundVoteAlreadyCast(roundId, msg.sender);
         }
@@ -1031,8 +983,13 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
             }
         }
 
-        _rollValidatorRewardEpoch();
-        treasury.settleSlateRound(roundId, round.totalVotes, currentValidatorRewardEpochId);
+        treasury.settleSlateRound(
+            roundId,
+            round.totalVotes,
+            round.origin == CommunityTypes.ProposalOrigin.Member
+                ? validationEpochIdByProposal[winningProposalId]
+                : 0
+        );
         round.winningProposalId = winningProposalId;
         round.winningVotes = winningVotes;
         round.settled = true;
@@ -1193,14 +1150,14 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         ICommunityTreasury communityTreasury_,
         address creator_
     ) private pure {
-        if (address(communityTreasury_) == address(0)) revert ZeroAddress("communityTreasury");
-        if (creator_ == address(0)) revert ZeroAddress("creator");
-        if (config_.usdc == address(0)) revert ZeroAddress("usdc");
-        if (config_.globalBertReserve == address(0)) revert ZeroAddress("globalBertReserve");
-        if (config_.initialAdmins.length == 0) revert InvalidCommunityConfig("initial admins");
-        if (config_.initialValidators.length == 0) revert InvalidCommunityConfig("initial validators");
+        if (address(communityTreasury_) == address(0)) revert CommunityZeroAddress(1);
+        if (creator_ == address(0)) revert CommunityZeroAddress(2);
+        if (config_.usdc == address(0)) revert CommunityZeroAddress(3);
+        if (config_.globalBertReserve == address(0)) revert CommunityZeroAddress(4);
+        if (config_.initialAdmins.length == 0) revert InvalidCommunityConfigCode(2);
+        if (config_.initialValidators.length == 0) revert InvalidCommunityConfigCode(3);
         if (config_.initialValidators.length > MAX_ACTIVE_VALIDATORS) {
-            revert InvalidCommunityConfig("too many initial validators");
+            revert InvalidCommunityConfigCode(4);
         }
         if (
             config_.entryStakeUSDC == 0 ||
@@ -1208,7 +1165,7 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
             config_.voteMinStakeUSDC == 0 ||
             config_.voteMinStakeUSDC > MAX_VOTE_STAKE_USDC
         ) {
-            revert InvalidCommunityConfig("USDC amounts");
+            revert InvalidCommunityConfigCode(5);
         }
         if (
             config_.membershipExitCooldown == 0 ||
@@ -1217,16 +1174,16 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
             config_.roundVotingDuration == 0 ||
             config_.validatorRewardEpoch == 0
         ) {
-            revert InvalidCommunityConfig("durations");
+            revert InvalidCommunityConfigCode(6);
         }
         if (config_.adminApprovalThreshold == 0 || config_.adminApprovalThreshold > config_.initialAdmins.length) {
-            revert InvalidCommunityConfig("admin approval threshold");
+            revert InvalidCommunityConfigCode(7);
         }
         if (
             config_.validatorApprovalThreshold == 0 ||
             config_.validatorApprovalThreshold > config_.initialValidators.length
         ) {
-            revert InvalidCommunityConfig("validator approval threshold");
+            revert InvalidCommunityConfigCode(8);
         }
         if (config_.binaryRejectionFeeBps > MAX_REJECTION_FEE_BPS) {
             revert RejectionFeeTooHigh(config_.binaryRejectionFeeBps, MAX_REJECTION_FEE_BPS);
@@ -1236,18 +1193,108 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
             config_.validatorActiveThresholdBps == 0 ||
             config_.validatorActiveThresholdBps > BPS_DENOMINATOR
         ) {
-            revert InvalidCommunityConfig("basis points");
+            revert InvalidCommunityConfigCode(9);
+        }
+        if (
+            config_.validatorProposalPointsThreshold == 0 ||
+            config_.validatorProposalPointsThreshold > MAX_VALIDATOR_PROPOSAL_POINTS_THRESHOLD
+        ) {
+            revert InvalidCommunityConfigCode(10);
         }
     }
 
     /**
-     * @notice Adds a local admin while enforcing admin-validator separation.
+     * @notice Applies a quorum-approved control-plane action forwarded by the linked library.
+     * @dev The library calls this Hub back through address(this), so external callers cannot bypass quorum.
+     * Every mutable invariant is rechecked at execution time rather than trusted from request creation.
+     * @param action Approved protected action.
+     * @param target Role recipient or role holder for roster actions.
+     * @param value Treasury withdrawal request identifier for cancellation.
+     */
+    function executeAdminAction(
+        CommunityTypes.AdminActionType action,
+        address target,
+        uint256 value
+    ) external onlySelf {
+        if (action == CommunityTypes.AdminActionType.Pause) {
+            if (communityStatus != CommunityTypes.CommunityStatus.Active) revert CommunityNotActive();
+            pausedAt = uint64(block.timestamp);
+            communityStatus = CommunityTypes.CommunityStatus.Paused;
+            emit CommunityStatusChanged(communityStatus);
+            return;
+        }
+        if (action == CommunityTypes.AdminActionType.Unpause) {
+            if (communityStatus != CommunityTypes.CommunityStatus.Paused) revert CommunityNotActive();
+            totalPausedDuration += block.timestamp - pausedAt;
+            pausedAt = 0;
+            communityStatus = CommunityTypes.CommunityStatus.Active;
+            emit CommunityStatusChanged(communityStatus);
+            return;
+        }
+        if (action == CommunityTypes.AdminActionType.CancelWithdrawal) {
+            if (communityStatus == CommunityTypes.CommunityStatus.Archived) revert CommunityIsArchived();
+            treasury.cancelWithdrawalRequestByGovernance(value);
+            return;
+        }
+        if (communityStatus == CommunityTypes.CommunityStatus.Paused) revert CommunityIsPaused();
+        if (communityStatus == CommunityTypes.CommunityStatus.Archived) revert CommunityIsArchived();
+
+        if (action == CommunityTypes.AdminActionType.Archive) {
+            if (
+                pendingValidationProposalCount != 0 ||
+                activeBinaryProposalCount != 0 ||
+                activeSlateRoundCount != 0 ||
+                unresolvedMemberProposalCount != 0
+            ) {
+                revert CommunityArchiveBlocked(
+                    pendingValidationProposalCount,
+                    activeBinaryProposalCount,
+                    activeSlateRoundCount,
+                    unresolvedMemberProposalCount
+                );
+            }
+
+            archivedAt = _communityTime();
+            pausedAt = 0;
+            communityStatus = CommunityTypes.CommunityStatus.Archived;
+            emit CommunityStatusChanged(communityStatus);
+            emit CommunityArchived(archivedAt);
+            return;
+        }
+        if (action == CommunityTypes.AdminActionType.AddAdmin) {
+            _addAdmin(target);
+            return;
+        }
+        if (action == CommunityTypes.AdminActionType.RemoveAdmin) {
+            _removeAdmin(target);
+            return;
+        }
+        if (action == CommunityTypes.AdminActionType.AddValidator) {
+            _requireValidatorSetUnlocked();
+            if (admins[target]) revert AdminValidatorRoleConflict(target);
+            _requireValidatorEligibility(target);
+            _addValidator(target);
+            return;
+        }
+        if (action == CommunityTypes.AdminActionType.RemoveValidator) {
+            _requireValidatorSetUnlocked();
+            _removeValidator(target);
+            return;
+        }
+
+        revert InvalidAdminActionParameters();
+    }
+
+    /**
+     * @notice Adds a local admin while enforcing exclusive Community states.
      * @param account Address to add as an admin.
      */
     function _addAdmin(address account) private {
-        if (account == address(0)) revert ZeroAddress("admin");
+        if (account == address(0)) revert CommunityZeroAddress(5);
         if (admins[account]) revert RoleAlreadyAssigned(account);
-        if (validators[account]) revert AdminValidatorRoleConflict(account);
+        if (validators[account] || members[account].active) {
+            revert AdminValidatorRoleConflict(account);
+        }
 
         admins[account] = true;
         adminCount += 1;
@@ -1268,15 +1315,17 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
     }
 
     /**
-     * @notice Adds a local validator while enforcing role separation and the validator-set cap.
+     * @notice Adds a local validator while enforcing exclusive Community states and the validator-set cap.
      * @param account Address to add as a validator.
      */
     function _addValidator(address account) private {
-        if (account == address(0)) revert ZeroAddress("validator");
+        if (account == address(0)) revert CommunityZeroAddress(6);
         if (validators[account]) revert RoleAlreadyAssigned(account);
-        if (admins[account]) revert AdminValidatorRoleConflict(account);
+        if (admins[account] || members[account].active) {
+            revert AdminValidatorRoleConflict(account);
+        }
         if (validatorCount == MAX_ACTIVE_VALIDATORS) {
-            revert InvalidCommunityConfig("max active validators");
+            revert InvalidCommunityConfigCode(11);
         }
 
         validators[account] = true;
@@ -1370,16 +1419,16 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
     }
 
     /**
-     * @notice Reverts unless an active member has earned the local validator nomination threshold.
-     * @param account Member considered for validator appointment.
+     * @notice Reverts unless an inactive former member has earned the local validator nomination threshold.
+     * @param account Former member considered for validator appointment.
      */
     function _requireValidatorEligibility(address account) private view {
         CommunityTypes.MemberInfo storage member = members[account];
-        if (!member.active || member.proposalPoints < VALIDATOR_PROPOSAL_POINTS_THRESHOLD) {
+        if (member.active || member.proposalPoints < validatorProposalPointsThreshold) {
             revert ValidatorNotEligible(
                 account,
                 member.proposalPoints,
-                VALIDATOR_PROPOSAL_POINTS_THRESHOLD
+                validatorProposalPointsThreshold
             );
         }
     }
@@ -1393,7 +1442,7 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         CommunityTypes.MemberInfo storage memberInfo = members[member];
         memberInfo.proposalPoints += 1;
         emit ProposalPointAwarded(proposalId, member, memberInfo.proposalPoints);
-        if (memberInfo.proposalPoints == VALIDATOR_PROPOSAL_POINTS_THRESHOLD) {
+        if (memberInfo.proposalPoints == validatorProposalPointsThreshold) {
             emit ValidatorEligibilityReached(member, memberInfo.proposalPoints);
         }
     }
@@ -1428,7 +1477,7 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
         uint256[] calldata proposalIds
     ) private returns (uint256 roundId) {
         if (proposalIds.length == 0 || proposalIds.length > MAX_SLATE_PROPOSALS_PER_ROUND) {
-            revert InvalidCommunityConfig("round size");
+            revert InvalidCommunityConfigCode(12);
         }
 
         roundId = ++roundCount;

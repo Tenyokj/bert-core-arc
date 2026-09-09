@@ -17,6 +17,8 @@ describe("CommunityFactory", function () {
     const reserve = await (
       await ethers.getContractFactory("MockGlobalBertReserve", creator)
     ).deploy(await usdc.getAddress());
+    const humanVerifier = await (await ethers.getContractFactory("MockHumanVerifier", creator)).deploy();
+    await humanVerifier.setVerified(creator.address, true);
 
     return {
       creator,
@@ -25,6 +27,7 @@ describe("CommunityFactory", function () {
       validatorThree,
       reserve,
       usdc,
+      humanVerifier,
       config: {
         name: "Minecraft Community",
         metadataURI: "ipfs://bert-v3/community/minecraft",
@@ -45,6 +48,7 @@ describe("CommunityFactory", function () {
         roundVotingDuration: 172_800n,
         validatorRewardEpoch: 604_800n,
         validatorActiveThresholdBps: 6_000n,
+        validatorProposalPointsThreshold: 15n,
       },
     };
   }
@@ -59,26 +63,27 @@ describe("CommunityFactory", function () {
     const implementation = await (
       await ethers.getContractFactory("CommunityFactory", creator)
     ).deploy();
+    const humanVerifier = await (await ethers.getContractFactory("MockHumanVerifier", creator)).deploy();
 
-    await expect(implementation.initialize(await treasuryDeployer.getAddress()))
+    await expect(implementation.initialize(await treasuryDeployer.getAddress(), await humanVerifier.getAddress()))
       .to.be.revertedWithCustomError(implementation, "InvalidInitialization");
 
     const factory = await deployTransparentUpgradeable(
       ethers,
       creator,
       "CommunityFactory",
-      [await treasuryDeployer.getAddress()],
+      [await treasuryDeployer.getAddress(), await humanVerifier.getAddress()],
       creator.address
     );
 
-    await expect(factory.initialize(await treasuryDeployer.getAddress()))
+    await expect(factory.initialize(await treasuryDeployer.getAddress(), await humanVerifier.getAddress()))
       .to.be.revertedWithCustomError(factory, "InvalidInitialization");
   });
 
   /** @notice it: reserves a Treasury then safely activates the creator's direct Hub deployment */
   it("reserves, verifies, links, and indexes a community", async function () {
     const { ethers } = await getConnection();
-    const { creator, usdc, config } = await buildConfig(ethers);
+    const { creator, usdc, config, humanVerifier } = await buildConfig(ethers);
     const treasuryDeployer = await (
       await ethers.getContractFactory("CommunityTreasuryDeployer", creator)
     ).deploy();
@@ -86,7 +91,7 @@ describe("CommunityFactory", function () {
       ethers,
       creator,
       "CommunityFactory",
-      [await treasuryDeployer.getAddress()],
+      [await treasuryDeployer.getAddress(), await humanVerifier.getAddress()],
       creator.address
     );
 
@@ -98,7 +103,11 @@ describe("CommunityFactory", function () {
     expect(pendingDeployment.treasury).to.equal(treasuryAddress);
     expect(await factory.isActiveCommunityTreasury(treasuryAddress)).to.equal(false);
 
-    const hub = await (await ethers.getContractFactory("CommunityHub", creator)).deploy(
+    const adminActions = await (await ethers.getContractFactory("CommunityAdminActions", creator)).deploy();
+    const CommunityHub = await ethers.getContractFactory("CommunityHub", {
+      libraries: { CommunityAdminActions: await adminActions.getAddress() },
+    });
+    const hub = await CommunityHub.connect(creator).deploy(
       config,
       treasuryAddress,
       creator.address
@@ -128,7 +137,7 @@ describe("CommunityFactory", function () {
   /** @notice it: rejects activation with a Hub constructed from any different immutable config */
   it("rejects a Hub whose configuration does not match the reserved community", async function () {
     const { ethers } = await getConnection();
-    const { creator, config } = await buildConfig(ethers);
+    const { creator, config, humanVerifier } = await buildConfig(ethers);
     const treasuryDeployer = await (
       await ethers.getContractFactory("CommunityTreasuryDeployer", creator)
     ).deploy();
@@ -136,13 +145,17 @@ describe("CommunityFactory", function () {
       ethers,
       creator,
       "CommunityFactory",
-      [await treasuryDeployer.getAddress()],
+      [await treasuryDeployer.getAddress(), await humanVerifier.getAddress()],
       creator.address
     );
     const [communityId, treasuryAddress] = await factory.createCommunity.staticCall(config);
     await factory.createCommunity(config);
     const changedConfig = { ...config, name: "Different Community" };
-    const mismatchedHub = await (await ethers.getContractFactory("CommunityHub", creator)).deploy(
+    const adminActions = await (await ethers.getContractFactory("CommunityAdminActions", creator)).deploy();
+    const CommunityHub = await ethers.getContractFactory("CommunityHub", {
+      libraries: { CommunityAdminActions: await adminActions.getAddress() },
+    });
+    const mismatchedHub = await CommunityHub.connect(creator).deploy(
       changedConfig,
       treasuryAddress,
       creator.address
@@ -157,7 +170,7 @@ describe("CommunityFactory", function () {
   /** @notice it: rejects invalid reservation and activation identifiers before any treasury link can occur */
   it("guards invalid factory inputs and prevents non-creators from activating a reservation", async function () {
     const { ethers } = await getConnection();
-    const { creator, validatorOne, config } = await buildConfig(ethers);
+    const { creator, validatorOne, config, humanVerifier } = await buildConfig(ethers);
     const treasuryDeployer = await (
       await ethers.getContractFactory("CommunityTreasuryDeployer", creator)
     ).deploy();
@@ -165,7 +178,7 @@ describe("CommunityFactory", function () {
       ethers,
       creator,
       "CommunityFactory",
-      [await treasuryDeployer.getAddress()],
+      [await treasuryDeployer.getAddress(), await humanVerifier.getAddress()],
       creator.address
     );
 
@@ -178,7 +191,11 @@ describe("CommunityFactory", function () {
 
     const [communityId, treasuryAddress] = await factory.createCommunity.staticCall(config);
     await factory.createCommunity(config);
-    const hub = await (await ethers.getContractFactory("CommunityHub", creator)).deploy(
+    const adminActions = await (await ethers.getContractFactory("CommunityAdminActions", creator)).deploy();
+    const CommunityHub = await ethers.getContractFactory("CommunityHub", {
+      libraries: { CommunityAdminActions: await adminActions.getAddress() },
+    });
+    const hub = await CommunityHub.connect(creator).deploy(
       config,
       treasuryAddress,
       creator.address
@@ -195,5 +212,26 @@ describe("CommunityFactory", function () {
     await expect(factory.activateCommunity(communityId, await hub.getAddress()))
       .to.be.revertedWithCustomError(factory, "CommunityAlreadyActivated")
       .withArgs(communityId);
+  });
+
+  /** @notice it: blocks unverified wallets from reserving a new community. */
+  it("requires proof-of-personhood before creating a community", async function () {
+    const { ethers } = await getConnection();
+    const { creator, config, humanVerifier } = await buildConfig(ethers);
+    const treasuryDeployer = await (
+      await ethers.getContractFactory("CommunityTreasuryDeployer", creator)
+    ).deploy();
+    const factory = await deployTransparentUpgradeable(
+      ethers,
+      creator,
+      "CommunityFactory",
+      [await treasuryDeployer.getAddress(), await humanVerifier.getAddress()],
+      creator.address
+    );
+
+    await humanVerifier.setVerified(creator.address, false);
+    await expect(factory.createCommunity(config))
+      .to.be.revertedWithCustomError(factory, "HumanVerificationRequired")
+      .withArgs(creator.address);
   });
 });

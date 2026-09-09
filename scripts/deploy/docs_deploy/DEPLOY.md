@@ -28,6 +28,7 @@ PROXY_ADMIN_OWNER=0x...
 USDC_ADDRESS=0x3600000000000000000000000000000000000000
 TRUSTED_SIGNER_ADDRESS=0x...
 HUMAN_ONLY_VOTING=true
+HUMAN_ONLY_IDEA_CREATION=true
 MAX_VOTE_AMOUNT_USDC=10000
 ```
 
@@ -51,7 +52,7 @@ The script:
 2. Uses the configured USDC address for `FundingPoolUpgradeable`.
 3. Grants protocol roles.
 4. Wires `IdeaRegistryUpgradeable` to `FundingPoolUpgradeable`.
-5. Optionally deploys and wires `PoPVerifierUpgradeable` when `TRUSTED_SIGNER_ADDRESS` is provided.
+5. Optionally deploys and wires `PoPVerifierUpgradeable` when `TRUSTED_SIGNER_ADDRESS` is provided, then applies the configured verification gates to voting and idea creation.
 6. Unpauses the live modules.
 
 **Verification Checklist**
@@ -60,7 +61,18 @@ The script:
 3. Confirm `VotingSystemUpgradeable.minStake()` and `IdeaRegistryUpgradeable.authorMinStake()` reflect 6-decimal USDC units and your intended treasury policy.
 4. Confirm all system roles are assigned.
 5. Confirm `FundingPoolUpgradeable`, `VotingSystemUpgradeable`, and `GrantManagerUpgradeable` are unpaused only after role wiring.
-6. If PoP voting is enabled, confirm `humanVerifier`, `humanOnlyVoting`, `maxVoteAmount`, and verifier `trustedSigner`.
+6. If PoP participation is enabled, confirm VotingSystem `humanVerifier`, `humanOnlyVoting`, `maxVoteAmount`; IdeaRegistry `humanVerifier`, `humanOnlyIdeaCreation`; and verifier `trustedSigner`.
+
+## V3 PoP Configuration
+
+`CommunityFactory` requires the same deployed `PoPVerifierUpgradeable` used by V2. Set its proxy address before deploying the Community Layer:
+
+```bash
+export POP_VERIFIER_ADDRESS=0x...
+npx hardhat run scripts/deploy/deploy-v3.ts --network arcTestnet
+```
+
+V3 requires a verified creator to reserve a Community and a verified wallet to lock entry stake and become a Member. This preserves read access and fund-recovery flows for already-existing users.
 
 **Post-Deploy Console Checks**
 

@@ -5,7 +5,7 @@
  */
 pragma solidity ^0.8.20;
 
-import {CommunityTypes} from "../BERT/V3/utils/CommunityTypes.sol";
+import {CommunityTypes} from "../BERT/V3/libraries/CommunityTypes.sol";
 import {ICommunityHub} from "../BERT/V3/interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../BERT/V3/interfaces/ICommunityTreasury.sol";
 
@@ -57,6 +57,14 @@ contract MockCommunityHub is ICommunityHub {
      */
     function configHash() external view returns (bytes32) {
         return _configHash;
+    }
+
+    /**
+     * @notice Returns the mock's fixed local validator-nomination threshold.
+     * @dev Treasury does not consume this value; it only completes the Hub interface surface.
+     */
+    function validatorProposalPointsThreshold() external pure returns (uint256) {
+        return 15;
     }
 
     /**
@@ -235,5 +243,15 @@ contract MockCommunityHub is ICommunityHub {
         uint256 activeValidatorCount
     ) external {
         ICommunityTreasury(treasury).finalizeValidatorRewardEpoch(epochId, activeValidatorCount);
+    }
+
+    /**
+     * @notice Test bridge for Hub-governed withdrawal cancellation.
+     * @dev Simulates the real CommunityHub after its Admin quorum has approved a cancellation action.
+     * @param treasury Community Treasury whose request is being cancelled.
+     * @param requestId Existing withdrawal request identifier.
+     */
+    function cancelWithdrawalRequestByGovernance(address treasury, uint256 requestId) external {
+        ICommunityTreasury(treasury).cancelWithdrawalRequestByGovernance(requestId);
     }
 }

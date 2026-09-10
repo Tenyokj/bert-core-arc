@@ -1,6 +1,6 @@
 # PoPVerifierUpgradeable
 
-Stores backend-signed proof-of-personhood attestations that can be consumed by `VotingSystemUpgradeable` through the `IHumanVerifier` interface.
+Stores backend-signed verification attestations that can be consumed by `VotingSystemUpgradeable` through the `IHumanVerifier` interface.
 
 ## Responsibilities
 
@@ -20,8 +20,14 @@ Stores backend-signed proof-of-personhood attestations that can be consumed by `
 ## Trust Model
 
 - the contract does not verify humanity itself
-- it trusts `trustedSigner` to sign proofs only after offchain PoP checks succeed
+- it trusts `trustedSigner` to apply the deployment's offchain verification policy before signing
 - `VotingSystemUpgradeable` trusts only the onchain verifier result, not the backend directly
+
+### Deployment policy
+
+- **Arc Testnet:** the public dApp may use the clearly labelled `BERT_TESTNET_DEMO` provider. It exists solely to let any test wallet exercise the real onchain gate and is not a human or Sybil-resistance attestation.
+- **Mainnet:** the demo endpoint is disabled. The intended provider is World ID: the backend verifies the World proof and binds one World nullifier to one BERT wallet before it signs a payload.
+- The provider policy is deliberately enforced by the backend and deployment configuration. The contract remains provider-agnostic so it verifies a signed payload's wallet, expiry and nonce without embedding a third-party identity protocol.
 
 ## Critical Invariants
 

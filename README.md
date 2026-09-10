@@ -14,6 +14,18 @@ The protocol keeps proposal intake, voting rounds, treasury accounting, and stag
 
 The live voting model can additionally enforce verified-human participation through a dedicated verifier contract. When enabled, voting remains capital-weighted in USDC, but only wallets that pass the configured proof-of-personhood flow may participate, and each wallet is capped per idea vote.
 
+## Verification By Network
+
+### Current Arc Testnet
+
+The public dApp is in active development on Arc Testnet. It uses an explicitly labelled **Demo verification** path so every testnet wallet can exercise the real on-chain `PoPVerifierUpgradeable` gate, protected actions, and voting flows. Demo verification is not proof of personhood and must never be treated as Sybil resistance or an identity check. Its signed provider ID is `BERT_TESTNET_DEMO`.
+
+### Planned Mainnet
+
+Demo verification is disabled for mainnet deployments. The production policy is World ID proof-of-personhood: the backend verifies a World proof, binds one World nullifier to one BERT wallet, and only then signs the on-chain payload. The Solidity contract intentionally stays provider-agnostic; it verifies the trusted backend signature, expiry, nonce, and wallet binding rather than embedding a vendor SDK.
+
+See the public [Testnet Guide](https://bertdao.vercel.app/testnet-information) before using the Arc deployment.
+
 ## Problem
 
 Traditional grant programs are often opaque, manual, slow to execute, and difficult to audit. Treasury coordination is fragmented across forms, spreadsheets, chat approvals, and offchain payout operations.
@@ -78,7 +90,7 @@ Each later tranche requires milestone approval
 3. `FundingPoolUpgradeable` is the USDC treasury and accounting layer.
 4. `GrantManagerUpgradeable` coordinates claim flow and milestone-based releases.
 5. `RolesRegistryUpgradeable` and `RolesAwareUpgradeable` enforce protocol permissions.
-6. `PoPVerifierUpgradeable` stores trusted verified-human attestations used by voting access control.
+6. `PoPVerifierUpgradeable` stores trusted backend-signed verification attestations used by voting access control.
 7. [BERT V3 Community Layer](contracts/BERT/V3/README.md) adds isolated stake-gated governance communities with local Treasuries and V2 reserve integration.
 
 ## Security

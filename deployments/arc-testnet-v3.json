@@ -5,6 +5,19 @@
   "usdc": "0x3600000000000000000000000000000000000000",
   "rolesRegistry": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
   "popVerifier": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
+  "sharedProxies": {
+    "rolesRegistry": {
+      "proxy": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
+      "implementation": "0xee5786c8e1ecf741b36d1c049d57019e109e6b09",
+      "proxyAdmin": "0x828d02dbebccfa68212ff50d068f3d7d4e32e5a0"
+    },
+    "popVerifier": {
+      "proxy": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
+      "implementation": "0x90da195cf2eb6cde5f29bdaf9b25eccc7aeb52b0",
+      "proxyAdmin": "0x2043e6ff4b45affdfda9e29f9d27325c35f98a6b"
+    },
+    "roleBootstrapDistributor": "0xb0CA3E4F33994EAFe34a6257a0b904b8179A1b30"
+  },
   "v2": {
     "ideaRegistry": {
       "proxy": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
@@ -20,7 +33,26 @@
       "upgradeBlock": 61277325,
       "upgradeTransaction": "0x7f66bc89ee0bff9508a2ca58af4345acc3aefe6a48dfed560d57ad3ff03706ec"
     },
-    "votingSystem": "0xD008fC96902A9680FF77305881Ad6C6C075e7a68"
+    "votingSystem": {
+      "proxy": "0xD008fC96902A9680FF77305881Ad6C6C075e7a68",
+      "implementation": "0x53fb8d4cedf1e260ec231e13032ef8ac8ebb9847",
+      "proxyAdmin": "0x971a69360f30ff671f40e692b3b72b812c1c9bf0"
+    },
+    "grantManager": {
+      "proxy": "0xA110baB4562d59d8bb7eDA4a05E53F40c678ccB2",
+      "implementation": "0xadd92ca4b314758eccbfc8c7d4d5950d595152a7",
+      "proxyAdmin": "0x1d3e84217702fdd53fae2ea652e520777e7caa47"
+    },
+    "voterProgression": {
+      "proxy": "0xF6EB65957bb5e363FCD6B84AAdf76E41Ba754E14",
+      "implementation": "0xeec0ed80ec6482c0eeef44b2db9c480056700597",
+      "proxyAdmin": "0x61dd57e2f85ce4b4bff93b91c45651a06ef513c7"
+    },
+    "reputationSystem": {
+      "proxy": "0x3594C46983460733F6470f7b61De2f3bB2918a81",
+      "implementation": "0x331f5f31714689d611991ba83cdda71e8732117f",
+      "proxyAdmin": "0x1e8feb21d8e73a1eec44aa09ec5b59fb9376c0b1"
+    }
   },
   "v3": {
     "factory": "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",

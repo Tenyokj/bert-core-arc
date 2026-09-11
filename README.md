@@ -93,6 +93,53 @@ Each later tranche requires milestone approval
 6. `PoPVerifierUpgradeable` stores trusted backend-signed verification attestations used by voting access control.
 7. [BERT V3 Community Layer](contracts/BERT/V3/README.md) adds isolated stake-gated governance communities with local Treasuries and V2 reserve integration.
 
+## V3 Architecture At A Glance
+
+```mermaid
+flowchart TB
+    user[Community creator, Admin, Validator, or Member]
+    dapp[BERT Next.js dApp]
+    backend[Verification backend\nDemo PoP on Arc Testnet\nWorld ID on planned mainnet]
+
+    subgraph arc[Arc Testnet: EVM execution and USDC settlement]
+        factory[CommunityFactory proxy]
+        hub[CommunityHub\nroles, proposals, validation, votes, quorum actions]
+        treasury[CommunityTreasury\nUSDC custody, settlement, refunds, rewards]
+        reserve[FundingPoolUpgradeable\nV2 global protocol reserve]
+        v2[V2 protocol modules\nIdeaRegistry, VotingSystem, GrantManager]
+        pop[PoPVerifierUpgradeable\ntrusted signed attestation gate]
+
+        factory -->|creates one pair per Community| hub
+        factory -->|creates one pair per Community| treasury
+        hub <-->|validated settlement instructions| treasury
+        treasury -->|defined protocol reserve inflows| reserve
+        reserve --> v2
+        pop -->|protects configured actions| v2
+    end
+
+    subgraph graph[The Graph: live Arc indexers]
+        v2graph[V2 Subgraph]
+        v3graph[V3 Subgraph\nFactory and Hub event templates]
+    end
+
+    user --> dapp
+    dapp -->|contract reads and transactions| factory
+    dapp -->|contract reads and transactions| hub
+    dapp -->|contract reads and transactions| treasury
+    dapp -->|requests an attestation| backend
+    backend -->|signed payload submitted by wallet| pop
+    arc -->|indexed events| v2graph
+    arc -->|indexed events| v3graph
+    v2graph -->|GraphQL live state| dapp
+    v3graph -->|GraphQL live state| dapp
+```
+
+### V3 Execution Boundary
+
+Each Community has its own immutable `CommunityHub` and `CommunityTreasury`; the Factory is the shared entry point. The Hub owns local governance state, while the Treasury is the sole USDC custodian. A Hub cannot transfer Community funds directly: it must first satisfy the relevant proposal, settlement, or Admin-quorum state transition and then instruct its paired Treasury.
+
+V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. The dApp uses the live V2 and V3 Subgraphs for searchable, event-derived state; smart contracts remain the source of truth.
+
 ## Security
 
 1. Upgradeable core modules are deployed behind proxies.

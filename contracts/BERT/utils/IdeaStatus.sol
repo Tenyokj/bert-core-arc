@@ -126,7 +126,11 @@ enum IdeaStatus {
      * @notice Idea is in active development after the initial grant payout
      * @dev Intermediate milestone state used for staged grant release
      */
-    InProcess
+    InProcess,
+
+    /**
+     * @notice Grant lifecycle expired before all promised milestones were paid
+     * @dev Terminal state. Any unspent winning pledge becomes refundable pro rata.
+     */
+    Cancelled
 }
-
-

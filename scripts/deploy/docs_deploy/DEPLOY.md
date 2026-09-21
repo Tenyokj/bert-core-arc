@@ -62,6 +62,7 @@ The script:
 4. Confirm all system roles are assigned.
 5. Confirm `FundingPoolUpgradeable`, `VotingSystemUpgradeable`, and `GrantManagerUpgradeable` are unpaused only after role wiring.
 6. If PoP participation is enabled, confirm VotingSystem `humanVerifier`, `humanOnlyVoting`, `maxVoteAmount`; IdeaRegistry `humanVerifier`, `humanOnlyIdeaCreation`; and verifier `trustedSigner`.
+7. Confirm `FundingPoolUpgradeable.pledgeFeeBps()` matches the intended policy and that `VotingSystemUpgradeable.IDEAS_PER_ROUND()` is between `5` and `50`.
 
 ## V3 PoP Configuration
 
@@ -93,6 +94,8 @@ await registry.authorMinStake();
 await voting.humanOnlyVoting();
 await voting.humanVerifier();
 await voting.maxVoteAmount();
+await funding.pledgeFeeBps();
+await voting.IDEAS_PER_ROUND();
 await verifier.trustedSigner();
 ```
 
@@ -102,7 +105,7 @@ await verifier.trustedSigner();
 3. Rehearse deployment and upgrade flow off-production.
 4. Archive proxy, implementation, and ProxyAdmin addresses.
 5. Verify role assignments from chain state, not logs alone.
-6. Test proposal creation, verified-human voting, claim, and milestone payout with realistic USDC amounts before launch.
+6. Test proposal creation with `minimumNetFunding`, verified-human voting, viable settlement, loser refund, no-winner refund, claim, milestone payout, and expiry refund with realistic USDC amounts before launch.
 7. Confirm an unverified wallet cannot vote if `humanOnlyVoting` is enabled.
 
 **Asset Note**

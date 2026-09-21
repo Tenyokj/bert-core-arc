@@ -169,23 +169,35 @@ interface IIdeaRegistry {
      */
     event HumanOnlyIdeaCreationUpdated(bool enabled);
 
+    /// @notice Emitted once when a legacy proxy records its conditional-funding ID boundary.
+    event ConditionalPledgeMigrationInitialized(uint256 indexed firstConditionalFundingIdeaId);
+
+    /// @notice Emitted when an author opts a legacy pending idea into conditional funding.
+    event LegacyFundingProposalConfigured(
+        uint256 indexed ideaId,
+        address indexed author,
+        uint256 minimumNetFunding
+    );
+
     /* ========== IDEA MANAGEMENT FUNCTIONS ========== */
 
     /**
-     * @notice Creates a new idea entry
-     * @dev Idea starts with Pending status and zero votes. Initializes author's reputation if needed
-     *      and locks the author's stake in the FundingPool before the idea is stored.
-     * @param _title Title of the idea
-     * @param _description Detailed description of the idea
-     * @param _link Optional external link (can be empty string)
-     * @param _amount Amount of USDC to stake on idea creation
+     * @notice Creates a proposal that can enter a stake-backed funding round.
+     * @dev `minimumNetFunding` is the USDC amount the author must receive after the protocol fee.
      */
-    function createIdea(
-        string memory _title,
-        string memory _description,
-        string memory _link,
-        uint256 _amount
-    ) external;
+    function createFundingProposal(
+        string memory title,
+        string memory description,
+        string memory link,
+        uint256 authorBond,
+        uint256 minimumNetFunding
+    ) external returns (uint256 ideaId);
+
+    /// @notice One-time proxy-upgrade initializer that records the legacy proposal boundary.
+    function initializeConditionalPledgeMigration() external;
+
+    /// @notice Allows a legacy proposal author to set the proposal's minimum post-fee funding target.
+    function configureLegacyFundingProposal(uint256 ideaId, uint256 minimumNetFunding) external;
 
     /**
      * @notice Updates the status of an existing idea
@@ -274,6 +286,12 @@ interface IIdeaRegistry {
      * @return Current status of the idea
      */
     function getStatus(uint256 _ideaId) external view returns (IdeaStatus);
+
+    /// @notice Returns the minimum post-fee funding amount required by a funding proposal.
+    function minimumNetFundingByIdea(uint256 ideaId) external view returns (uint256);
+
+    /// @notice Returns whether an idea uses the stake-backed funding model.
+    function isFundingProposal(uint256 ideaId) external view returns (bool);
 
     /**
      * @notice Returns the total number of created ideas

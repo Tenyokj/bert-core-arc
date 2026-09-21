@@ -36,6 +36,11 @@ This document records the core protocol invariants BERT is expected to preserve 
 3. the same grant tranche must not be released twice
 4. rejected author stake must not remain unaccounted after valid slashing
 5. round and idea accounting must remain scoped to the correct round and idea pair
+6. a pledge can be refunded only to its recorded pledger and never redirected to another idea
+7. a winning proposal must satisfy its own net funding target after the fee snapshotted for that round
+8. a successful-round fee cannot enter protocol reserve before the winning author starts the grant
+9. an unclaimed winner restores its full gross pledge for refund
+10. an expired live grant can refund only its unspent net pledge and only to winning pledgers
 
 ## Role and Permission Invariants
 
@@ -50,6 +55,7 @@ This document records the core protocol invariants BERT is expected to preserve 
 2. rejected proof must respect cooldown before resubmission
 3. inactive or already-settled requests must not reopen payout accidentally
 4. stage ordering must be preserved
+5. a claim, submission, review, or grant-expiry deadline cannot be bypassed after its configured window closes
 
 ## Upgrade Invariants
 

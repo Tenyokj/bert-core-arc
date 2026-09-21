@@ -54,6 +54,15 @@ Specific lesson from the August 18, 2026 voting hotfix:
 - new voting fields must remain appended after the pre-existing voting storage layout
 - post-upgrade validation must read live config values immediately, not only check transaction success
 
+Specific lesson from the v1.2.0 conditional-pledge upgrade:
+- preserve legacy slots even when their economic meaning is retired; `GrantManagerUpgradeable.authorSharePercent` remains reserved and is not reused
+- append pledge, fee escrow, settlement, and refund state after existing funding-pool storage
+- rehearse both successful and refund outcomes, not only the happy-path grant claim
+- use `initializeConditionalPledges(500)` through the FundingPool upgrade call; proxy initializers never run a second time
+- use `initializeConditionalPledgeMigration()` through the IdeaRegistry upgrade call; legacy idea authors must explicitly set their own `minimumNetFunding` with `configureLegacyFundingProposal`
+- never infer a legacy target or silently repurpose its author bond; the pre-upgrade proposal remains the author's property until it opts into the new model
+- the legacy round queue remains ordered by idea ID. Every queued legacy idea must be configured or intentionally retired before the first V2.1 round; an unconfigured ID at the front of the queue causes `startFundingRound()` to revert rather than silently skipping an author’s proposal
+
 If a change breaks these rules, the upgrade can preserve admin control while silently corrupting live state.
 
 ## Dependency Rewiring Rules
@@ -91,6 +100,20 @@ If the upgrade touches grant logic, treasury logic, or lifecycle state transitio
 - round resolution
 - grant claim
 - milestone review
+- losing pledge refund
+- no-winner refund
+- unclaimed-winner expiry and refund
+- expired live-grant refund
+
+For a conditional-pledge upgrade from a legacy V2 deployment, also record:
+- the raw USDC balance held by FundingPool
+- `totalPoolBalance` and `protocolReserve`
+- `totalIdeas`, `lastUsedIdeaId`, and the current round state
+- every legacy pending proposal that has no funding target
+
+Do not upgrade an active legacy round into the conditional-pledge implementation. Resolve it first with the legacy implementation. A legacy queue may be preserved by having each author configure a minimum net target after upgrade; it must not be automatically treated as a conditional pledge round.
+
+For the live Arc Testnet snapshot taken on September 21, 2026, IDs `1` through `4` are pending legacy proposals. The first V2.1 round therefore needs all four authors to configure their targets and at least one additional V2.1 proposal, because the guarded minimum for `IDEAS_PER_ROUND` is five. Do not lower the minimum below five merely to bypass this migration requirement.
 
 ## Upgrade Procedure
 
@@ -110,6 +133,12 @@ Recommended practice:
 - never rely only on deployment memory
 - always use a written checklist
 
+For BERT V2.1 conditional pledges, upgrade the FundingPool with the call
+`initializeConditionalPledges(500)` and the IdeaRegistry with
+`initializeConditionalPledgeMigration()`. VotingSystem and GrantManager do not
+need an initializer call for this release, but all four proxies must be upgraded
+as one coordinated release.
+
 ## Post-Upgrade Validation
 
 Immediately after upgrade, validate:
@@ -125,6 +154,7 @@ If the upgrade touches voting access policy, also validate:
 - `humanVerifier`
 - `maxVoteAmount`
 - `trustedSigner` on the verifier contract
+- `pledgeFeeBps` and the configured `IDEAS_PER_ROUND` bound
 
 Smoke-test the following:
 - create idea
@@ -132,6 +162,7 @@ Smoke-test the following:
 - vote path
 - claimability checks
 - milestone request reads
+- pledge and refund reads
 - role checks
 
 If any of these fail, treat the system as potentially inconsistent until proven otherwise.

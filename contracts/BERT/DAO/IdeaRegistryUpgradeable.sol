@@ -96,7 +96,7 @@ import "../utils/Errors.sol";
  * @dev Manages idea lifecycle, metadata, status transitions, and voting data
  * @dev Upgradeable
  * 
- * @custom:version 1.1.1
+ * @custom:version 1.2.0
  */
 contract IdeaRegistryUpgradeable is 
     Initializable,
@@ -198,6 +198,13 @@ contract IdeaRegistryUpgradeable is
      */
     bool public humanOnlyIdeaCreation;
 
+    /// @notice Minimum post-fee USDC funding required for each funding proposal.
+    mapping(uint256 => uint256) public minimumNetFundingByIdea;
+
+    /// @notice First idea ID created after the conditional-pledge upgrade.
+    /// @dev IDs below this boundary are legacy proposals whose authors may opt in by setting a target.
+    uint256 public firstConditionalFundingIdeaId;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -235,27 +242,54 @@ contract IdeaRegistryUpgradeable is
         emit IdeaRegistryInitialized(msg.sender);
     }
 
+    /**
+     * @notice Establishes the legacy proposal boundary during the V2.1 proxy upgrade.
+     * @dev Existing metadata, author bonds, and statuses are preserved. This function only records
+     *      which IDs require an explicit target before they can enter a conditional funding round.
+     */
+    function initializeConditionalPledgeMigration() external reinitializer(2) onlyAdmin {
+        firstConditionalFundingIdeaId = _ideaIdCounter;
+        emit ConditionalPledgeMigrationInitialized(firstConditionalFundingIdeaId);
+    }
+
     /* ========== EXTERNAL FUNCTIONS ========== */
 
     /**
-     * @notice Creates a new idea and locks the author's USDC stake in the funding pool
-     * @dev Idea starts with Pending status and zero votes. Initializes author's reputation if needed.
-     * @param _title Title of the idea
-     * @param _description Detailed description of the idea
-     * @param _link Optional external link (can be empty string)
-     * @param _amount Amount to stake on idea creation
-     * @custom:emits IdeaCreated
-     * @custom:requires _title cannot be empty
-     * @custom:requires _description cannot be empty
-     * @custom:requires _amount >= authorMinStake
+     * @notice Creates a proposal for BERT V2 stake-backed funding.
+     * @dev The minimum is checked against funding remaining after the round's fixed protocol fee.
      */
-    function createIdea(
+    function createFundingProposal(
         string memory _title,
         string memory _description,
         string memory _link,
-        uint256 _amount
-    ) external nonReentrant {
-        _createIdea(_title, _description, _link, _amount);
+        uint256 _authorBond,
+        uint256 _minimumNetFunding
+    ) external nonReentrant returns (uint256 ideaId) {
+        if (_minimumNetFunding == 0) revert InvalidMinimumFunding(0, _minimumNetFunding);
+
+        ideaId = _createFundingProposal(_title, _description, _link, _authorBond);
+        minimumNetFundingByIdea[ideaId] = _minimumNetFunding;
+    }
+
+    /**
+     * @notice Lets the author opt a pre-upgrade pending idea into conditional funding.
+     * @dev Its already locked author stake remains the author bond; no USDC is transferred here.
+     */
+    function configureLegacyFundingProposal(uint256 ideaId, uint256 minimumNetFunding) external nonReentrant {
+        if (firstConditionalFundingIdeaId == 0 || ideaId == 0 || ideaId >= firstConditionalFundingIdeaId) {
+            revert IdeaDoesNotExist(ideaId);
+        }
+        if (minimumNetFunding == 0) revert InvalidMinimumFunding(ideaId, minimumNetFunding);
+
+        Idea storage idea = ideas[ideaId];
+        if (idea.author != msg.sender) revert NotAuthor(msg.sender, idea.author);
+        if (idea.status != IdeaStatus.Pending) revert IdeaNotPending(ideaId, uint8(idea.status));
+        if (minimumNetFundingByIdea[ideaId] != 0) {
+            revert InvalidMinimumFunding(ideaId, minimumNetFundingByIdea[ideaId]);
+        }
+
+        minimumNetFundingByIdea[ideaId] = minimumNetFunding;
+        emit LegacyFundingProposalConfigured(ideaId, msg.sender, minimumNetFunding);
     }
 
     /* ========== INTERNAL FUNCTIONS ========== */
@@ -273,12 +307,12 @@ contract IdeaRegistryUpgradeable is
      * @param _link Optional external link
      * @param _amount Amount to stake on idea creation
      */
-    function _createIdea(
+    function _createFundingProposal(
         string memory _title,
         string memory _description,
         string memory _link,
         uint256 _amount
-    ) internal {
+    ) internal returns (uint256 newId) {
         if (humanOnlyIdeaCreation) {
             if (address(humanVerifier) == address(0)) revert HumanVerifierNotConfigured();
             if (!humanVerifier.isVerifiedHuman(msg.sender)) revert HumanVerificationRequired(msg.sender);
@@ -307,7 +341,7 @@ contract IdeaRegistryUpgradeable is
             revert InsufficientAllowance(allowance, _amount);
         }
 
-        uint256 newId = _ideaIdCounter;
+        newId = _ideaIdCounter;
         _ideaIdCounter++;
 
         ideas[newId] = Idea({
@@ -345,7 +379,7 @@ contract IdeaRegistryUpgradeable is
      * @dev Only callable by authorized roles (Voting System or Grant Manager).
      *      The state machine is intentionally strict:
      *      `Pending -> Voting -> WonVoting/Rejected -> Funded -> InProcess -> Completed`
-     *      Rejected and completed ideas are terminal.
+     *      `Cancelled` is the terminal expiry path for an unclaimed or incomplete grant.
      * @param ideaId ID of the idea to update
      * @param newStatus New status for the idea
      * @custom:emits IdeaStatusUpdated
@@ -377,17 +411,17 @@ contract IdeaRegistryUpgradeable is
             }
         }
         else if (current == IdeaStatus.WonVoting) {
-            if (newStatus != IdeaStatus.Funded) {
+            if (newStatus != IdeaStatus.Funded && newStatus != IdeaStatus.Cancelled) {
                 revert InvalidTransition(current, newStatus);
             }
         }
         else if (current == IdeaStatus.Funded) {
-            if (newStatus != IdeaStatus.InProcess) {
+            if (newStatus != IdeaStatus.InProcess && newStatus != IdeaStatus.Cancelled) {
                 revert InvalidTransition(current, newStatus);
             }
         }
         else if (current == IdeaStatus.InProcess) {
-            if (newStatus != IdeaStatus.Completed) {
+            if (newStatus != IdeaStatus.Completed && newStatus != IdeaStatus.Cancelled) {
                 revert InvalidTransition(current, newStatus);
             }
         }
@@ -397,11 +431,19 @@ contract IdeaRegistryUpgradeable is
 
         ideas[ideaId].status = newStatus;
 
-        if (newStatus == IdeaStatus.Rejected) {
+        if (newStatus == IdeaStatus.Rejected || newStatus == IdeaStatus.Cancelled) {
             try fundingPool.slashAuthorStakeToReserve(ideaId) {
                 // success
             } catch {
                 revert ExternalCallFailed("FundingPool", "slashAuthorStakeToReserve");
+            }
+        }
+
+        if (newStatus == IdeaStatus.Funded) {
+            try fundingPool.releaseAuthorStakeToAuthor(ideaId) {
+                // The successful proposal's anti-spam bond is no longer locked.
+            } catch {
+                revert ExternalCallFailed("FundingPool", "releaseAuthorStakeToAuthor");
             }
         }
 
@@ -613,6 +655,11 @@ contract IdeaRegistryUpgradeable is
         return ideas[_ideaId].status;
     }
 
+    /// @notice Returns whether an idea was created for the stake-backed funding flow.
+    function isFundingProposal(uint256 ideaId) external view returns (bool) {
+        return minimumNetFundingByIdea[ideaId] != 0;
+    }
+
     /**
      * @notice Returns the total number of created ideas
      * @return Count of all ideas (counter - 1 since counter starts at 1)
@@ -729,5 +776,5 @@ contract IdeaRegistryUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[48] private __gap;
+    uint256[47] private __gap;
 }

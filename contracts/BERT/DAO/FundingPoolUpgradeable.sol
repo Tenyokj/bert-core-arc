@@ -95,7 +95,7 @@ import "../utils/Errors.sol";
  * @dev Handles donor balances, fund safekeeping, and controlled distribution
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.1.1
+ * @custom:version 1.2.0
  */
 contract FundingPoolUpgradeable is 
     Initializable, 
@@ -159,6 +159,39 @@ contract FundingPoolUpgradeable is
     /// @notice BERT V3 Factory authorized to authenticate CommunityTreasury reserve inflows
     address public communityFactory;
 
+    /// @dev Individual pledge data is deliberately separate from donor balances.
+    struct Pledge {
+        uint256 ideaId;
+        uint256 amount;
+        bool refundClaimed;
+    }
+
+    /// @notice Pledge fee in basis points, charged only when a round funds a winner.
+    uint256 public pledgeFeeBps;
+
+    /// @notice Funding-round lifecycle and selected winner.
+    mapping(uint256 => bool) public fundingRoundOpened;
+    mapping(uint256 => bool) public fundingRoundSettled;
+    mapping(uint256 => uint256) public fundingRoundWinner;
+
+    /// @notice Immutable fee snapshots, one per opened funding round.
+    mapping(uint256 => uint256) public fundingRoundFeeBps;
+
+    /// @notice One wallet may have exactly one refundable pledge in one funding round.
+    mapping(uint256 => mapping(address => Pledge)) private pledges;
+
+    /// @notice Fee held in escrow until the winning author actually starts the grant.
+    mapping(uint256 => uint256) public pendingProtocolFeeByRound;
+    mapping(uint256 => bool) public fundingRoundFeeFinalized;
+    mapping(uint256 => bool) public fundingRoundCancelled;
+    mapping(uint256 => bool) public grantRefundActive;
+    mapping(uint256 => uint256) public winningGrossPledgeByRound;
+    mapping(uint256 => uint256) public winningPledgeCountByRound;
+    mapping(uint256 => uint256) public grantRefundTotalByRound;
+    mapping(uint256 => uint256) public grantRefundPaidByRound;
+    mapping(uint256 => uint256) public grantRefundClaimCountByRound;
+    mapping(uint256 => mapping(uint256 => uint256)) private _pledgeCountByRoundAndIdea;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -183,6 +216,9 @@ contract FundingPoolUpgradeable is
         if (_rolesRegistry == address(0)) revert ZeroAddress("rolesRegistry");
 
         __RolesAware_init(_rolesRegistry);
+
+        // BERT V2 starts with a transparent 5% success fee; each round snapshots it on open.
+        pledgeFeeBps = 500;
         
         if (_usdc == address(0)) revert ZeroAddress("usdc");
         if (_ideaRegistry == address(0)) revert ZeroAddress("ideaRegistry");
@@ -193,6 +229,17 @@ contract FundingPoolUpgradeable is
         _pause();
         
         emit FundingPoolInitialized(msg.sender);
+    }
+
+    /**
+     * @notice Initializes conditional-pledge configuration on an already initialized legacy proxy.
+     * @dev `initialize` cannot run during a proxy upgrade, so this one-time migration sets the
+     *      first fee used by newly opened rounds without touching existing pool accounting.
+     */
+    function initializeConditionalPledges(uint256 initialFeeBps) external reinitializer(2) onlyAdmin {
+        if (initialFeeBps > 1_000) revert InvalidParameter("initialFeeBps", "above 10 percent");
+        pledgeFeeBps = initialFeeBps;
+        emit PledgeFeeUpdated(initialFeeBps);
     }
 
     /* ========== EXTERNAL FUNCTIONS ========== */
@@ -277,42 +324,199 @@ contract FundingPoolUpgradeable is
     }
 
     /**
-     * @notice Deposits tokens from a specified address for a specific idea in a round
-     * @dev Can only be called by addresses with VOTING_ROLE, transfers tokens on behalf of another address
-     * @param from Address from which tokens are transferred
-     * @param roundId ID of the funding round
-     * @param ideaId ID of the idea receiving the deposit
-     * @param amount Amount of tokens to deposit
-     * @custom:emits FundsDeposited
-     * @custom:emits PoolBalanceUpdated
-     * @custom:requires from != address(0)
-     * @custom:requires amount > 0
-     * @custom:requires ideaId > 0
-     * @custom:reentrancy protected
+     * @notice Opens the escrow ledger for one funding round.
+     * @dev The voting system calls this before any user can deposit a pledge.
      */
-    function depositForIdeaFrom(address from, uint256 roundId, uint256 ideaId, uint256 amount) 
-        external 
-        onlyVotingSystem 
-        nonReentrant
-        whenNotPaused 
-    {
-        if (from == address(0)) {
-            revert ZeroAddress("from");
+    function openFundingRound(uint256 roundId) external onlyVotingSystem {
+        if (roundId == 0 || fundingRoundOpened[roundId]) revert FundingRoundStateInvalid(roundId);
+
+        fundingRoundOpened[roundId] = true;
+        fundingRoundFeeBps[roundId] = pledgeFeeBps;
+        emit FundingRoundOpened(roundId, pledgeFeeBps);
+    }
+
+    /**
+     * @notice Pulls and records a refundable pledge made through a funding round.
+     */
+    function recordPledgeFrom(
+        address from,
+        uint256 roundId,
+        uint256 ideaId,
+        uint256 amount
+    ) external onlyVotingSystem nonReentrant whenNotPaused {
+        if (from == address(0)) revert ZeroAddress("from");
+        if (ideaId == 0) revert InvalidId("ideaId");
+        if (amount == 0) revert ZeroAmount();
+        if (roundId == 0 || !fundingRoundOpened[roundId] || fundingRoundSettled[roundId]) {
+            revert FundingRoundStateInvalid(roundId);
         }
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-        if (ideaId == 0) {
-            revert InvalidId("ideaId");
-        }
-        
+        if (pledges[roundId][from].amount != 0) revert FundingRoundStateInvalid(roundId);
+
         usdc.safeTransferFrom(from, address(this), amount);
-        
+        pledges[roundId][from] = Pledge({
+            ideaId: ideaId,
+            amount: amount,
+            refundClaimed: false
+        });
         totalPoolBalance += amount;
         _poolByRoundAndIdea[roundId][ideaId] += amount;
+        _pledgeCountByRoundAndIdea[roundId][ideaId] += 1;
 
         emit FundsDeposited(from, amount);
+        emit PledgeRecorded(roundId, ideaId, from, amount);
         emit PoolBalanceUpdated(totalPoolBalance);
+    }
+
+    /**
+     * @notice Settles a funding round, retaining the configured fee only from its winner.
+     * @dev A zero winner makes every recorded pledge refundable.
+     */
+    function settleFundingRound(
+        uint256 roundId,
+        uint256 winningIdeaId
+    ) external onlyVotingSystem nonReentrant {
+        if (!fundingRoundOpened[roundId] || fundingRoundSettled[roundId]) {
+            revert FundingRoundStateInvalid(roundId);
+        }
+        fundingRoundSettled[roundId] = true;
+        fundingRoundWinner[roundId] = winningIdeaId;
+
+        if (winningIdeaId == 0) {
+            emit FundingRoundSettled(roundId, 0, 0, 0, 0);
+            return;
+        }
+
+        uint256 grossFunding = _poolByRoundAndIdea[roundId][winningIdeaId];
+        uint256 fee = (grossFunding * fundingRoundFeeBps[roundId]) / 10_000;
+        uint256 netFunding = grossFunding - fee;
+        _poolByRoundAndIdea[roundId][winningIdeaId] = netFunding;
+        pendingProtocolFeeByRound[roundId] = fee;
+        winningGrossPledgeByRound[roundId] = grossFunding;
+        winningPledgeCountByRound[roundId] = _pledgeCountByRoundAndIdea[roundId][winningIdeaId];
+        emit FundingRoundSettled(roundId, winningIdeaId, grossFunding, fee, netFunding);
+    }
+
+    /** @notice Finalizes a successful-round fee only after its author claims the grant. */
+    function finalizeFundingRoundFee(uint256 roundId) external onlyDistributor nonReentrant {
+        uint256 winner = fundingRoundWinner[roundId];
+        if (!fundingRoundSettled[roundId] || winner == 0 || fundingRoundCancelled[roundId]) {
+            revert FundingRoundStateInvalid(roundId);
+        }
+        if (fundingRoundFeeFinalized[roundId]) revert FundingRoundStateInvalid(roundId);
+
+        uint256 fee = pendingProtocolFeeByRound[roundId];
+        pendingProtocolFeeByRound[roundId] = 0;
+        fundingRoundFeeFinalized[roundId] = true;
+        protocolReserve += fee;
+
+        emit IdeaFundsReserved(roundId, winner, fee);
+        emit FundingRoundFeeFinalized(roundId, fee);
+    }
+
+    /** @notice Makes a never-claimed winning pledge fully refundable, including its pending fee. */
+    function cancelUnclaimedFundingRound(uint256 roundId) external onlyDistributor nonReentrant {
+        uint256 winner = fundingRoundWinner[roundId];
+        if (!fundingRoundSettled[roundId] || winner == 0 || fundingRoundFeeFinalized[roundId]) {
+            revert FundingRoundStateInvalid(roundId);
+        }
+        if (fundingRoundCancelled[roundId]) revert FundingRoundStateInvalid(roundId);
+
+        uint256 restoredFee = pendingProtocolFeeByRound[roundId];
+        pendingProtocolFeeByRound[roundId] = 0;
+        fundingRoundCancelled[roundId] = true;
+        _poolByRoundAndIdea[roundId][winner] += restoredFee;
+
+        emit FundingRoundCancelled(roundId, winner, restoredFee);
+    }
+
+    /** @notice Opens proportional refunds for the unspent portion of an expired live grant. */
+    function activateGrantRefund(uint256 roundId) external onlyDistributor nonReentrant {
+        uint256 winner = fundingRoundWinner[roundId];
+        if (!fundingRoundFeeFinalized[roundId] || fundingRoundCancelled[roundId] || winner == 0) {
+            revert FundingRoundStateInvalid(roundId);
+        }
+        if (grantRefundActive[roundId]) revert FundingRoundStateInvalid(roundId);
+
+        uint256 refundTotal = _poolByRoundAndIdea[roundId][winner];
+        grantRefundActive[roundId] = true;
+        grantRefundTotalByRound[roundId] = refundTotal;
+
+        emit GrantRefundActivated(roundId, winner, refundTotal);
+    }
+
+    /**
+     * @notice Returns a losing pledge, a fully cancelled winning pledge, or an expired grant remainder.
+     */
+    function claimPledgeRefund(uint256 roundId) external nonReentrant whenNotPaused returns (uint256 amount) {
+        if (!fundingRoundSettled[roundId]) revert PledgeRefundUnavailable(roundId, msg.sender);
+
+        Pledge storage pledge = pledges[roundId][msg.sender];
+        if (pledge.amount == 0) {
+            revert PledgeRefundUnavailable(roundId, msg.sender);
+        }
+        if (pledge.refundClaimed) revert PledgeRefundAlreadyClaimed(roundId, msg.sender);
+
+        uint256 winner = fundingRoundWinner[roundId];
+        if (pledge.ideaId == winner) {
+            if (fundingRoundCancelled[roundId]) {
+                amount = pledge.amount;
+            } else if (grantRefundActive[roundId]) {
+                uint256 claimantCount = grantRefundClaimCountByRound[roundId] + 1;
+                if (claimantCount == winningPledgeCountByRound[roundId]) {
+                    amount = grantRefundTotalByRound[roundId] - grantRefundPaidByRound[roundId];
+                } else {
+                    amount = (grantRefundTotalByRound[roundId] * pledge.amount) / winningGrossPledgeByRound[roundId];
+                }
+                grantRefundClaimCountByRound[roundId] = claimantCount;
+                grantRefundPaidByRound[roundId] += amount;
+            } else {
+                revert PledgeRefundUnavailable(roundId, msg.sender);
+            }
+        } else {
+            amount = pledge.amount;
+        }
+
+        pledge.refundClaimed = true;
+        _poolByRoundAndIdea[roundId][pledge.ideaId] -= amount;
+        totalPoolBalance -= amount;
+        usdc.safeTransfer(msg.sender, amount);
+
+        emit PledgeRefundClaimed(roundId, pledge.ideaId, msg.sender, amount);
+        emit PoolBalanceUpdated(totalPoolBalance);
+    }
+
+    /// @notice Previews the amount remaining for the author after the configured pledge fee.
+    function previewNetFunding(uint256 grossAmount) external view returns (uint256) {
+        return grossAmount - ((grossAmount * pledgeFeeBps) / 10_000);
+    }
+
+    /// @notice Previews net funding with the fee fixed when this round opened.
+    function previewRoundNetFunding(uint256 roundId, uint256 grossAmount) external view returns (uint256) {
+        return grossAmount - ((grossAmount * fundingRoundFeeBps[roundId]) / 10_000);
+    }
+
+    function getFundingRoundSettlement(uint256 roundId)
+        external
+        view
+        returns (bool opened, bool settled, uint256 winningIdeaId)
+    {
+        return (fundingRoundOpened[roundId], fundingRoundSettled[roundId], fundingRoundWinner[roundId]);
+    }
+
+    function getPledge(uint256 roundId, address voter)
+        external
+        view
+        returns (uint256 ideaId, uint256 amount, bool refundClaimed)
+    {
+        Pledge storage pledge = pledges[roundId][voter];
+        return (pledge.ideaId, pledge.amount, pledge.refundClaimed);
+    }
+
+    /** @notice Configures the successful-round fee; 10% is the hard safety ceiling. */
+    function setPledgeFeeBps(uint256 feeBps) external onlyAdmin {
+        if (feeBps > 1_000) revert InvalidParameter("feeBps", "above 10 percent");
+        pledgeFeeBps = feeBps;
+        emit PledgeFeeUpdated(feeBps);
     }
 
     /**
@@ -372,45 +576,6 @@ contract FundingPoolUpgradeable is
     }
 
     /**
-     * @notice Moves a portion of idea-allocated funds into protocol reserve
-     * @dev Can only be called by the distributor role.
-     *      Used by `GrantManager` when the protocol share is carved out of the
-     *      winning idea before author tranches start being paid.
-     * @param roundId Grant round identifier
-     * @param ideaId Winning idea identifier
-     * @param amount Amount to move into reserve
-     */
-    function moveIdeaFundsToReserve(
-        uint256 roundId,
-        uint256 ideaId,
-        uint256 amount
-    ) external onlyDistributor nonReentrant whenNotPaused {
-        if (roundId == 0) {
-            revert InvalidId("roundId");
-        }
-        if (ideaId == 0) {
-            revert InvalidId("ideaId");
-        }
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-
-        uint256 available = _poolByRoundAndIdea[roundId][ideaId];
-        if (amount > available) {
-            revert InsufficientIdeaBalance(roundId, ideaId, available, amount);
-        }
-
-        uint256 remaining = available - amount;
-        _poolByRoundAndIdea[roundId][ideaId] = remaining;
-        protocolReserve += amount;
-        if (remaining == 0) {
-            distributed[roundId] = true;
-        }
-
-        emit IdeaFundsReserved(roundId, ideaId, amount);
-    }
-
-    /**
      * @notice Slashes an author's stake into protocol reserve
      * @dev Can only be called by the IdeaRegistry contract.
      *      If the stake is already zero, the function exits silently so repeated
@@ -431,6 +596,22 @@ contract FundingPoolUpgradeable is
         protocolReserve += amount;
 
         emit AuthorStakeSlashed(ideaId, amount);
+    }
+
+    /** @notice Releases the author bond once a winning proposal starts its grant lifecycle. */
+    function releaseAuthorStakeToAuthor(uint256 ideaId) external onlyIdeaRegistry nonReentrant {
+        uint256 amount = authorStakeByIdea[ideaId];
+        if (amount == 0) return;
+
+        address author = ideaRegistry.getIdeaAuthor(ideaId);
+        if (author == address(0)) revert InvalidAuthor();
+
+        authorStakeByIdea[ideaId] = 0;
+        donorBalances[author] -= amount;
+        totalPoolBalance -= amount;
+        usdc.safeTransfer(author, amount);
+        emit AuthorStakeReleased(ideaId, author, amount);
+        emit PoolBalanceUpdated(totalPoolBalance);
     }
 
     /* ========== VIEW FUNCTIONS ========== */
@@ -635,5 +816,5 @@ contract FundingPoolUpgradeable is
      * @custom:upgrade-safety Reserve slots after newly added variables when upgrading
      * @custom:warning Do not reorder existing storage variables in future versions
      */
-    uint256[49] private __gap;
+    uint256[33] private __gap;
 }

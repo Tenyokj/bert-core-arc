@@ -194,11 +194,8 @@ interface IVotingSystem {
 
     /* ========== EXTERNAL FUNCTIONS ========== */
 
-    /**
-     * @notice Starts a new voting round (anyone can call)
-     * @dev Sets up round parameters, validates included ideas, and updates their status
-     */
-    function startVotingRound() external;
+    /// @notice Starts the next funding round from the pending proposal queue.
+    function startFundingRound() external;
 
     /**
      * @notice Casts votes for an idea in a specific round

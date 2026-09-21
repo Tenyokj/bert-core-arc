@@ -229,7 +229,7 @@ export async function createIdeas(
   for (let i = 0; i < count; i += 1) {
     await ideaRegistry
       .connect(author)
-      .createIdea(`Idea ${i + 1}`, `Description ${i + 1}`, "", 1n);
+      .createFundingProposal(`Idea ${i + 1}`, `Description ${i + 1}`, "", 1n, 1n);
   }
 }
 

@@ -141,6 +141,19 @@ error CommunityFactoryNotConfigured();
  */
 error UnauthorizedCommunityTreasury(address treasury);
 
+/// @notice Emitted when a funding proposal omits its viable net funding threshold.
+error InvalidMinimumFunding(uint256 ideaId, uint256 minimumNetFunding);
+
+/// @notice Emitted when a funding round is not in the expected lifecycle state.
+error FundingRoundStateInvalid(uint256 roundId);
+
+/// @notice Emitted when a pledge cannot be refunded by the caller.
+error PledgeRefundUnavailable(uint256 roundId, address voter);
+
+/// @notice Emitted when a pledge refund has already been claimed.
+error PledgeRefundAlreadyClaimed(uint256 roundId, address voter);
+
+
 
 // ========== Transfer Errors ==========
 
@@ -356,7 +369,6 @@ error NoFundsAllocated(uint256 roundId, uint256 ideaId);
  * @param maxAllowed Maximum allowed share value
  * @dev Typically share must be ≤ 100% (≤ 10000 bps)
  */
-error InvalidShare(uint256 shareBps, uint256 maxAllowed);
 
 /**
  * @notice Emitted when IdeaRegistry attempts to use FundingPool before it is configured
@@ -425,6 +437,7 @@ error RoundDoesNotExist(uint256 roundId);
  * @dev Round must have active == true
  */
 error RoundNotActive(uint256 roundId);
+error ActiveFundingRound(uint256 roundId);
 
 /**
  * @notice Emitted when trying to end a round that has already ended
@@ -832,3 +845,12 @@ error InvalidNonce(uint256 current, uint256 required);
  * @param expectedSigner Trusted signer configured in the verifier contract
  */
 error InvalidSignatureSigner(address recoveredSigner, address expectedSigner);
+
+// ========== Funding Round Deadline Errors ==========
+
+error GrantClaimExpired(uint256 roundId, uint256 deadline);
+error GrantDeadlineNotReached(uint256 roundId, uint256 deadline);
+error MilestoneSubmissionExpired(uint256 roundId, uint8 stage, uint256 deadline);
+error MilestoneReviewDeadlineNotReached(uint256 roundId, uint8 stage, uint256 deadline);
+error MilestoneReviewWindowElapsed(uint256 roundId, uint8 stage, uint256 deadline);
+error GrantCancellationUnavailable(uint256 roundId);

@@ -9,22 +9,12 @@ import { deploySystem, createIdeas, deployUpgradeable } from "./helpers.js";
 
 /** @notice describe: GrantManagerUpgradeable */
 describe("GrantManagerUpgradeable", function () {
-  /** @notice it: calculates distributions and validates share updates */
-  it("calculates distributions and validates share updates", async function () {
-    const { admin, grantManager } = await deploySystem();
+  /** @notice it: exposes the fixed 30/40/30 milestone allocation */
+  it("uses the fixed 30/40/30 milestone allocation", async function () {
+    const { grantManager } = await deploySystem();
 
-    const protocolShare = await grantManager.getProtocolShare();
-    expect(protocolShare).to.equal(5n);
-
-    await expect(grantManager.setAuthorShare(101))
-      .to.be.revertedWithCustomError(grantManager, "InvalidShare")
-      .withArgs(101n, 100n);
-
-    await expect(grantManager.setAuthorShare(90))
-      .to.emit(grantManager, "FeeUpdated")
-      .withArgs(90n, 10n);
-
-    expect(await grantManager.authorSharePercent()).to.equal(90n);
+    expect(await grantManager.INITIAL_PAYOUT_PERCENT()).to.equal(30n);
+    expect(await grantManager.IN_PROCESS_PAYOUT_PERCENT()).to.equal(40n);
   });
 
   /** @notice it: claims grant for winning idea and updates state */
@@ -49,7 +39,7 @@ describe("GrantManagerUpgradeable", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -64,7 +54,7 @@ describe("GrantManagerUpgradeable", function () {
     await votingSystem.endVotingRound(1);
 
     const totalAllocated = await fundingPool.poolByRoundAndIdea(1, 1);
-    const expectedAuthor = (totalAllocated * 95n) / 100n;
+    const expectedAuthor = totalAllocated;
     const expectedInitialPayout = (expectedAuthor * 30n) / 100n;
 
     await expect(grantManager.connect(user1).claimGrant(1))
@@ -115,7 +105,7 @@ describe("GrantManagerUpgradeable edge cases", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     await expect(grantManager.claimGrant(1))
       .to.be.revertedWithCustomError(grantManager, "RoundNotEnded");
@@ -140,7 +130,7 @@ describe("GrantManagerUpgradeable edge cases", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const roundInfo = await votingSystem.getRoundInfo(1);
     await networkHelpers.time.increaseTo(Number(roundInfo[3]) + 1);
@@ -172,7 +162,7 @@ describe("GrantManagerUpgradeable edge cases", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -215,7 +205,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -259,7 +249,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -305,7 +295,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -331,8 +321,8 @@ describe("GrantManagerUpgradeable extra coverage", function () {
       .to.be.revertedWithCustomError(grantManager, "NoFundsAllocated");
   });
 
-  /** @notice it: reports canClaimGrant and calculateDistribution */
-  it("reports canClaimGrant and calculateDistribution", async function () {
+  /** @notice it: reports canClaimGrant and the milestone payout preview */
+  it("reports canClaimGrant and the milestone payout preview", async function () {
     const {
       admin,
       user1,
@@ -353,7 +343,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -370,8 +360,9 @@ describe("GrantManagerUpgradeable extra coverage", function () {
     const canClaim = await grantManager.canClaimGrant(1);
     expect(canClaim[0]).to.equal(true);
 
-    const calc = await grantManager.calculateDistribution(1, 1);
-    expect(calc[2]).to.equal(await fundingPool.poolByRoundAndIdea(1, 1));
+    const preview = await grantManager.previewGrant(1, 1);
+    expect(preview[0]).to.equal(await fundingPool.poolByRoundAndIdea(1, 1));
+    expect(preview[1] + preview[2] + preview[3]).to.equal(preview[0]);
   });
 
   /** @notice it: covers canClaimGrant failure reasons */
@@ -394,7 +385,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     let res = await grantManager.canClaimGrant(1);
     expect(res[0]).to.equal(false);
@@ -432,7 +423,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -483,7 +474,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -535,7 +526,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -593,7 +584,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -697,7 +688,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -738,7 +729,7 @@ describe("GrantManagerUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -787,7 +778,7 @@ describe("GrantManagerUpgradeable milestone payouts", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -819,7 +810,7 @@ describe("GrantManagerUpgradeable milestone payouts", function () {
     } = await setupMilestoneRound();
 
     const totalAllocated = await fundingPool.poolByRoundAndIdea(1, 1);
-    const totalGrant = (totalAllocated * 95n) / 100n;
+    const totalGrant = totalAllocated;
     const initialPayout = (totalGrant * 30n) / 100n;
     const inProcessPayout = (totalGrant * 40n) / 100n;
     const finalPayout = totalGrant - initialPayout - inProcessPayout;
@@ -998,7 +989,7 @@ describe("GrantManagerUpgradeable milestone payouts", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);
@@ -1046,5 +1037,120 @@ describe("GrantManagerUpgradeable milestone payouts", function () {
     const emptyStage = await grantManager.getMilestoneRequest(1, 2);
     expect(emptyStage[0]).to.equal(0n);
     expect(emptyStage[9]).to.equal(false);
+  });
+});
+
+/** @notice describe: GrantManager grant deadlines and refundable expiry paths */
+describe("GrantManagerUpgradeable deadlines", function () {
+  async function settleSingleWinner() {
+    const system = await deploySystem();
+    const {
+      admin,
+      user1,
+      user2,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      grantManager,
+      networkHelpers,
+    } = system;
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await grantManager.connect(admin).unpause();
+    await createIdeas(ideaRegistry, user1, 30);
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startFundingRound();
+
+    const pledge = await votingSystem.minStake();
+    await votingSystem.connect(user2).vote(1, 1, pledge);
+
+    const round = await votingSystem.getRoundInfo(1);
+    await networkHelpers.time.increaseTo(Number(round[3]) + 1);
+    await votingSystem.endVotingRound(1);
+
+    return { ...system, pledge, roundEnd: Number(round[3]) };
+  }
+
+  it("returns a never-claimed winning pledge in full and slashes its author bond", async function () {
+    const {
+      user1,
+      user2,
+      usdc,
+      fundingPool,
+      ideaRegistry,
+      grantManager,
+      networkHelpers,
+      pledge,
+      roundEnd,
+    } = await settleSingleWinner();
+
+    expect(await fundingPool.pendingProtocolFeeByRound(1)).to.equal((pledge * 500n) / 10_000n);
+    await networkHelpers.time.increaseTo(roundEnd + 14 * 24 * 60 * 60);
+
+    await expect(grantManager.expireUnclaimedGrant(1))
+      .to.emit(grantManager, "UnclaimedGrantExpired");
+
+    expect(await ideaRegistry.getStatus(1)).to.equal(7n);
+    expect(await fundingPool.protocolReserve()).to.equal(30n);
+
+    const before = await usdc.balanceOf(user2.address);
+    await fundingPool.connect(user2).claimPledgeRefund(1);
+    expect(await usdc.balanceOf(user2.address)).to.equal(before + pledge);
+    expect(await fundingPool.pendingProtocolFeeByRound(1)).to.equal(0n);
+    expect(await fundingPool.poolByRoundAndIdea(1, 1)).to.equal(0n);
+    expect(await usdc.balanceOf(user1.address)).to.be.greaterThan(0n);
+  });
+
+  it("returns the unspent net grant pro rata when the first milestone deadline expires", async function () {
+    const {
+      user1,
+      user2,
+      usdc,
+      fundingPool,
+      ideaRegistry,
+      grantManager,
+      networkHelpers,
+      pledge,
+    } = await settleSingleWinner();
+
+    await grantManager.connect(user1).claimGrant(1);
+    const netGrant = pledge - (pledge * 500n) / 10_000n;
+    const initialPayout = (netGrant * 30n) / 100n;
+    const remaining = netGrant - initialPayout;
+
+    await networkHelpers.time.increase(45 * 24 * 60 * 60);
+    await expect(grantManager.cancelExpiredGrant(1)).to.emit(grantManager, "GrantCancelled");
+
+    expect(await ideaRegistry.getStatus(1)).to.equal(7n);
+    const before = await usdc.balanceOf(user2.address);
+    await fundingPool.connect(user2).claimPledgeRefund(1);
+    expect(await usdc.balanceOf(user2.address)).to.equal(before + remaining);
+    expect(await fundingPool.protocolReserve()).to.equal((pledge * 500n) / 10_000n + 29n);
+  });
+
+  it("expires stalled review requests while preserving the author retry window", async function () {
+    const { user1, grantManager, networkHelpers } = await settleSingleWinner();
+
+    await grantManager.connect(user1).claimGrant(1);
+    await grantManager
+      .connect(user1)
+      .submitMilestoneProof(1, 1, "ipfs://first", "first proof");
+
+    await networkHelpers.time.increase(14 * 24 * 60 * 60);
+    await expect(grantManager.expireMilestoneReview(1, 1))
+      .to.emit(grantManager, "MilestoneReviewExpired");
+
+    await expect(
+      grantManager.connect(user1).submitMilestoneProof(1, 1, "ipfs://retry", "retry proof")
+    ).to.be.revertedWithCustomError(grantManager, "MilestoneCooldownActive");
+
+    await networkHelpers.time.increase(48 * 60 * 60);
+    await grantManager
+      .connect(user1)
+      .submitMilestoneProof(1, 1, "ipfs://retry", "retry proof");
+    expect((await grantManager.getMilestoneRequest(1, 1))[0]).to.equal(2n);
   });
 });

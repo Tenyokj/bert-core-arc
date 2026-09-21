@@ -1,4 +1,4 @@
-![Bert v1.1.x](https://img.shields.io/badge/Bert-USDC--native-0F766E)
+![Bert v1.2.x](https://img.shields.io/badge/Bert-USDC--native-0F766E)
 ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green)
 ![Hardhat](https://img.shields.io/badge/Hardhat-3.x-yellow)
 ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-orange)
@@ -36,11 +36,11 @@ BERT turns grant allocation into programmable treasury flow:
 
 1. Builders create proposals with a stake-backed submission flow.
 2. Participants commit USDC voting weight during funding rounds.
-3. Optional verified-human gating can restrict voting access to approved wallets.
-4. Optional per-vote caps can limit single-wallet influence on one idea.
-5. The treasury records round-level and proposal-level capital onchain.
-6. Winning proposals receive milestone-based USDC releases.
-7. Reviewers validate progress before later tranches unlock.
+3. A pledge is bound to one selected idea for that round, not donated to a general winner pool.
+4. The highest-supported idea that meets its disclosed post-fee minimum funding target is selected.
+5. Losing pledges are refundable by their original voters. If no idea is viable, every pledge is refundable.
+6. The protocol fee is fixed when a round opens and moves to reserve only if the winning author starts the grant.
+7. The viable winner receives milestone-based USDC releases, while reviewers validate progress before later tranches unlock.
 
 ## Why Arc
 
@@ -59,29 +59,31 @@ Sources:
 2. Arc docs: `Contract addresses`
 3. Circle docs: `USDC Contract Addresses`
 
-## Funding Flow
+## V2 Stake-Backed Funding Flow
 
 ```text
-Builder creates proposal
+Builder creates a proposal with an author bond and minimum net funding target
         |
         v
-Proposal stake is locked in USDC
+Author bond is locked in USDC
         |
         v
-Participants commit USDC votes
+Participants make one USDC pledge to one idea in the round
         |
         v
-FundingPool accumulates round capital
+VotingSystem selects the highest-supported viable idea after the locked fee
         |
         v
-Winning proposal is selected
+Losers claim their own pledges back
         |
         v
-GrantManager releases 30% / 40% / 30%
+Winner claims a net grant in 30% / 40% / 30% milestones
         |
         v
-Each later tranche requires milestone approval
+If the grant is never claimed or expires, defined refunds reopen for winning pledgers
 ```
+
+The V2 model is not a pooled tournament where a voter who backed a losing idea silently funds a different winner. A pledge remains attributable to its voter and selected idea. The only successful-round fee is a disclosed protocol fee on the winning pledge, and it is finalized only after the winning author claims the grant.
 
 ## Core Modules
 

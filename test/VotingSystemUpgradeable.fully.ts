@@ -32,12 +32,16 @@ describe("VotingSystemUpgradeable", function () {
 
     await createIdeas(ideaRegistry, admin, 30);
 
-    await expect(votingSystem.startVotingRound())
+    await expect(votingSystem.startFundingRound())
       .to.emit(votingSystem, "VotingRoundStarted");
 
     const roundInfo = await votingSystem.getRoundInfo(1);
     expect(roundInfo[0]).to.equal(1n);
     expect(roundInfo[4]).to.equal(true);
+
+    await expect(votingSystem.startFundingRound())
+      .to.be.revertedWithCustomError(votingSystem, "ActiveFundingRound")
+      .withArgs(1n);
   });
 
   /** @notice it: rejects voting when conditions are not met */
@@ -51,7 +55,7 @@ describe("VotingSystemUpgradeable", function () {
       .to.be.revertedWithCustomError(votingSystem, "InvalidId")
       .withArgs("roundId");
 
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     await expect(votingSystem.vote(1, 0, 1))
       .to.be.revertedWithCustomError(votingSystem, "InvalidId")
@@ -92,7 +96,7 @@ describe("VotingSystemUpgradeable", function () {
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
 
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     await usdc.mint(user1.address, 5000n * 10n ** 6n);
     await usdc.mint(user2.address, 5000n * 10n ** 6n);
@@ -140,7 +144,7 @@ describe("VotingSystemUpgradeable", function () {
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
 
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const roundInfo = await votingSystem.getRoundInfo(1);
     await networkHelpers.time.increaseTo(Number(roundInfo[3]) + 1);
@@ -160,12 +164,12 @@ describe("VotingSystemUpgradeable edge cases", function () {
 
     await createIdeas(ideaRegistry, admin, 60);
 
-    await expect(votingSystem.startVotingRound())
+    await expect(votingSystem.startFundingRound())
       .to.be.revertedWithCustomError(votingSystem, "EnforcedPause");
 
     await votingSystem.connect(admin).unpause();
 
-   await expect(votingSystem.startVotingRound())
+   await expect(votingSystem.startFundingRound())
       .to.emit(votingSystem, "VotingRoundStarted");
 
   });
@@ -181,7 +185,7 @@ describe("VotingSystemUpgradeable edge cases", function () {
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
 
-    await expect(votingSystem.startVotingRound())
+    await expect(votingSystem.startFundingRound())
       .to.be.revertedWithCustomError(votingSystem, "NotEnoughIdeas");
   });
 
@@ -200,7 +204,7 @@ describe("VotingSystemUpgradeable edge cases", function () {
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
     await ideaRegistry.connect(admin).updateStatus(1, 1);
 
-    await expect(votingSystem.startVotingRound())
+    await expect(votingSystem.startFundingRound())
       .to.be.revertedWithCustomError(votingSystem, "IdeaNotPending");
   });
 
@@ -225,7 +229,7 @@ describe("VotingSystemUpgradeable edge cases", function () {
     const now_ = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now_ + 700);
 
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -284,7 +288,7 @@ describe("VotingSystemUpgradeable edge cases", function () {
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
 
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -316,7 +320,7 @@ describe("VotingSystemUpgradeable edge cases", function () {
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
 
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     await expect(votingSystem.getRoundResults(1))
       .to.be.revertedWithCustomError(votingSystem, "RoundNotEnded");
@@ -352,7 +356,7 @@ describe("VotingSystemUpgradeable max voters", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
 
@@ -414,7 +418,7 @@ describe("VotingSystemUpgradeable verified-human gating", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -453,7 +457,7 @@ describe("VotingSystemUpgradeable verified-human gating", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -487,7 +491,7 @@ describe("VotingSystemUpgradeable verified-human gating", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -522,7 +526,7 @@ describe("VotingSystemUpgradeable vote cap", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     await usdc.mint(user1.address, 20n * 10n ** 6n);
     await usdc
@@ -564,7 +568,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     await expect(votingSystem.endVotingRound(1))
       .to.be.revertedWithCustomError(votingSystem, "RoundNotEnded")
@@ -589,7 +593,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     await votingSystem.connect(admin).pause();
 
@@ -640,7 +644,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -671,7 +675,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -719,7 +723,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user1.address, minStake * 2n);
@@ -746,7 +750,7 @@ describe("VotingSystemUpgradeable extra coverage", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const roundInfo = await votingSystem.getRoundInfo(1);
     await networkHelpers.time.increaseTo(Number(roundInfo[3]) + 1);
@@ -808,14 +812,14 @@ describe("VotingSystemUpgradeable extra coverage", function () {
     await votingSystem.connect(admin).setVoterProgression(
       await voterProgression.getAddress()
     );
-    await votingSystem.connect(admin).setVotingDuration(1000);
+    await votingSystem.connect(admin).setVotingDuration(2 * 24 * 60 * 60);
     await votingSystem.connect(admin).setMinStake(1n);
     await votingSystem.connect(admin).setIdeaPerRound(10);
     await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
     await votingSystem.connect(admin).setHumanOnlyVoting(true);
     await votingSystem.connect(admin).setMaxVoteAmount(123n);
 
-    expect(await votingSystem.VOTING_DURATION()).to.equal(1000n);
+    expect(await votingSystem.VOTING_DURATION()).to.equal(172800n);
     expect(await votingSystem.minStake()).to.equal(1n);
     expect(await votingSystem.IDEAS_PER_ROUND()).to.equal(10n);
     expect(await votingSystem.humanVerifier()).to.equal(await humanVerifier.getAddress());
@@ -879,6 +883,18 @@ describe("VotingSystemUpgradeable extra coverage", function () {
       votingSystem.connect(user1).setIdeaPerRound(1)
     ).to.be.revertedWithCustomError(votingSystem, "NotAdmin");
 
+    await expect(votingSystem.setVotingDuration(24 * 60 * 60 - 1))
+      .to.be.revertedWithCustomError(votingSystem, "InvalidParameter")
+      .withArgs("duration", "below 1 day");
+
+    await expect(votingSystem.setIdeaPerRound(4))
+      .to.be.revertedWithCustomError(votingSystem, "InvalidParameter")
+      .withArgs("ideasPerRound", "below 5");
+
+    await expect(votingSystem.setIdeaPerRound(51))
+      .to.be.revertedWithCustomError(votingSystem, "InvalidParameter")
+      .withArgs("ideasPerRound", "above 50");
+
     await expect(
       votingSystem.connect(user1).setHumanVerifier(ethers.ZeroAddress)
     ).to.be.revertedWithCustomError(votingSystem, "NotAdmin");
@@ -933,7 +949,7 @@ describe("VotingSystemUpgradeable invariants", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
 

@@ -118,15 +118,16 @@ describe("Non-standard ERC20 failure paths", function () {
     await mockToken.mint(user.address, 201n);
     await mockToken.connect(user).approve(await fundingPool.getAddress(), 201n);
 
-    await ideaRegistry.connect(user).createIdea("Idea", "Desc", "", 1n);
+    await ideaRegistry.connect(user).createFundingProposal("Idea", "Desc", "", 1n, 1n);
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     const DISTRIBUTOR_ROLE = await roles.DISTRIBUTOR_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
+    await fundingPool.connect(admin).openFundingRound(1n);
     await roles.grantSystemRole(DISTRIBUTOR_ROLE, admin.address);
 
     await fundingPool.connect(admin).unpause();
-    await fundingPool.connect(admin).depositForIdeaFrom(user.address, 1, 1, 200n);
+    await fundingPool.connect(admin).recordPledgeFrom(user.address, 1, 1, 200n);
 
     await mockToken.setFailTransfer(true, true);
 

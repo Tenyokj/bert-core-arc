@@ -95,7 +95,7 @@ import "../utils/Errors.sol";
  * @dev Orchestrates the complete DAO grant lifecycle from creation to funding
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.1.0
+ * @custom:version 1.2.0
  */
 contract GrantManagerUpgradeable is 
     Initializable, 
@@ -115,12 +115,9 @@ contract GrantManagerUpgradeable is
     /// @notice IdeaRegistry contract interface
     IIdeaRegistry public ideaRegistry;
 
-    /* ========== STATE VARIABLES ========== */
-    
-    /** @notice The author's share of their grant in basis points 
-     *@dev Default is 95% 
-     */
-    uint256 public authorSharePercent; // 95%
+    /// @dev Deprecated V2 storage slot retained for proxy-upgrade compatibility.
+    ///      The conditional-pledge model uses FundingPool's per-round fee instead.
+    uint256 public authorSharePercent;
 
     /* ========== PAYOUT CONSTANTS ========== */
 
@@ -135,6 +132,18 @@ contract GrantManagerUpgradeable is
     /// @notice Minimum waiting period before a rejected milestone can be submitted again
     /// @dev Applies independently per round and per milestone stage
     uint256 public constant MILESTONE_RESUBMIT_COOLDOWN = 48 hours;
+
+    /// @notice The winning author must start the grant within two weeks of round settlement.
+    uint256 public constant GRANT_CLAIM_WINDOW = 14 days;
+
+    /// @notice Stage-one proof must be submitted within 45 days of the initial payout.
+    uint256 public constant IN_PROCESS_SUBMISSION_WINDOW = 45 days;
+
+    /// @notice Completion proof must be submitted within 60 days of the stage-one payout.
+    uint256 public constant COMPLETION_SUBMISSION_WINDOW = 60 days;
+
+    /// @notice Reviewers have two weeks to resolve a submitted milestone proof.
+    uint256 public constant MILESTONE_REVIEW_WINDOW = 14 days;
 
     /* ========== MILESTONE CONSTANTS ========== */
 
@@ -180,6 +189,9 @@ contract GrantManagerUpgradeable is
         bool initialClaimed;
         bool inProcessPaid;
         bool completionPaid;
+        uint256 initialClaimedAt;
+        uint256 inProcessPaidAt;
+        bool cancelled;
     }
 
     /**
@@ -263,8 +275,7 @@ contract GrantManagerUpgradeable is
         votingSystem = IVotingSystem(_votingSystem);
         fundingPool = IFundingPool(_fundingPool);
         ideaRegistry = IIdeaRegistry(_ideaRegistry);
-        authorSharePercent = 95; // 95%
-        
+        authorSharePercent = 95;
         _pause();
         
         emit GrantManagerInitialized(msg.sender);
@@ -290,10 +301,12 @@ contract GrantManagerUpgradeable is
             revert AlreadyDistributed(roundId);
         }
 
-        (, , , , , bool ended , , , ) = votingSystem.getRoundInfo(roundId);
+        (, , , uint256 endTime, , bool ended , , , ) = votingSystem.getRoundInfo(roundId);
         if (!ended) {
             revert RoundNotEnded(roundId);
         }
+        uint256 claimDeadline = endTime + GRANT_CLAIM_WINDOW;
+        if (block.timestamp >= claimDeadline) revert GrantClaimExpired(roundId, claimDeadline);
 
         (uint256 winningIdeaId, ) = votingSystem.getRoundWinner(roundId);
         if (winningIdeaId == 0) {
@@ -321,8 +334,7 @@ contract GrantManagerUpgradeable is
         if (totalIdeaStake == 0) {
             revert NoFundsAllocated(roundId, winningIdeaId);
         }
-        uint256 authorAmount = (totalIdeaStake * authorSharePercent) / 100;
-        uint256 protocolAmount = totalIdeaStake - authorAmount;
+        uint256 authorAmount = totalIdeaStake;
         uint256 initialPayout = (authorAmount * INITIAL_PAYOUT_PERCENT) / 100;
 
         // Record payout state before cross-contract interactions so a future
@@ -332,11 +344,12 @@ contract GrantManagerUpgradeable is
         payout.totalGrant = authorAmount;
         payout.released = initialPayout;
         payout.initialClaimed = true;
+        payout.initialClaimedAt = block.timestamp;
 
-        try fundingPool.moveIdeaFundsToReserve(roundId, winningIdeaId, protocolAmount) {
-            // success
+        try fundingPool.finalizeFundingRoundFee(roundId) {
+            // Fee becomes protocol reserve only when the grant lifecycle actually starts.
         } catch {
-            revert ExternalCallFailed("FundingPool", "moveIdeaFundsToReserve");
+            revert ExternalCallFailed("FundingPool", "finalizeFundingRoundFee");
         }
 
         ideaRegistry.updateStatus(winningIdeaId, IdeaStatus.Funded);
@@ -346,6 +359,76 @@ contract GrantManagerUpgradeable is
         } catch {
             revert ExternalCallFailed("FundingPool", "distributeFunds");
         }
+    }
+
+    /** @notice Expires an unclaimed grant, restoring the winner's full gross pledge for refund. */
+    function expireUnclaimedGrant(uint256 roundId) external nonReentrant whenNotPaused {
+        (, , , uint256 endTime, , bool ended , , , ) = votingSystem.getRoundInfo(roundId);
+        if (!ended) revert RoundNotEnded(roundId);
+
+        uint256 deadline = endTime + GRANT_CLAIM_WINDOW;
+        if (block.timestamp < deadline) revert GrantDeadlineNotReached(roundId, deadline);
+
+        (uint256 winningIdeaId, ) = votingSystem.getRoundWinner(roundId);
+        if (winningIdeaId == 0 || _grantPayouts[roundId].initialClaimed) {
+            revert GrantCancellationUnavailable(roundId);
+        }
+        if (ideaRegistry.getStatus(winningIdeaId) != IdeaStatus.WonVoting) {
+            revert GrantCancellationUnavailable(roundId);
+        }
+
+        try fundingPool.cancelUnclaimedFundingRound(roundId) {
+            // The pool restores the pending fee before winner refunds are claimed.
+        } catch {
+            revert ExternalCallFailed("FundingPool", "cancelUnclaimedFundingRound");
+        }
+        ideaRegistry.updateStatus(winningIdeaId, IdeaStatus.Cancelled);
+        emit UnclaimedGrantExpired(roundId, winningIdeaId, deadline);
+    }
+
+    /** @notice Closes a stalled milestone request after its reviewer window has elapsed. */
+    function expireMilestoneReview(uint256 roundId, uint8 stage) external nonReentrant whenNotPaused {
+        GrantPayout storage payout = _grantPayouts[roundId];
+        MilestoneRequest storage request = _milestoneRequests[roundId][stage];
+        if (!payout.initialClaimed || !request.active) revert NoActiveMilestoneRequest(roundId, stage);
+
+        uint256 deadline = request.submittedAt + MILESTONE_REVIEW_WINDOW;
+        if (block.timestamp < deadline) revert MilestoneReviewDeadlineNotReached(roundId, stage, deadline);
+
+        request.active = false;
+        request.lastRejectedAt = block.timestamp;
+        emit MilestoneRejected(roundId, payout.ideaId, stage, request.requestId);
+        emit MilestoneReviewExpired(roundId, payout.ideaId, stage, request.requestId, deadline);
+    }
+
+    /** @notice Cancels an incomplete live grant and opens pro-rata refunds for its unspent net pledge. */
+    function cancelExpiredGrant(uint256 roundId) external nonReentrant whenNotPaused {
+        GrantPayout storage payout = _grantPayouts[roundId];
+        if (!payout.initialClaimed || payout.cancelled || payout.completionPaid) {
+            revert GrantCancellationUnavailable(roundId);
+        }
+
+        uint8 stage = payout.inProcessPaid ? COMPLETION_STAGE : IN_PROCESS_STAGE;
+        uint256 deadline = _milestoneDeadline(payout, stage);
+        if (block.timestamp < deadline) revert GrantDeadlineNotReached(roundId, deadline);
+
+        MilestoneRequest storage request = _milestoneRequests[roundId][stage];
+        if (request.active) {
+            request.active = false;
+            request.lastRejectedAt = block.timestamp;
+            emit MilestoneRejected(roundId, payout.ideaId, stage, request.requestId);
+        }
+
+        payout.cancelled = true;
+
+        try fundingPool.activateGrantRefund(roundId) {
+            // Remaining escrow is distributed only to the winning pledge cohort.
+        } catch {
+            revert ExternalCallFailed("FundingPool", "activateGrantRefund");
+        }
+
+        ideaRegistry.updateStatus(payout.ideaId, IdeaStatus.Cancelled);
+        emit GrantCancelled(roundId, payout.ideaId, deadline);
     }
 
     /**
@@ -373,6 +456,7 @@ contract GrantManagerUpgradeable is
         if (!payout.initialClaimed) {
             revert MilestoneNotEligible(roundId, stage);
         }
+        if (payout.cancelled) revert GrantCancellationUnavailable(roundId);
         if (msg.sender != payout.author) {
             revert NotAuthor(msg.sender, payout.author);
         }
@@ -425,6 +509,7 @@ contract GrantManagerUpgradeable is
         if (!payout.initialClaimed) {
             revert MilestoneNotEligible(roundId, stage);
         }
+        if (payout.cancelled) revert GrantCancellationUnavailable(roundId);
         if (msg.sender == payout.author) {
             revert CannotReviewOwnIdea(payout.author);
         }
@@ -432,6 +517,11 @@ contract GrantManagerUpgradeable is
         MilestoneRequest storage request = _milestoneRequests[roundId][stage];
         if (!request.active) {
             revert NoActiveMilestoneRequest(roundId, stage);
+        }
+
+        uint256 reviewDeadline = request.submittedAt + MILESTONE_REVIEW_WINDOW;
+        if (block.timestamp >= reviewDeadline) {
+            revert MilestoneReviewWindowElapsed(roundId, stage, reviewDeadline);
         }
 
         if (request.approvals + request.rejections >= request.maxReviewers) {
@@ -472,26 +562,23 @@ contract GrantManagerUpgradeable is
     /* ========== VIEW FUNCTIONS ========== */
 
     /**
-     * @notice Calculates the distribution amounts for a given round and idea
-     * @dev Helper function to preview distribution without executing it
-     * @param roundId The ID of the funding round
-     * @param ideaId The ID of the idea (should be the winning idea)
-     * @return authorAmount Amount that would go to the author
-     * @return protocolAmount Amount that would be kept by the protocol
-     * @return totalAmount Total amount available for the idea in this round
+     * @notice Previews the milestone schedule for a settled winning pledge.
+     * @dev The protocol fee is excluded because FundingPool holds it apart from grant escrow.
      */
-    function calculateDistribution(uint256 roundId, uint256 ideaId) 
-        external 
-        view 
+    function previewGrant(uint256 roundId, uint256 ideaId)
+        external
+        view
         returns (
-            uint256 authorAmount,
-            uint256 protocolAmount,
-            uint256 totalAmount
-        ) 
+            uint256 totalGrant,
+            uint256 initialPayout,
+            uint256 inProcessPayout,
+            uint256 completionPayout
+        )
     {
-        totalAmount = fundingPool.poolByRoundAndIdea(roundId, ideaId);
-        authorAmount = (totalAmount * authorSharePercent) / 100;
-        protocolAmount = totalAmount - authorAmount;
+        totalGrant = fundingPool.poolByRoundAndIdea(roundId, ideaId);
+        initialPayout = (totalGrant * INITIAL_PAYOUT_PERCENT) / 100;
+        inProcessPayout = (totalGrant * IN_PROCESS_PAYOUT_PERCENT) / 100;
+        completionPayout = totalGrant - initialPayout - inProcessPayout;
     }
 
     /**
@@ -513,9 +600,13 @@ contract GrantManagerUpgradeable is
             return (false, "Grant already distributed");
         }
 
-        (, , , , , bool ended , , , ) = votingSystem.getRoundInfo(roundId);
+        (, , , uint256 endTime, , bool ended , , , ) = votingSystem.getRoundInfo(roundId);
         if (!ended) {
             return (false, "Round not ended");
+        }
+
+        if (block.timestamp >= endTime + GRANT_CLAIM_WINDOW) {
+            return (false, "Grant claim window expired");
         }
 
         (uint256 winningIdeaId, ) = votingSystem.getRoundWinner(roundId);
@@ -564,15 +655,6 @@ contract GrantManagerUpgradeable is
     }
 
     /**
-     * @notice Gets the current protocol fee share
-     * @dev Protocol share is calculated as 100% - authorSharePercent
-     * @return uint256 Protocol share in basis points
-     */
-    function getProtocolShare() external view returns (uint256) {
-        return 100 - authorSharePercent;
-    }
-
-    /**
      * @notice Returns payout tracking information for a round
      * @param roundId The ID of the funding round
      * @return ideaId Winning idea linked to the payout state
@@ -593,7 +675,10 @@ contract GrantManagerUpgradeable is
             uint256 released,
             bool initialClaimed,
             bool inProcessPaid,
-            bool completionPaid
+            bool completionPaid,
+            uint256 initialClaimedAt,
+            uint256 inProcessPaidAt,
+            bool cancelled
         )
     {
         GrantPayout storage payout = _grantPayouts[roundId];
@@ -604,7 +689,10 @@ contract GrantManagerUpgradeable is
             payout.released,
             payout.initialClaimed,
             payout.inProcessPaid,
-            payout.completionPaid
+            payout.completionPaid,
+            payout.initialClaimedAt,
+            payout.inProcessPaidAt,
+            payout.cancelled
         );
     }
 
@@ -704,22 +792,6 @@ contract GrantManagerUpgradeable is
         emit VotingSystemUpdated(_newVoting);
     }
 
-    /**
-     * @notice Updates the author's share percentage
-     * @dev Can only be called by the contract admin. Share is in basis points (95 = 95%)
-     * @param newSharePercent New author share in basis points (must be ≤ 100)
-     * @custom:emits FeeUpdated
-     * @custom:requires Only admin can call
-     * @custom:requires newShareBps must be ≤ 100
-     */
-    function setAuthorShare(uint256 newSharePercent) external onlyAdmin {
-        if (newSharePercent > 100) {
-            revert InvalidShare(newSharePercent, 100);
-        }
-        authorSharePercent = newSharePercent;
-        emit FeeUpdated(authorSharePercent, 100 - authorSharePercent);
-    }
-
     /* ========== PAUSE FUNCTIONS ========== */
 
     /**
@@ -767,12 +839,13 @@ contract GrantManagerUpgradeable is
         uint256 ideaId,
         uint256 lastRejectedAt
     ) internal view {
+        GrantPayout storage payout = _grantPayouts[roundId];
         if (stage == IN_PROCESS_STAGE) {
-            if (_grantPayouts[roundId].inProcessPaid || ideaRegistry.getStatus(ideaId) != IdeaStatus.Funded) {
+            if (payout.inProcessPaid || ideaRegistry.getStatus(ideaId) != IdeaStatus.Funded) {
                 revert MilestoneNotEligible(roundId, stage);
             }
         } else if (stage == COMPLETION_STAGE) {
-            if (_grantPayouts[roundId].completionPaid || !_grantPayouts[roundId].inProcessPaid) {
+            if (payout.completionPaid || !payout.inProcessPaid) {
                 revert MilestoneNotEligible(roundId, stage);
             }
             if (ideaRegistry.getStatus(ideaId) != IdeaStatus.InProcess) {
@@ -781,6 +854,9 @@ contract GrantManagerUpgradeable is
         } else {
             revert MilestoneNotEligible(roundId, stage);
         }
+
+        uint256 deadline = _milestoneDeadline(payout, stage);
+        if (block.timestamp >= deadline) revert MilestoneSubmissionExpired(roundId, stage, deadline);
 
         if (lastRejectedAt != 0) {
             uint256 retryAt = lastRejectedAt + MILESTONE_RESUBMIT_COOLDOWN;
@@ -813,6 +889,7 @@ contract GrantManagerUpgradeable is
 
         if (stage == IN_PROCESS_STAGE) {
             payout.inProcessPaid = true;
+            payout.inProcessPaidAt = block.timestamp;
         } else {
             payout.completionPaid = true;
         }
@@ -849,6 +926,12 @@ contract GrantManagerUpgradeable is
         }
 
         return 0;
+    }
+
+    function _milestoneDeadline(GrantPayout storage payout, uint8 stage) internal view returns (uint256) {
+        if (stage == IN_PROCESS_STAGE) return payout.initialClaimedAt + IN_PROCESS_SUBMISSION_WINDOW;
+        if (stage == COMPLETION_STAGE) return payout.inProcessPaidAt + COMPLETION_SUBMISSION_WINDOW;
+        revert MilestoneNotEligible(0, stage);
     }
 
     /* ========== UPGRADE SAFETY ========== */

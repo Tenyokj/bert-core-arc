@@ -47,6 +47,7 @@ Lower values:
 Operational note:
 - if set too high relative to proposal supply, rounds can become harder to reason about
 - if set too low, the system may fragment capital signaling across too many small rounds
+- the contract enforces `5 <= IDEAS_PER_ROUND <= 50`; default policy is `30`
 
 ### `VOTING_DURATION`
 Owned by:
@@ -153,26 +154,48 @@ Operational note:
 
 ## Grant Release Parameters
 
-### `authorSharePercent`
+### `minimumNetFundingByIdea`
 Owned by:
-- `GrantManagerUpgradeable`
+- `IdeaRegistryUpgradeable`
 
 Meaning:
-- percentage of allocable round capital released to the winning author
+- the minimum USDC amount a proposal must receive after the round's snapshotted pledge fee for it to be eligible to win
 
-Protocol share:
-- `100 - authorSharePercent`
+Why it matters:
+- prevents a proposal from becoming a live grant with insufficient capital for its disclosed scope
+- lets a higher-vote but underfunded proposal be skipped in favor of the highest viable alternative
+- makes the funding threshold visible before a participant pledges
 
-Higher values:
-- increase builder incentives
-- reduce protocol-retained share
+Operational note:
+- this is provided by the author at proposal creation and is not an admin override after votes arrive
+- the check uses net funding after the fee snapshotted for that round
 
-Lower values:
-- increase protocol-retained share
-- may weaken builder-side economic attractiveness
+### `pledgeFeeBps`
+Owned by:
+- `FundingPoolUpgradeable`
 
-Important note:
-- payout release still follows milestone staging even when author share is high
+Meaning:
+- successful-round protocol fee in basis points, charged only to a winning pledge that becomes a live grant
+
+Bounds and behavior:
+- default: `500` basis points, or `5%`
+- maximum: `1,000` basis points, or `10%`
+- each round snapshots the value when opened, so later changes cannot alter an in-progress round
+- losing pledges and a winner that never claims are refunded in full
+- the fee becomes protocol reserve only after `claimGrant` succeeds
+
+### Grant and Review Deadlines
+Owned by:
+- `GrantManagerUpgradeable` constants
+
+Current policy:
+- claim a settled winning grant within `14 days`
+- submit stage-one proof within `45 days` after the initial payout
+- submit stage-two proof within `60 days` after the stage-one payout
+- reviewers have `14 days` to resolve an active proof request
+- a rejected proof has a `48 hour` resubmission cooldown
+
+If a deadline is missed, the permissionless expiry path protects pledge capital according to the round state: a never-claimed winner restores its full gross pledge; an incomplete live grant exposes its remaining net pledge to pro-rata refund by winning pledgers.
 
 ### Milestone Thresholds and Cooldowns
 Some milestone review logic is embedded as protocol behavior rather than a general open parameter surface.
@@ -207,8 +230,9 @@ The protocol reserve is not just a number; it is a policy-backed capital bucket.
 
 Operators should understand:
 - rejected author stakes can move into reserve
-- leftover or reserved capital can accumulate separately from live round balances
-- reserve can be explicitly allocated back into idea accounting by authorized action
+- a successful-round fee moves into reserve only after the winning author claims
+- refundable pledges remain outside protocol reserve until their owner claims them
+- reserve allocation is a separate admin action and must never be used to replace a proposal's pledged funding target
 
 ## Role and Dependency Wiring
 
@@ -240,7 +264,8 @@ For local or staging-style testing, existing protocol defaults have included:
 - `VOTING_DURATION = 1 day`
 - `minStake = 10 * 10^6`
 - `authorMinStake = 50 * 10^6`
-- `authorSharePercent = 95`
+- `pledgeFeeBps = 500`
+- `minimumNetFunding` is proposal-specific and must be set by the author
 
 Current Arc testnet governance policy as of August 18, 2026:
 - `humanOnlyVoting = true`

@@ -252,7 +252,7 @@ describe("PoPVerifierUpgradeable integration", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const chainId = (await ethers.provider.getNetwork()).chainId;
     const verifiedUntil = BigInt(now + 3600);

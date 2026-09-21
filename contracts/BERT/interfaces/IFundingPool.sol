@@ -114,6 +114,44 @@ interface IFundingPool {
      */
     event PoolBalanceUpdated(uint256 newBalance);
 
+    /// @notice Emitted when a funding round locks its success fee.
+    event FundingRoundOpened(uint256 indexed roundId, uint256 feeBps);
+
+    /// @notice Emitted when a voter escrows a refundable pledge for an idea.
+    event PledgeRecorded(
+        uint256 indexed roundId,
+        uint256 indexed ideaId,
+        address indexed voter,
+        uint256 amount
+    );
+
+    /// @notice Emitted once a funding round selects its winner and fee outcome.
+    event FundingRoundSettled(
+        uint256 indexed roundId,
+        uint256 indexed winningIdeaId,
+        uint256 grossFunding,
+        uint256 fee,
+        uint256 netFunding
+    );
+
+    event FundingRoundFeeFinalized(uint256 indexed roundId, uint256 amount);
+    event FundingRoundCancelled(uint256 indexed roundId, uint256 indexed winningIdeaId, uint256 restoredFee);
+    event GrantRefundActivated(uint256 indexed roundId, uint256 indexed winningIdeaId, uint256 totalRefund);
+
+    /// @notice Emitted when a losing or unsuccessful pledge is returned to its voter.
+    event PledgeRefundClaimed(
+        uint256 indexed roundId,
+        uint256 indexed ideaId,
+        address indexed voter,
+        uint256 amount
+    );
+
+    /// @notice Emitted when the fee for future funding rounds is changed.
+    event PledgeFeeUpdated(uint256 feeBps);
+
+    /// @notice Emitted when a funded proposal's author bond is returned.
+    event AuthorStakeReleased(uint256 indexed ideaId, address indexed author, uint256 amount);
+
     /**
      * @notice Emitted when the USDC token address is updated
      * @param newToken Address of the new USDC token contract
@@ -207,20 +245,55 @@ interface IFundingPool {
      */
     function depositAuthorStakeFrom(address from, uint256 ideaId, uint256 amount) external;
 
-    /**
-     * @notice Deposits tokens from a specified address for a specific idea in a round
-     * @dev Can only be called by addresses with VOTING_ROLE
-     * @param from Address from which tokens are transferred
-     * @param roundId ID of the funding round
-     * @param ideaId ID of the idea receiving the deposit
-     * @param amount Amount of tokens to deposit
-     */
-    function depositForIdeaFrom(
+    /// @notice Records one voter's refundable pledge for a funding round.
+    function recordPledgeFrom(
         address from,
         uint256 roundId,
         uint256 ideaId,
         uint256 amount
     ) external;
+
+    /// @notice Opens a pledge ledger before voting starts.
+    function openFundingRound(uint256 roundId) external;
+
+    /// @notice Settles a pledge round and holds the successful-round fee in escrow.
+    function settleFundingRound(uint256 roundId, uint256 winningIdeaId) external;
+
+    /// @notice Moves a successful round's pending fee to protocol reserve after grant claim.
+    function finalizeFundingRoundFee(uint256 roundId) external;
+
+    /// @notice Cancels an unclaimed winning grant and restores its fee for full refunds.
+    function cancelUnclaimedFundingRound(uint256 roundId) external;
+
+    /// @notice Opens pro-rata refunds for the unspent balance of an expired grant.
+    function activateGrantRefund(uint256 roundId) external;
+
+    /// @notice Returns a losing or unsuccessful pledge to its original voter.
+    function claimPledgeRefund(uint256 roundId) external returns (uint256 amount);
+
+    /// @notice Returns the net grant amount produced by a gross pledge total.
+    function previewNetFunding(uint256 grossAmount) external view returns (uint256);
+
+    /// @notice Returns a round's net grant amount using its immutable fee snapshot.
+    function previewRoundNetFunding(uint256 roundId, uint256 grossAmount) external view returns (uint256);
+
+    /// @notice Returns whether the funding round is settled and its selected winner.
+    function getFundingRoundSettlement(uint256 roundId)
+        external
+        view
+        returns (bool opened, bool settled, uint256 winningIdeaId);
+
+    /// @notice Returns a voter's pledge and refund state for one round.
+    function getPledge(uint256 roundId, address voter)
+        external
+        view
+        returns (uint256 ideaId, uint256 amount, bool refundClaimed);
+
+    /// @notice Configures the fee applied only to successful pledge rounds.
+    function setPledgeFeeBps(uint256 feeBps) external;
+
+    /// @notice One-time proxy-upgrade initializer for conditional-pledge fee configuration.
+    function initializeConditionalPledges(uint256 initialFeeBps) external;
 
     /* ========== DISTRIBUTION FUNCTIONS ========== */
 
@@ -238,20 +311,14 @@ interface IFundingPool {
     ) external;
 
     /**
-     * @notice Moves part of an idea's allocated round funds into protocol reserve
-     * @dev Can only be called by addresses with DISTRIBUTOR_ROLE
-     * @param roundId Grant round identifier
-     * @param ideaId Winning idea identifier
-     * @param amount Amount to move into reserve
-     */
-    function moveIdeaFundsToReserve(uint256 roundId, uint256 ideaId, uint256 amount) external;
-
-    /**
      * @notice Slashes an author's locked idea stake into protocol reserve
      * @dev Can only be called by the IdeaRegistry contract
      * @param ideaId ID of the rejected idea
      */
     function slashAuthorStakeToReserve(uint256 ideaId) external;
+
+    /// @notice Returns a successful proposal author's bond when its grant begins.
+    function releaseAuthorStakeToAuthor(uint256 ideaId) external;
 
     /* ========== VIEW FUNCTIONS ========== */
 

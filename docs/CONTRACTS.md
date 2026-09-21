@@ -15,6 +15,7 @@ This document maps the major BERT protocol contracts, their responsibilities, th
 Current documented core flow:
 - `v1.0.0`: proposal registry, rounds, voting, treasury accounting, winner selection, one-step grant claim
 - `v1.1.0`: author stake on idea creation, staged grant release `30 / 40 / 30`, milestone proof review, rejection cooldown, reserve-aware rejected stake flow
+- `v1.2.0`: conditional stake-backed grant selection, proposal-level net funding targets, refundable losing pledges, fee escrow, deadline-driven grant refunds, and a bounded `5..50` round size
 
 ## Core Contracts
 
@@ -33,6 +34,7 @@ Owns this state:
 - idea status
 - low-quality flag
 - review records
+- `minimumNetFundingByIdea`
 
 Can mutate:
 - the author can create a new idea
@@ -51,6 +53,7 @@ Critical invariants:
 - proposal metadata is owned only here
 - idea status transitions are explicit and gated
 - author stake must satisfy `authorMinStake`
+- a funding proposal must declare non-zero `minimumNetFunding`
 - rejected stake slashing path must remain reserve-safe
 
 ### `VotingSystemUpgradeable`
@@ -68,10 +71,11 @@ Owns this state:
 - per-round voter participation tracking
 - `lastUsedIdeaId`
 - `currentRoundId`
+- human-voting policy and per-vote cap
 
 Can mutate:
 - admin or authorized operator starts and ends rounds
-- voters commit stake-backed votes through the public vote path
+- voters record stake-backed pledges through the public vote path
 
 Depends on:
 - `IdeaRegistryUpgradeable`
@@ -82,9 +86,10 @@ Depends on:
 
 Critical invariants:
 - a round cannot include ideas outside its assigned batch
-- outcome resolution must not produce multiple winners
+- outcome resolution must select at most one viable winner
 - `lastUsedIdeaId` must preserve one-way batching
-- vote weight equals committed token amount
+- vote weight equals pledged token amount
+- round size is constrained to `5..50` to bound settlement gas
 
 ### `FundingPoolUpgradeable`
 Reference:
@@ -100,13 +105,14 @@ Owns this state:
 - author stake balances
 - per-round and per-idea pool accounting
 - historical distribution records
+- pledge ownership, refund status, and fee escrow state
 
 Can mutate:
 - contributors can deposit directly
 - idea registry can lock author stake and slash rejected stake
-- voting system can move vote capital into round/idea accounting
+- voting system can record one voter pledge per funding round
 - grant manager or distributor-authorized paths can release funds
-- admin can allocate reserve back into round/idea accounting
+- grant manager can finalize a successful-round fee, cancel an unclaimed winner, or activate an expired-grant refund
 
 Depends on:
 - configured USDC token address
@@ -118,6 +124,7 @@ Critical invariants:
 - author stake and round funding are distinct accounting buckets
 - payout flow must not double-distribute
 - internal accounting should remain reconcilable with token balances
+- losing pledges are refundable to their recorded owners, not allocated to a different winner
 
 ### `GrantManagerUpgradeable`
 Reference:
@@ -132,7 +139,7 @@ Owns this state:
 - milestone proof request state
 - reviewer approval and rejection counters
 - payout flags
-- author share configuration
+- claim, milestone, cancellation, and review deadline state
 
 Can mutate:
 - winning author can claim initial grant
@@ -151,6 +158,7 @@ Critical invariants:
 - proof review cannot be duplicated by a single reviewer
 - stage order must be enforced
 - rejected proof must respect cooldown
+- an unclaimed or expired grant must open only the documented refund path
 
 ## Supporting Contracts
 

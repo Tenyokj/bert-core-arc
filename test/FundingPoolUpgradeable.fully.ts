@@ -82,21 +82,22 @@ describe("FundingPoolUpgradeable", function () {
     await fundingPool.connect(admin).unpause();
 
     await expect(
-      fundingPool.depositForIdeaFrom(user1.address, 1, 1, 100n)
+      fundingPool.recordPledgeFrom(user1.address, 1, 1, 100n)
     ).to.be.revertedWithCustomError(fundingPool, "NotVotingSystem");
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
+    await fundingPool.connect(admin).openFundingRound(1n);
 
     await fundingPool
       .connect(admin)
-      .depositForIdeaFrom(user1.address, 1, 1, 100n);
+      .recordPledgeFrom(user1.address, 1, 1, 100n);
 
     expect(await fundingPool.totalPoolBalance()).to.equal(100n);
   });
 
   /** @notice it: distributes funds and moves reserve accounting explicitly */
-  it("distributes funds and moves reserve accounting explicitly", async function () {
+  it("finalizes a pledge fee only when the winner starts distribution", async function () {
     const {
       admin,
       user1,
@@ -111,25 +112,27 @@ describe("FundingPoolUpgradeable", function () {
 
     await fundingPool.connect(admin).unpause();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
+    await ideaRegistry.connect(user1).createFundingProposal("Idea", "Desc", "", 1n, 1n);
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
-    await fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 200n);
+    await fundingPool.connect(admin).openFundingRound(1n);
+    await fundingPool.connect(admin).recordPledgeFrom(user1.address, 1, 1, 200n);
+
+    await fundingPool.connect(admin).settleFundingRound(1, 1);
 
     const DISTRIBUTOR_ROLE = await roles.DISTRIBUTOR_ROLE();
     await roles.grantSystemRole(DISTRIBUTOR_ROLE, admin.address);
 
-    await expect(fundingPool.connect(admin).moveIdeaFundsToReserve(1, 1, 50n))
-      .to.emit(fundingPool, "IdeaFundsReserved")
-      .withArgs(1n, 1n, 50n);
+    expect(await fundingPool.protocolReserve()).to.equal(0n);
+    await fundingPool.connect(admin).finalizeFundingRoundFee(1);
 
-    await expect(fundingPool.connect(admin).distributeFunds(1, 1, 150n))
+    await expect(fundingPool.connect(admin).distributeFunds(1, 1, 190n))
       .to.emit(fundingPool, "FundsDistributed")
-      .withArgs(1n, 1n, 150n);
+      .withArgs(1n, 1n, 190n);
 
-    expect(await fundingPool.protocolReserve()).to.equal(50n);
-    expect(await fundingPool.totalPoolBalance()).to.equal(51n);
+    expect(await fundingPool.protocolReserve()).to.equal(10n);
+    expect(await fundingPool.totalPoolBalance()).to.equal(11n);
 
     expect(await fundingPool.poolByRoundAndIdea(1, 1)).to.equal(0n);
   });
@@ -183,8 +186,8 @@ describe("FundingPoolUpgradeable", function () {
 
 /** @notice describe: FundingPoolUpgradeable edge cases */
 describe("FundingPoolUpgradeable edge cases", function () {
-  /** @notice it: validates depositForIdeaFrom inputs */
-  it("validates depositForIdeaFrom inputs", async function () {
+  /** @notice it: validates recordPledgeFrom inputs */
+  it("validates recordPledgeFrom inputs", async function () {
     const { ethers, admin, roles, fundingPool, usdc, user1 } =
       await deploySystem();
 
@@ -194,17 +197,18 @@ describe("FundingPoolUpgradeable edge cases", function () {
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
+    await fundingPool.connect(admin).openFundingRound(1n);
 
     await expect(
-      fundingPool.connect(admin).depositForIdeaFrom(ethers.ZeroAddress, 1, 1, 1)
+      fundingPool.connect(admin).recordPledgeFrom(ethers.ZeroAddress, 1, 1, 1)
     ).to.be.revertedWithCustomError(fundingPool, "ZeroAddress");
 
     await expect(
-      fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 0, 1)
+      fundingPool.connect(admin).recordPledgeFrom(user1.address, 1, 0, 1)
     ).to.be.revertedWithCustomError(fundingPool, "InvalidId");
 
     await expect(
-      fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 0)
+      fundingPool.connect(admin).recordPledgeFrom(user1.address, 1, 1, 0)
     ).to.be.revertedWithCustomError(fundingPool, "ZeroAmount");
   });
 
@@ -221,14 +225,15 @@ describe("FundingPoolUpgradeable edge cases", function () {
 
     await fundingPool.connect(admin).unpause();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
+    await ideaRegistry.connect(user1).createFundingProposal("Idea", "Desc", "", 1n, 1n);
 
     await usdc.mint(user1.address, 500n);
     await usdc.connect(user1).approve(await fundingPool.getAddress(), 500n);
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
-    await fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 200n);
+    await fundingPool.connect(admin).openFundingRound(1n);
+    await fundingPool.connect(admin).recordPledgeFrom(user1.address, 1, 1, 200n);
 
     const DISTRIBUTOR_ROLE = await roles.DISTRIBUTOR_ROLE();
     await roles.grantSystemRole(DISTRIBUTOR_ROLE, admin.address);
@@ -319,7 +324,7 @@ describe("FundingPoolUpgradeable extra coverage", function () {
       ideaRegistry,
     } = await deploySystem();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
+    await ideaRegistry.connect(user1).createFundingProposal("Idea", "Desc", "", 1n, 1n);
     await usdc.mint(user1.address, 200n);
     await usdc
       .connect(user1)
@@ -327,9 +332,10 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
+    await fundingPool.connect(admin).openFundingRound(1n);
 
     await fundingPool.connect(admin).unpause();
-    await fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 200n);
+    await fundingPool.connect(admin).recordPledgeFrom(user1.address, 1, 1, 200n);
 
     await expect(
       fundingPool.connect(user1).distributeFunds(1, 1, 100n)
@@ -355,7 +361,7 @@ describe("FundingPoolUpgradeable extra coverage", function () {
       ideaRegistry,
     } = await deploySystem();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
+    await ideaRegistry.connect(user1).createFundingProposal("Idea", "Desc", "", 1n, 1n);
     await usdc.mint(user1.address, 200n);
     await usdc
       .connect(user1)
@@ -363,12 +369,13 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
+    await fundingPool.connect(admin).openFundingRound(1n);
 
     const DISTRIBUTOR_ROLE = await roles.DISTRIBUTOR_ROLE();
     await roles.grantSystemRole(DISTRIBUTOR_ROLE, admin.address);
 
     await fundingPool.connect(admin).unpause();
-    await fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 200n);
+    await fundingPool.connect(admin).recordPledgeFrom(user1.address, 1, 1, 200n);
 
     await expect(
       fundingPool.connect(admin).distributeFunds(1, 1, 0)
@@ -386,7 +393,7 @@ describe("FundingPoolUpgradeable extra coverage", function () {
       .to.be.revertedWithCustomError(fundingPool, "IndexOutOfBounds");
   });
 
-  /** @notice it: allocates protocol reserve to idea */
+  /** @notice it: allocates a slashed author bond from protocol reserve to an idea */
   it("allocates protocol reserve to idea", async function () {
     const {
       admin,
@@ -397,26 +404,16 @@ describe("FundingPoolUpgradeable extra coverage", function () {
       ideaRegistry,
     } = await deploySystem();
 
-    await ideaRegistry.connect(user1).createIdea("Idea", "Desc", "", 1n);
-    await usdc.mint(user1.address, 200n);
-    await usdc
-      .connect(user1)
-      .approve(await fundingPool.getAddress(), 200n);
-
-    const VOTING_ROLE = await roles.VOTING_ROLE();
-    const DISTRIBUTOR_ROLE = await roles.DISTRIBUTOR_ROLE();
-    await roles.grantSystemRole(VOTING_ROLE, admin.address);
-    await roles.grantSystemRole(DISTRIBUTOR_ROLE, admin.address);
-
+    await ideaRegistry.connect(user1).createFundingProposal("Idea", "Desc", "", 1n, 1n);
     await fundingPool.connect(admin).unpause();
-    await fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 200n);
-    await fundingPool.connect(admin).moveIdeaFundsToReserve(1, 1, 50n);
-    await fundingPool.connect(admin).distributeFunds(1, 1, 150n);
+    const IREGISTRY_ROLE = await roles.IREGISTRY_ROLE();
+    await roles.grantSystemRole(IREGISTRY_ROLE, admin.address);
+    await fundingPool.connect(admin).slashAuthorStakeToReserve(1);
 
-    expect(await fundingPool.protocolReserve()).to.equal(50n);
+    expect(await fundingPool.protocolReserve()).to.equal(1n);
 
-    await fundingPool.allocateReserveToIdea(2, 2, 50n);
-    expect(await fundingPool.poolByRoundAndIdea(2, 2)).to.equal(50n);
+    await fundingPool.allocateReserveToIdea(2, 2, 1n);
+    expect(await fundingPool.poolByRoundAndIdea(2, 2)).to.equal(1n);
   });
 
   /** @notice it: enforces admin-only functions */
@@ -445,8 +442,8 @@ describe("FundingPoolUpgradeable extra coverage", function () {
     ).to.be.revertedWithCustomError(fundingPool, "NotAdmin");
   });
 
-  /** @notice it: rejects depositForIdeaFrom when paused */
-  it("rejects depositForIdeaFrom when paused", async function () {
+  /** @notice it: rejects recordPledgeFrom when paused */
+  it("rejects recordPledgeFrom when paused", async function () {
     const { admin, user1, roles, fundingPool, usdc } =
       await deploySystem();
 
@@ -457,9 +454,10 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
     const VOTING_ROLE = await roles.VOTING_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
+    await fundingPool.connect(admin).openFundingRound(1n);
 
     await expect(
-      fundingPool.connect(admin).depositForIdeaFrom(user1.address, 1, 1, 10n)
+      fundingPool.connect(admin).recordPledgeFrom(user1.address, 1, 1, 10n)
     ).to.be.revertedWithCustomError(fundingPool, "EnforcedPause");
   });
 
@@ -479,6 +477,7 @@ describe("FundingPoolUpgradeable extra coverage", function () {
     const VOTING_ROLE = await roles.VOTING_ROLE();
     const DISTRIBUTOR_ROLE = await roles.DISTRIBUTOR_ROLE();
     await roles.grantSystemRole(VOTING_ROLE, admin.address);
+    await fundingPool.connect(admin).openFundingRound(1n);
     await roles.grantSystemRole(DISTRIBUTOR_ROLE, admin.address);
 
     await fundingPool.connect(admin).unpause();
@@ -490,7 +489,7 @@ describe("FundingPoolUpgradeable extra coverage", function () {
 
     await fundingPool
       .connect(admin)
-      .depositForIdeaFrom(admin.address, 1, 1, 200n);
+      .recordPledgeFrom(admin.address, 1, 1, 200n);
 
     await expect(
       fundingPool.connect(admin).distributeFunds(1, 1, 100n)

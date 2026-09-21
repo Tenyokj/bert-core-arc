@@ -26,6 +26,8 @@ BERT aims to preserve the following properties:
 - capital cannot be released twice
 - author stake cannot bypass configured intake rules
 - reserve accounting remains separate from live distributable balances
+- a losing pledge cannot be redirected to an unrelated winning proposal
+- a round fee cannot become reserve revenue before a winning author starts the grant
 - elevated user roles cannot be self-assigned by arbitrary wallets
 - upgrades cannot silently corrupt storage or break dependency wiring
 
@@ -68,10 +70,10 @@ Curators and reviewers are not arbitrary users; they are earned-role or admin-gr
 
 1. role registry and cross-contract authorization
 2. upgrade and dependency rewiring operations
-3. author stake intake and slashing logic
-4. per-round and per-idea treasury accounting
+3. author bond intake and slashing logic
+4. per-round pledge, refund, and fee-escrow accounting
 5. milestone proof approval and rejection flow
-6. reserve allocation and distribution logic
+6. reserve allocation, fee finalization, and distribution logic
 7. admin-owned configuration parameters
 
 ## Access Control Risks
@@ -112,8 +114,9 @@ If granted too broadly or without monitoring, these can allow:
 ### Capital Separation Risk
 BERT distinguishes:
 - direct treasury deposits
-- author submission stake
-- round and idea vote capital
+- author submission bonds
+- round and idea pledge capital
+- pending successful-round fee escrow
 - protocol reserve
 - released grant payouts
 
@@ -123,14 +126,16 @@ Any bug or misconfiguration that merges these buckets incorrectly can distort:
 - slashing behavior
 - donor pool visibility
 
-### Double Distribution Risk
+### Pledge Redirection and Double Distribution Risk
 Grant manager payout flags and funding pool distribution state must prevent:
 - repeated initial grant claim
 - repeated milestone payout
 - repeated reserve allocation for the same intended effect
+- a losing pledge becoming grant capital for an idea the pledger did not select
+- a cancelled winner's pending fee remaining in reserve
 
 ### Reserve Misuse Risk
-`protocolReserve` is intentionally separate from live round balances. Admin or code errors that treat reserve like ordinary distributable liquidity can violate treasury expectations.
+`protocolReserve` is intentionally separate from live round balances and refundable pledge liabilities. Admin or code errors that treat reserve like ordinary distributable liquidity can violate treasury expectations.
 
 ### Accounting Drift Risk
 Internal accounting and actual token balances can drift if:
@@ -151,20 +156,23 @@ Rounds are built from the global idea sequence using `lastUsedIdeaId`. Bugs here
 - skip ideas
 - create malformed rounds
 
-### Vote Commitment Risk
+### Pledge and Viability Risk
 Voting is capital-backed. Risks include:
 - wrong minimum stake configuration
 - disabled or weak verified-human gating
 - weak single-vote cap tuning
 - wrong USDC token address
-- faulty accounting for `depositForIdeaFrom`
+- faulty accounting for `recordPledgeFrom`
 - duplicate or misattributed idea membership
+- a funding target or fee policy that makes ordinary proposals systematically non-viable
 
 ### Outcome Propagation Risk
 When a round ends, the protocol updates:
 - winning and losing idea status
 - reputation changes
 - winning vote registration
+
+It also settles escrow policy: losing pledges become refundable, a no-winner round refunds all pledges, and a viable winner's fee stays pending until author claim. Any inconsistency between these outcome and accounting paths is security-relevant.
 
 This is a multi-side-effect step. Partial failure handling and dependency correctness matter because a broken outcome propagation can create inconsistent social or lifecycle state even if the round result itself is known.
 
@@ -179,7 +187,7 @@ Curators can mark ideas as low quality. This introduces:
 - coordination risk if user role thresholds are too easy to satisfy
 
 ### Slashing Risk
-Rejected ideas can have their author stake moved into reserve. Incorrect status checks or wrong registry-to-pool wiring can cause:
+Rejected ideas can have their author bond moved into reserve. Incorrect status checks or wrong registry-to-pool wiring can cause:
 - unslashed rejected stake
 - slash attempts on non-rejected ideas
 - reserve inflation or accounting mismatch
@@ -235,13 +243,15 @@ Critical parameters include:
 - `VOTING_DURATION`
 - `minStake`
 - `authorMinStake`
-- `authorSharePercent`
+- proposal-level `minimumNetFunding`
+- `pledgeFeeBps`
 
 Configuration mistakes can cause:
 - impossible round creation
 - spammy or economically weak voting
 - excessive author friction
-- unfair or unintended payout split
+- proposals that cannot become viable
+- unfair or unintended fee/refund behavior
 
 Security posture is not only contract correctness. It also depends on operator discipline around parameter changes.
 
@@ -255,6 +265,7 @@ Recommended controls:
 - monitor pause status for `FundingPoolUpgradeable`, `VotingSystemUpgradeable`, and `GrantManagerUpgradeable`
 - monitor role change events in `RolesRegistryUpgradeable`
 - monitor large treasury inflows and outflows
+- monitor unclaimed-grant, expired-grant, and pledge-refund events
 - rehearse every upgrade on localhost and Sepolia before live execution
 
 ## Incident Response Checklist

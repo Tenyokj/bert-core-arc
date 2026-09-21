@@ -121,13 +121,6 @@ interface IGrantManager {
     event IdeaRegistryUpdated(address newIdeaRegistry);
 
     /**
-     * @notice Emitted when author share percentage is updated
-     * @param authorSharePercent New author share in basis points
-     * @param protocolSharePercent New protocol share in basis points (100 - authorSharePercent)
-     */
-    event FeeUpdated(uint256 authorSharePercent, uint256 protocolSharePercent);
-
-    /**
      * @notice Emitted when a milestone proof request is submitted
      * @param roundId Round identifier
      * @param ideaId Winning idea ID
@@ -183,6 +176,16 @@ interface IGrantManager {
         uint256 requestId
     );
 
+    event UnclaimedGrantExpired(uint256 indexed roundId, uint256 indexed ideaId, uint256 deadline);
+    event MilestoneReviewExpired(
+        uint256 indexed roundId,
+        uint256 indexed ideaId,
+        uint8 indexed stage,
+        uint256 requestId,
+        uint256 deadline
+    );
+    event GrantCancelled(uint256 indexed roundId, uint256 indexed ideaId, uint256 deadline);
+
     /* ========== EXTERNAL FUNCTIONS ========== */
 
     /**
@@ -191,6 +194,12 @@ interface IGrantManager {
      * @param roundId The ID of the funding round
      */
     function claimGrant(uint256 roundId) external;
+
+    function expireUnclaimedGrant(uint256 roundId) external;
+
+    function expireMilestoneReview(uint256 roundId, uint8 stage) external;
+
+    function cancelExpiredGrant(uint256 roundId) external;
 
     /**
      * @notice Submits proof for the next eligible milestone payout stage
@@ -221,21 +230,17 @@ interface IGrantManager {
     /* ========== VIEW FUNCTIONS ========== */
 
     /**
-     * @notice Calculates the distribution amounts for a given round and idea
-     * @dev Helper function to preview distribution without executing it
-     * @param roundId The ID of the funding round
-     * @param ideaId The ID of the idea (should be the winning idea)
-     * @return authorAmount Amount that would go to the author
-     * @return protocolAmount Amount that would be kept by the protocol
-     * @return totalAmount Total amount available for the idea in this round
+     * @notice Previews the 30/40/30 milestone schedule for a winning pledge.
+     * @dev The round fee is isolated from grant escrow and is excluded from this view.
      */
-    function calculateDistribution(uint256 roundId, uint256 ideaId) 
-        external 
-        view 
+    function previewGrant(uint256 roundId, uint256 ideaId)
+        external
+        view
         returns (
-            uint256 authorAmount,
-            uint256 protocolAmount,
-            uint256 totalAmount
+            uint256 totalGrant,
+            uint256 initialPayout,
+            uint256 inProcessPayout,
+            uint256 completionPayout
         );
 
     /**
@@ -270,13 +275,6 @@ interface IGrantManager {
         );
 
     /**
-     * @notice Gets the current protocol fee share
-     * @dev Protocol share is calculated as 100% - authorSharePercent
-     * @return uint256 Protocol share in basis points
-     */
-    function getProtocolShare() external view returns (uint256);
-
-    /**
      * @notice Returns payout tracking information for a round
      */
     function getGrantPayout(uint256 roundId)
@@ -289,7 +287,10 @@ interface IGrantManager {
             uint256 released,
             bool initialClaimed,
             bool inProcessPaid,
-            bool completionPaid
+            bool completionPaid,
+            uint256 initialClaimedAt,
+            uint256 inProcessPaidAt,
+            bool cancelled
         );
 
     /**
@@ -334,10 +335,4 @@ interface IGrantManager {
      */
     function setVotingSystem(address _newVoting) external;
 
-    /**
-     * @notice Updates the author's share percentage
-     * @dev Can only be called by the contract owner. Share is in basis points (95 = 95%)
-     * @param newShareBps New author share in basis points (must be ≤ 100)
-     */
-    function setAuthorShare(uint256 newShareBps) external;
 }

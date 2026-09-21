@@ -98,7 +98,7 @@ import "../utils/Errors.sol";
  * @dev Handles USDC-committed voting, round management, and winner determination
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.0.1
+ * @custom:version 1.2.0
  */
 contract VotingSystemUpgradeable is 
     Initializable, 
@@ -284,17 +284,21 @@ contract VotingSystemUpgradeable is
    /* ========== EXTERNAL FUNCTIONS ========== */
 
     /**
-     * @notice Starts a new voting round (anyone can call)
-     * @dev Sets up round parameters, validates included ideas, and updates their status
+     * @notice Starts the next stake-backed funding round (anyone can call).
+     * @dev Selects exactly `IDEAS_PER_ROUND` pending funding proposals from the queue.
      * @custom:emits VotingRoundStarted
      * @custom:requires Enough new ideas must be available (≥ IDEAS_PER_ROUND)
      * @custom:reentrancy protected
      */
-    function startVotingRound() 
+    function startFundingRound()
         external 
         nonReentrant  
         whenNotPaused 
     {
+        if (currentRoundId > 1 && votingRounds[currentRoundId - 1].active) {
+            revert ActiveFundingRound(currentRoundId - 1);
+        }
+
         uint256 totalIdeas = ideaRegistry.totalIdeas();
         uint256 availableIdeas = totalIdeas - lastUsedIdeaId;
         
@@ -320,26 +324,22 @@ contract VotingSystemUpgradeable is
         // Add ideas to round
         for (uint256 i = 0; i < ideaIds.length; i++) {
             uint256 ideaId = ideaIds[i];
-            if (ideaId == 0) {
-                revert InvalidId("ideaId");
+            if (ideaId == 0) revert InvalidId("ideaId");
+            if (!ideaRegistry.isFundingProposal(ideaId)) {
+                revert InvalidMinimumFunding(ideaId, 0);
             }
-            
             IdeaStatus status = ideaRegistry.getStatus(ideaId);
-            if (status != IdeaStatus.Pending) {
-                revert IdeaNotPending(ideaId, uint8(status));
-            }
-            
-            if (r.isIdeaInRound[ideaId]) {
-                revert DuplicateIdea(newId, ideaId);
-            }
+            if (status != IdeaStatus.Pending) revert IdeaNotPending(ideaId, uint8(status));
+            if (r.isIdeaInRound[ideaId]) revert DuplicateIdea(newId, ideaId);
 
             r.ideaIds.push(ideaId);
             r.isIdeaInRound[ideaId] = true;
         }
 
-        // Update counters before cross-contract status propagation.
+        // Update counters before external calls, then lock this round's fee.
         lastUsedIdeaId += IDEAS_PER_ROUND;
         currentRoundId++;
+        fundingPool.openFundingRound(newId);
 
         // Update idea statuses to Voting (status 1)
         for (uint256 j = 0; j < r.ideaIds.length; j++) {
@@ -432,11 +432,10 @@ contract VotingSystemUpgradeable is
         r.hasVoted[msg.sender] = true;
         r.votersForIdea[ideaId].push(msg.sender);
 
-        // Deposit committed USDC through the funding pool.
-        try fundingPool.depositForIdeaFrom(msg.sender, roundId, ideaId, amount) {
+        try fundingPool.recordPledgeFrom(msg.sender, roundId, ideaId, amount) {
             // Success - continue
         } catch {
-            revert ExternalCallFailed("FundingPool", "depositForIdeaFrom");
+            revert ExternalCallFailed("FundingPool", "recordPledgeFrom");
         }
 
         // Register vote in idea registry
@@ -471,14 +470,16 @@ contract VotingSystemUpgradeable is
             revert RoundNotActive(roundId);
         }
 
-        // Find idea with highest votes
+        // Select the highest-supported proposal that is viable after the locked fee.
         uint256 highestVotes = 0;
         winningIdeaId = 0;
 
         for (uint256 i = 0; i < r.ideaIds.length; i++) {
             uint256 id = r.ideaIds[i];
             uint256 votes = r.ideaVotes[id];
-            if (votes > highestVotes) {
+            uint256 netFunding = fundingPool.previewRoundNetFunding(roundId, votes);
+            bool isEligible = votes != 0 && netFunding >= ideaRegistry.minimumNetFundingByIdea(id);
+            if (isEligible && votes > highestVotes) {
                 highestVotes = votes;
                 winningIdeaId = id;
             }
@@ -488,11 +489,14 @@ contract VotingSystemUpgradeable is
         if (highestVotes == 0) {
             r.ended = true;
             r.active = false;
+            lastRoundEnd = block.timestamp;
 
             for (uint256 i = 0; i < r.ideaIds.length; i++) {
                 uint256 id = r.ideaIds[i];
                 ideaRegistry.updateStatus(id, IdeaStatus.Rejected); // Status.Rejected
             }
+
+            _settleFundingRound(roundId, 0);
 
             emit VotingRoundEnded(roundId, 0, 0);
             return 0;
@@ -501,6 +505,7 @@ contract VotingSystemUpgradeable is
         // Update round state
         r.active = false;
         r.ended = true;
+        lastRoundEnd = block.timestamp;
         r.winningIdeaId = winningIdeaId;
         r.winningVotes = highestVotes;
 
@@ -526,6 +531,8 @@ contract VotingSystemUpgradeable is
             }
         }
 
+        _settleFundingRound(roundId, winningIdeaId);
+
         // Register winning votes for voter progression
         address[] memory voters = r.votersForIdea[winningIdeaId];
         if (voters.length > 0) {
@@ -539,6 +546,17 @@ contract VotingSystemUpgradeable is
         }
 
         emit VotingRoundEnded(roundId, winningIdeaId, highestVotes);
+    }
+
+    /**
+     * @dev Normalizes FundingPool settlement failures for both winner and no-winner paths.
+     */
+    function _settleFundingRound(uint256 roundId, uint256 winningIdeaId) internal {
+        try fundingPool.settleFundingRound(roundId, winningIdeaId) {
+            // success
+        } catch {
+            revert ExternalCallFailed("FundingPool", "settleFundingRound");
+        }
     }
 
     /* ========== VIEW FUNCTIONS ========== */
@@ -771,6 +789,9 @@ contract VotingSystemUpgradeable is
      * @custom:requires Only admin can call
      */
     function setVotingDuration(uint256 _duration) external onlyAdmin {
+        if (_duration < 1 days) {
+            revert InvalidParameter("duration", "below 1 day");
+        }
         VOTING_DURATION = _duration;
         emit VotingDurationUpdated(_duration);
     }
@@ -835,6 +856,12 @@ contract VotingSystemUpgradeable is
      * @custom:requires Only admin can call
      */
     function setIdeaPerRound(uint256 quantity) external onlyAdmin {
+        if (quantity < 5) {
+            revert InvalidParameter("ideasPerRound", "below 5");
+        }
+        if (quantity > 50) {
+            revert InvalidParameter("ideasPerRound", "above 50");
+        }
         IDEAS_PER_ROUND = quantity;
         emit IdeasPerRoundUpdated(quantity);
     }

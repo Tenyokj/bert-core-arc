@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "hardhat test",
     "te": "hardhat test",
     "compile": "hardhat compile",
     "mint:local-v3-usdc": "hardhat run scripts/local/mint-v3-test-usdc.ts --network localhost"

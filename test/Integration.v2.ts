@@ -31,7 +31,7 @@ describe("DAO Grant System Integration (v2)", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
     await usdc.mint(user2.address, minStake * 2n);

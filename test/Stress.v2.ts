@@ -29,7 +29,7 @@ describe("DAO Grant System stress", function () {
 
     const now = await networkHelpers.time.latest();
     await networkHelpers.time.increaseTo(now + 700);
-    await votingSystem.startVotingRound();
+    await votingSystem.startFundingRound();
 
     const minStake = await votingSystem.minStake();
 

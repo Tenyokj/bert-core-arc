@@ -5,6 +5,7 @@
 2. `scripts/deploy/deploy-pop-verifier.ts` - deploy only PoPVerifier proxy
 3. `scripts/deploy/configure-voting-pop.ts` - bind VotingSystem to PoPVerifier and set caps
 4. `scripts/deploy/upgrade-proxy.ts` - upgrade a single proxy
+5. `scripts/deploy/preflight-v2-conditional-pledges.ts` - read-only snapshot before the V2.1 conditional-pledge upgrade
 5. `scripts/deploy/verify-deploy.ts` - post-deploy checks (roles, pause status, params)
 6. `scripts/deploy/deploy-v3.ts` - deploy BERT V3 Community Layer infrastructure
 7. `scripts/deploy/configure-v3-funding-pool.ts` - connect an upgraded FundingPool to V3 Factory

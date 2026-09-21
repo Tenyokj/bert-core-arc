@@ -149,6 +149,17 @@ Immediately after upgrade, validate:
 - critical parameters still match expected values
 - key view functions return sane values
 
+For V2.1, run the repository's read-only validator before unpausing:
+
+```bash
+npx hardhat run scripts/deploy/verify-v2-conditional-pledges.ts --network arcTestnet
+```
+
+It checks that all four proxy implementations are reachable through their existing proxies,
+that the new migration state was initialized, that the fee is bounded, that module wiring still
+matches the expected proxy addresses, and that the treasury snapshot is readable. It does not
+send a transaction.
+
 If the upgrade touches voting access policy, also validate:
 - `humanOnlyVoting`
 - `humanVerifier`

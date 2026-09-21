@@ -1,7 +1,7 @@
 /**
  * @file set-v2-ideas-per-round.ts
  * @notice Updates the V2 round size through the protocol-admin role.
- * @dev The V2.1 contract enforces the inclusive range 5..50. This script sends one transaction.
+ * @dev The BERT V2.2 contract enforces the inclusive range 5..50. This script sends one transaction.
  *
  * Run with:
  *   V2_IDEAS_PER_ROUND=5 npx hardhat run scripts/deploy/set-v2-ideas-per-round.ts --network arcTestnet

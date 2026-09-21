@@ -5,11 +5,11 @@
 2. `scripts/deploy/deploy-pop-verifier.ts` - deploy only PoPVerifier proxy
 3. `scripts/deploy/configure-voting-pop.ts` - bind VotingSystem to PoPVerifier and set caps
 4. `scripts/deploy/upgrade-proxy.ts` - upgrade a single proxy
-5. `scripts/deploy/preflight-v2-conditional-pledges.ts` - read-only snapshot before the V2.1 conditional-pledge upgrade
+5. `scripts/deploy/preflight-v2-conditional-pledges.ts` - read-only snapshot before the BERT V2.2 conditional-pledge upgrade
 6. `scripts/deploy/verify-v2-conditional-pledges.ts` - read-only post-upgrade validation before V2 is unpaused
-7. `scripts/deploy/initialize-v2-conditional-pledges.ts` - executes the two V2.1 direct protocol-admin initializers
+7. `scripts/deploy/initialize-v2-conditional-pledges.ts` - executes the two BERT V2.2 direct protocol-admin initializers
 8. `scripts/deploy/set-v2-maintenance-state.ts` - pauses or unpauses FundingPool, VotingSystem, and GrantManager
-9. `scripts/deploy/configure-legacy-funding-proposal.ts` - lets a legacy proposal author set its V2.1 minimum net target
+9. `scripts/deploy/configure-legacy-funding-proposal.ts` - lets a legacy proposal author set its BERT V2.2 minimum net target
 10. `scripts/deploy/set-v2-ideas-per-round.ts` - updates V2 round size within the guarded 5..50 range
 11. `scripts/deploy/verify-deploy.ts` - post-deploy checks (roles, pause status, params)
 12. `scripts/deploy/deploy-v3.ts` - deploy BERT V3 Community Layer infrastructure

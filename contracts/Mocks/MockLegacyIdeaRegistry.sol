@@ -6,7 +6,7 @@ import "../BERT/DAO/IdeaRegistryUpgradeable.sol";
 /**
  * @notice Test-only legacy implementation that creates proposals before funding targets existed.
  * @dev It shares the production registry storage layout and intentionally leaves
- *      `minimumNetFundingByIdea` empty, modelling the pre-V2.1 proxy state.
+ *      `minimumNetFundingByIdea` empty, modelling the pre-BERT-V2.2 proxy state.
  */
 contract MockLegacyIdeaRegistry is IdeaRegistryUpgradeable {
     function createLegacyProposal(

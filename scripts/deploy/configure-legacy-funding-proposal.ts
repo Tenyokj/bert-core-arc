@@ -1,6 +1,6 @@
 /**
  * @file configure-legacy-funding-proposal.ts
- * @notice Lets a legacy proposal author opt its own pending idea into BERT V2.1.
+ * @notice Lets a legacy proposal author opt its own pending idea into BERT V2.2.
  * @dev The signer must be that idea's original author. This script sends one transaction.
  *
  * Run with:

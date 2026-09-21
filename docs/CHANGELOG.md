@@ -2,10 +2,10 @@
 
 This changelog tracks protocol-level evolution, not just developer notes. Each entry should describe what changed, why it changed, and what operators or integrators should care about.
 
-## v1.2.0
+## v1.2.0 / BERT V2.2
 
 ### Summary
-Replaced V2's pooled winner funding semantics with conditional, stake-backed grant selection. A voter's USDC pledge now remains economically attributable to the selected idea and is refundable when that idea does not receive a live grant.
+Released BERT V2.2, replacing V2's pooled winner funding semantics with conditional, stake-backed grant selection. A voter's USDC pledge now remains economically attributable to the selected idea and is refundable when that idea does not receive a live grant. The Solidity implementation version is `1.2.0`; the public protocol release is BERT V2.2.
 
 ### Modules Touched
 - `IdeaRegistryUpgradeable`
@@ -43,7 +43,7 @@ Replaced V2's pooled winner funding semantics with conditional, stake-backed gra
 - Existing storage was preserved. New V2 state was appended and existing `authorSharePercent` was not removed or repurposed.
 - Any proxy upgrade must validate storage layout, role wiring, and the full create -> round -> pledge -> settle -> claim/refund path before unpausing.
 
-## v1.1.1
+## v1.1.1 / BERT V2.1
 
 ### Summary
 Introduced verified-human-gated voting with a per-wallet vote cap and shipped a corrective voting upgrade to preserve storage safety.

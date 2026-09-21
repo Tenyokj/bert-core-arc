@@ -64,6 +64,7 @@ async function main() {
 
   const [
     firstConditionalFundingIdeaId,
+    totalIdeas,
     pledgeFeeBps,
     totalPoolBalance,
     protocolReserve,
@@ -78,8 +79,13 @@ async function main() {
     fundingPaused,
     votingPaused,
     grantPaused,
+    votingHumanOnly,
+    votingHumanVerifier,
+    registryHumanOnly,
+    registryHumanVerifier,
   ] = await Promise.all([
     idea.firstConditionalFundingIdeaId(),
+    idea.totalIdeas(),
     funding.pledgeFeeBps(),
     funding.totalPoolBalance(),
     funding.protocolReserve(),
@@ -94,6 +100,10 @@ async function main() {
     funding.isPaused(),
     voting.isPaused(),
     grant.isPaused(),
+    voting.humanOnlyVoting(),
+    voting.humanVerifier(),
+    idea.humanOnlyIdeaCreation(),
+    idea.humanVerifier(),
   ]);
 
   assertAddress("FundingPool.ideaRegistry", fundingIdeaRegistry, addresses.idea);
@@ -121,6 +131,15 @@ async function main() {
   console.log("\nConditional-pledge configuration");
   console.log(`  Legacy/new idea boundary: ${firstConditionalFundingIdeaId}`);
   console.log(`  Pledge fee:               ${pledgeFeeBps} bps`);
+  if (firstConditionalFundingIdeaId > 1n) {
+    console.log("  Legacy targets:");
+    const legacyLastId = firstConditionalFundingIdeaId - 1n;
+    for (let ideaId = 1n; ideaId <= legacyLastId; ideaId += 1n) {
+      const target = await idea.minimumNetFundingByIdea(ideaId);
+      console.log(`    #${ideaId}: ${target}`);
+    }
+  }
+  console.log(`  Total ideas:              ${totalIdeas}`);
   console.log("\nTreasury snapshot");
   console.log(`  FundingPool USDC:         ${usdcBalance}`);
   console.log(`  totalPoolBalance:         ${totalPoolBalance}`);
@@ -129,6 +148,11 @@ async function main() {
   console.log(`  FundingPool paused:       ${fundingPaused}`);
   console.log(`  VotingSystem paused:      ${votingPaused}`);
   console.log(`  GrantManager paused:      ${grantPaused}`);
+  console.log("\nHuman-verification gates");
+  console.log(`  Voting requires human:    ${votingHumanOnly}`);
+  console.log(`  Voting verifier:          ${votingHumanVerifier}`);
+  console.log(`  Ideas require human:      ${registryHumanOnly}`);
+  console.log(`  Idea verifier:            ${registryHumanVerifier}`);
   console.log("\nPostflight passed. Review the printed values before unpausing V2.");
 }
 

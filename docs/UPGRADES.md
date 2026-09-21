@@ -58,8 +58,8 @@ Specific lesson from the v1.2.0 conditional-pledge upgrade:
 - preserve legacy slots even when their economic meaning is retired; `GrantManagerUpgradeable.authorSharePercent` remains reserved and is not reused
 - append pledge, fee escrow, settlement, and refund state after existing funding-pool storage
 - rehearse both successful and refund outcomes, not only the happy-path grant claim
-- use `initializeConditionalPledges(500)` through the FundingPool upgrade call; proxy initializers never run a second time
-- use `initializeConditionalPledgeMigration()` through the IdeaRegistry upgrade call; legacy idea authors must explicitly set their own `minimumNetFunding` with `configureLegacyFundingProposal`
+- after the proxy upgrades, call `initializeConditionalPledges(500)` directly from the protocol admin; proxy initializers never run a second time
+- after the proxy upgrades, call `initializeConditionalPledgeMigration()` directly from the protocol admin; legacy idea authors must explicitly set their own `minimumNetFunding` with `configureLegacyFundingProposal`
 - never infer a legacy target or silently repurpose its author bond; the pre-upgrade proposal remains the author's property until it opts into the new model
 - the legacy round queue remains ordered by idea ID. Every queued legacy idea must be configured or intentionally retired before the first V2.1 round; an unconfigured ID at the front of the queue causes `startFundingRound()` to revert rather than silently skipping an author’s proposal
 
@@ -133,11 +133,13 @@ Recommended practice:
 - never rely only on deployment memory
 - always use a written checklist
 
-For BERT V2.1 conditional pledges, upgrade the FundingPool with the call
-`initializeConditionalPledges(500)` and the IdeaRegistry with
-`initializeConditionalPledgeMigration()`. VotingSystem and GrantManager do not
-need an initializer call for this release, but all four proxies must be upgraded
-as one coordinated release.
+For BERT V2.1 conditional pledges, upgrade all four proxies without a delegated
+initializer call. Then call `initializeConditionalPledges(500)` on FundingPool
+and `initializeConditionalPledgeMigration()` on IdeaRegistry directly from the
+protocol-admin wallet. `ProxyAdmin.upgradeAndCall` is intentionally not used for
+these `onlyAdmin` functions because its delegated caller is ProxyAdmin rather
+than the protocol admin. VotingSystem and GrantManager do not need an initializer
+call for this release, but all four proxies must be upgraded as one coordinated release.
 
 ## Post-Upgrade Validation
 

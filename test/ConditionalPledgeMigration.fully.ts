@@ -18,7 +18,7 @@ async function replaceImplementation(ethers: any, proxyAddress: string, implemen
   ]);
 }
 
-describe("BERT V2.1 conditional-pledge migration", function () {
+describe("BERT V2.2 conditional-pledge migration", function () {
   it("preserves the legacy pool and starts a round only after every queued legacy idea is configured", async function () {
     const system = await deploySystem();
     const { ethers, admin, user3, ideaRegistry, fundingPool, votingSystem } = system;
@@ -72,7 +72,7 @@ describe("BERT V2.1 conditional-pledge migration", function () {
     // the new safe minimum of five ideas per round.
     await migratedRegistry
       .connect(user3)
-      .createFundingProposal("First V2.1 proposal", "Conditional pledge proposal", "", legacyBond, 100n * unit);
+      .createFundingProposal("First V2.2 proposal", "Conditional pledge proposal", "", legacyBond, 100n * unit);
     await votingSystem.connect(admin).setIdeaPerRound(5);
     await votingSystem.connect(admin).unpause();
     await votingSystem.startFundingRound();

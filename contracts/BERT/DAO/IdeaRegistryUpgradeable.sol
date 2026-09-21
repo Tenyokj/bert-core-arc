@@ -243,7 +243,7 @@ contract IdeaRegistryUpgradeable is
     }
 
     /**
-     * @notice Establishes the legacy proposal boundary during the V2.1 proxy upgrade.
+     * @notice Establishes the legacy proposal boundary during the BERT V2.2 proxy upgrade.
      * @dev Existing metadata, author bonds, and statuses are preserved. This function only records
      *      which IDs require an explicit target before they can enter a conditional funding round.
      */

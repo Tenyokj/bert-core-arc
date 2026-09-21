@@ -61,7 +61,7 @@ Specific lesson from the v1.2.0 conditional-pledge upgrade:
 - after the proxy upgrades, call `initializeConditionalPledges(500)` directly from the protocol admin; proxy initializers never run a second time
 - after the proxy upgrades, call `initializeConditionalPledgeMigration()` directly from the protocol admin; legacy idea authors must explicitly set their own `minimumNetFunding` with `configureLegacyFundingProposal`
 - never infer a legacy target or silently repurpose its author bond; the pre-upgrade proposal remains the author's property until it opts into the new model
-- the legacy round queue remains ordered by idea ID. Every queued legacy idea must be configured or intentionally retired before the first V2.1 round; an unconfigured ID at the front of the queue causes `startFundingRound()` to revert rather than silently skipping an author’s proposal
+- the legacy round queue remains ordered by idea ID. Every queued legacy idea must be configured or intentionally retired before the first BERT V2.2 round; an unconfigured ID at the front of the queue causes `startVotingRound()` to revert rather than silently skipping an author’s proposal
 
 If a change breaks these rules, the upgrade can preserve admin control while silently corrupting live state.
 
@@ -113,7 +113,7 @@ For a conditional-pledge upgrade from a legacy V2 deployment, also record:
 
 Do not upgrade an active legacy round into the conditional-pledge implementation. Resolve it first with the legacy implementation. A legacy queue may be preserved by having each author configure a minimum net target after upgrade; it must not be automatically treated as a conditional pledge round.
 
-For the live Arc Testnet snapshot taken on September 21, 2026, IDs `1` through `4` are pending legacy proposals. The first V2.1 round therefore needs all four authors to configure their targets and at least one additional V2.1 proposal, because the guarded minimum for `IDEAS_PER_ROUND` is five. Do not lower the minimum below five merely to bypass this migration requirement.
+For the live Arc Testnet snapshot taken on September 21, 2026, IDs `1` through `4` are pending legacy proposals and their targets are configured. The live policy keeps `IDEAS_PER_ROUND` at `30`; the first BERT V2.2 round therefore needs 26 additional BERT V2.2 proposals. The contract permits a guarded 5..50 range, but operators must not lower the round size merely to bypass this migration readiness requirement.
 
 ## Upgrade Procedure
 
@@ -133,7 +133,7 @@ Recommended practice:
 - never rely only on deployment memory
 - always use a written checklist
 
-For BERT V2.1 conditional pledges, upgrade all four proxies without a delegated
+For BERT V2.2 conditional pledges, upgrade all four proxies without a delegated
 initializer call. Then call `initializeConditionalPledges(500)` on FundingPool
 and `initializeConditionalPledgeMigration()` on IdeaRegistry directly from the
 protocol-admin wallet. `ProxyAdmin.upgradeAndCall` is intentionally not used for
@@ -151,7 +151,7 @@ Immediately after upgrade, validate:
 - critical parameters still match expected values
 - key view functions return sane values
 
-For V2.1, run the repository's read-only validator before unpausing:
+For BERT V2.2, run the repository's read-only validator before unpausing:
 
 ```bash
 npx hardhat run scripts/deploy/verify-v2-conditional-pledges.ts --network arcTestnet

@@ -1,6 +1,6 @@
 /**
  * @file verify-v2-conditional-pledges.ts
- * @notice Read-only validation after the BERT V2.1 conditional-pledge upgrade.
+ * @notice Read-only validation after the BERT V2.2 conditional-pledge upgrade.
  * @dev Run this before unpausing V2. It never sends a transaction.
  *
  * Run with:
@@ -121,7 +121,7 @@ async function main() {
     throw new Error(`Unsafe pledge fee: ${pledgeFeeBps} bps`);
   }
 
-  console.log("BERT V2.1 conditional-pledge postflight (read-only)");
+  console.log("BERT V2.2 conditional-pledge postflight (read-only)");
   console.log(`Network: ${network.name} (${network.chainId})`);
   console.log("\nImplementations");
   console.log(`  IdeaRegistry: ${implementationFromSlot(ethers, ideaSlot)}`);

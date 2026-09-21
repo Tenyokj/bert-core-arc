@@ -1,6 +1,6 @@
 /**
  * @file initialize-v2-conditional-pledges.ts
- * @notice Executes the two V2.1 migration initializers after their proxies are upgraded.
+ * @notice Executes the two BERT V2.2 migration initializers after their proxies are upgraded.
  * @dev Must be run by a BERT protocol admin, while V2 remains paused.
  *
  * Transparent Proxy note: do not use ProxyAdmin.upgradeAndCall for these functions.
@@ -41,7 +41,7 @@ async function main() {
     ethers.getContractAt("IdeaRegistryUpgradeable", ideaAddress, admin),
   ]);
 
-  console.log("BERT V2.1 migration initializer");
+  console.log("BERT V2.2 migration initializer");
   console.log(`Network: ${network.name} (${network.chainId})`);
   console.log(`Protocol admin signer: ${admin.address}`);
   console.log(`Configured pledge fee: ${feeBps} bps`);

@@ -1,6 +1,6 @@
 /**
  * @file preflight-v2-conditional-pledges.ts
- * @notice Read-only readiness check before the BERT V2.1 conditional-pledge proxy upgrade.
+ * @notice Read-only readiness check before the BERT V2.2 conditional-pledge proxy upgrade.
  * @dev It never sends a transaction. Its snapshot is the baseline for post-upgrade validation.
  *
  * Run with:
@@ -79,7 +79,7 @@ async function main() {
     if (!ethers.isAddress(value)) throw new Error(`${label} is not a valid address: ${value}`);
   }
 
-  console.log("BERT V2.1 conditional-pledge preflight (read-only)");
+  console.log("BERT V2.2 conditional-pledge preflight (read-only)");
   console.log(`Network: ${network.name} (${network.chainId})`);
 
   const [ideaProxy, fundingProxy, votingProxy, grantProxy] = await Promise.all([
@@ -163,7 +163,7 @@ async function main() {
     console.log(`  Total votes: ${totalVotes}`);
     console.log(`  Winner:      ${winner}`);
     if (active) {
-      console.log("\nBLOCKER: an active legacy round must be resolved before the V2.1 upgrade.");
+      console.log("\nBLOCKER: an active legacy round must be resolved before the BERT V2.2 upgrade.");
     }
   }
 

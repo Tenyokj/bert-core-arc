@@ -96,7 +96,7 @@ import "../utils/Errors.sol";
  * @dev Manages idea lifecycle, metadata, status transitions, and voting data
  * @dev Upgradeable
  * 
- * @custom:version 1.2.0
+ * @custom:version 1.3.0
  */
 contract IdeaRegistryUpgradeable is 
     Initializable,
@@ -205,6 +205,10 @@ contract IdeaRegistryUpgradeable is
     /// @dev IDs below this boundary are legacy proposals whose authors may opt in by setting a target.
     uint256 public firstConditionalFundingIdeaId;
 
+    /// @notice Immutable delivery-plan commitments required for V2.3 backer-governed grants.
+    mapping(uint256 => string) public fundingMilestonePlanURIByIdea;
+    mapping(uint256 => bytes32) public fundingMilestonePlanHashByIdea;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -290,6 +294,33 @@ contract IdeaRegistryUpgradeable is
 
         minimumNetFundingByIdea[ideaId] = minimumNetFunding;
         emit LegacyFundingProposalConfigured(ideaId, msg.sender, minimumNetFunding);
+    }
+
+    /**
+     * @notice Commits a proposal's V2.3 delivery plan while it is still pending.
+     * @dev The URI may point to an IPFS package containing both milestone criteria;
+     *      the hash makes the referenced package immutable from the protocol's view.
+     */
+    function commitFundingMilestonePlan(
+        uint256 ideaId,
+        string memory planURI,
+        bytes32 planHash
+    ) external {
+        if (ideaId == 0 || ideaId >= _ideaIdCounter) revert IdeaDoesNotExist(ideaId);
+        if (bytes(planURI).length == 0 || planHash == bytes32(0)) revert MilestonePlanMissing(ideaId);
+
+        Idea storage idea = ideas[ideaId];
+        if (idea.author != msg.sender) revert NotAuthor(msg.sender, idea.author);
+        if (idea.status != IdeaStatus.Pending || minimumNetFundingByIdea[ideaId] == 0) {
+            revert MilestonePlanMissing(ideaId);
+        }
+        if (fundingMilestonePlanHashByIdea[ideaId] != bytes32(0)) {
+            revert MilestonePlanMissing(ideaId);
+        }
+
+        fundingMilestonePlanURIByIdea[ideaId] = planURI;
+        fundingMilestonePlanHashByIdea[ideaId] = planHash;
+        emit FundingMilestonePlanCommitted(ideaId, msg.sender, planURI, planHash);
     }
 
     /* ========== INTERNAL FUNCTIONS ========== */
@@ -660,6 +691,11 @@ contract IdeaRegistryUpgradeable is
         return minimumNetFundingByIdea[ideaId] != 0;
     }
 
+    /** @notice Returns whether an idea has an immutable V2.3 milestone-plan commitment. */
+    function hasFundingMilestonePlan(uint256 ideaId) external view returns (bool) {
+        return fundingMilestonePlanHashByIdea[ideaId] != bytes32(0);
+    }
+
     /**
      * @notice Returns the total number of created ideas
      * @return Count of all ideas (counter - 1 since counter starts at 1)
@@ -776,5 +812,5 @@ contract IdeaRegistryUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[47] private __gap;
+    uint256[45] private __gap;
 }

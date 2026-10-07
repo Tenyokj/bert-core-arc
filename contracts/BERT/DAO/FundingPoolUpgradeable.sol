@@ -95,7 +95,7 @@ import "../utils/Errors.sol";
  * @dev Handles donor balances, fund safekeeping, and controlled distribution
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.2.0
+ * @custom:version 1.3.0
  */
 contract FundingPoolUpgradeable is 
     Initializable, 
@@ -191,6 +191,12 @@ contract FundingPoolUpgradeable is
     mapping(uint256 => uint256) public grantRefundPaidByRound;
     mapping(uint256 => uint256) public grantRefundClaimCountByRound;
     mapping(uint256 => mapping(uint256 => uint256)) private _pledgeCountByRoundAndIdea;
+
+    /// @notice V2.3 fee accounting. Fees vest only as the matching grant tranches are released.
+    mapping(uint256 => bool) public progressiveFundingRoundFeeStarted;
+    mapping(uint256 => uint256) public progressiveFeeReleasedByRound;
+    mapping(uint256 => uint256) public progressiveFeeTrancheBpsByRound;
+    mapping(uint256 => bool) public progressiveFeeRestoredForRefund;
 
     /* ========== INITIALIZE ========== */
 
@@ -402,7 +408,9 @@ contract FundingPoolUpgradeable is
         if (!fundingRoundSettled[roundId] || winner == 0 || fundingRoundCancelled[roundId]) {
             revert FundingRoundStateInvalid(roundId);
         }
-        if (fundingRoundFeeFinalized[roundId]) revert FundingRoundStateInvalid(roundId);
+        if (fundingRoundFeeFinalized[roundId] || progressiveFundingRoundFeeStarted[roundId]) {
+            revert FundingRoundStateInvalid(roundId);
+        }
 
         uint256 fee = pendingProtocolFeeByRound[roundId];
         pendingProtocolFeeByRound[roundId] = 0;
@@ -413,10 +421,71 @@ contract FundingPoolUpgradeable is
         emit FundingRoundFeeFinalized(roundId, fee);
     }
 
+    /**
+     * @notice Starts V2.3 progressive fee vesting after the winning author starts their grant.
+     * @dev The legacy `finalizeFundingRoundFee` path remains unchanged for V2.2 grants.
+     */
+    function beginProgressiveFundingRoundFee(uint256 roundId) external onlyDistributor nonReentrant {
+        uint256 winner = fundingRoundWinner[roundId];
+        if (!fundingRoundSettled[roundId] || winner == 0 || fundingRoundCancelled[roundId]) {
+            revert FundingRoundStateInvalid(roundId);
+        }
+        if (fundingRoundFeeFinalized[roundId] || progressiveFundingRoundFeeStarted[roundId]) {
+            revert FundingRoundStateInvalid(roundId);
+        }
+
+        progressiveFundingRoundFeeStarted[roundId] = true;
+        emit ProgressiveFundingRoundFeeStarted(roundId);
+    }
+
+    /**
+     * @notice Releases the earned portion of a V2.3 funding-round fee to protocol reserve.
+     * @dev `cumulativeTrancheBps` is monotonic. The caller supplies 2,000, 6,000, and
+     *      10,000 for the fixed 20/40/40 grant schedule.
+     */
+    function releaseProgressiveFundingRoundFee(
+        uint256 roundId,
+        uint256 cumulativeTrancheBps
+    ) external onlyDistributor nonReentrant {
+        if (
+            !progressiveFundingRoundFeeStarted[roundId] ||
+            progressiveFeeRestoredForRefund[roundId] ||
+            fundingRoundCancelled[roundId] ||
+            cumulativeTrancheBps > 10_000 ||
+            cumulativeTrancheBps <= progressiveFeeTrancheBpsByRound[roundId]
+        ) {
+            revert FundingRoundStateInvalid(roundId);
+        }
+
+        uint256 totalFee = pendingProtocolFeeByRound[roundId];
+        uint256 targetReleased = cumulativeTrancheBps == 10_000
+            ? totalFee
+            : (totalFee * cumulativeTrancheBps) / 10_000;
+        uint256 amount = targetReleased - progressiveFeeReleasedByRound[roundId];
+
+        progressiveFeeTrancheBpsByRound[roundId] = cumulativeTrancheBps;
+        progressiveFeeReleasedByRound[roundId] = targetReleased;
+        protocolReserve += amount;
+
+        if (cumulativeTrancheBps == 10_000) {
+            pendingProtocolFeeByRound[roundId] = 0;
+            fundingRoundFeeFinalized[roundId] = true;
+            emit FundingRoundFeeFinalized(roundId, amount);
+        }
+
+        emit IdeaFundsReserved(roundId, fundingRoundWinner[roundId], amount);
+        emit FundingRoundFeeReleased(roundId, amount, cumulativeTrancheBps);
+    }
+
     /** @notice Makes a never-claimed winning pledge fully refundable, including its pending fee. */
     function cancelUnclaimedFundingRound(uint256 roundId) external onlyDistributor nonReentrant {
         uint256 winner = fundingRoundWinner[roundId];
-        if (!fundingRoundSettled[roundId] || winner == 0 || fundingRoundFeeFinalized[roundId]) {
+        if (
+            !fundingRoundSettled[roundId] ||
+            winner == 0 ||
+            fundingRoundFeeFinalized[roundId] ||
+            progressiveFundingRoundFeeStarted[roundId]
+        ) {
             revert FundingRoundStateInvalid(roundId);
         }
         if (fundingRoundCancelled[roundId]) revert FundingRoundStateInvalid(roundId);
@@ -432,10 +501,24 @@ contract FundingPoolUpgradeable is
     /** @notice Opens proportional refunds for the unspent portion of an expired live grant. */
     function activateGrantRefund(uint256 roundId) external onlyDistributor nonReentrant {
         uint256 winner = fundingRoundWinner[roundId];
-        if (!fundingRoundFeeFinalized[roundId] || fundingRoundCancelled[roundId] || winner == 0) {
+        bool progressive = progressiveFundingRoundFeeStarted[roundId];
+        if (
+            fundingRoundCancelled[roundId] ||
+            winner == 0 ||
+            (!progressive && !fundingRoundFeeFinalized[roundId]) ||
+            (progressive && progressiveFeeRestoredForRefund[roundId])
+        ) {
             revert FundingRoundStateInvalid(roundId);
         }
         if (grantRefundActive[roundId]) revert FundingRoundStateInvalid(roundId);
+
+        if (progressive) {
+            uint256 unvestedFee = pendingProtocolFeeByRound[roundId] - progressiveFeeReleasedByRound[roundId];
+            pendingProtocolFeeByRound[roundId] = 0;
+            progressiveFeeRestoredForRefund[roundId] = true;
+            _poolByRoundAndIdea[roundId][winner] += unvestedFee;
+            emit UnvestedFundingRoundFeeRestored(roundId, unvestedFee);
+        }
 
         uint256 refundTotal = _poolByRoundAndIdea[roundId][winner];
         grantRefundActive[roundId] = true;
@@ -816,5 +899,5 @@ contract FundingPoolUpgradeable is
      * @custom:upgrade-safety Reserve slots after newly added variables when upgrading
      * @custom:warning Do not reorder existing storage variables in future versions
      */
-    uint256[33] private __gap;
+    uint256[29] private __gap;
 }

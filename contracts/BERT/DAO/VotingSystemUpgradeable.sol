@@ -98,7 +98,7 @@ import "../utils/Errors.sol";
  * @dev Handles USDC-committed voting, round management, and winner determination
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.2.0
+ * @custom:version 1.3.0
  */
 contract VotingSystemUpgradeable is 
     Initializable, 
@@ -121,17 +121,12 @@ contract VotingSystemUpgradeable is
     /// @notice VoterProgression contract interface
     IVoterProgression public voterProgression;
 
-    /* ========== CONSTANTS ========== */
-
-    /// @notice Maximum voters allowed per idea in a round (protects endVotingRound gas usage)
-    uint256 public constant MAX_VOTERS_PER_IDEA = 30;
-
     /* ========== STATE VARIABLES ========== */
 
     /// @notice Minimum quantity of ideas required to start a Voting Round
     uint256 public IDEAS_PER_ROUND;
 
-    /// @notice Default voting duration in seconds (1 day)
+    /// @notice Default voting duration in seconds (14 days)
     uint256 public VOTING_DURATION;
 
     /// @notice Timestamp when the last round ended
@@ -197,6 +192,22 @@ contract VotingSystemUpgradeable is
     /// @notice Maximum amount a single wallet can commit in one vote (0 disables the cap)
     /// @dev Declared after legacy voting storage to preserve upgrade compatibility
     uint256 public maxVoteAmount;
+
+    /// @notice Tracks whether a winning pledger has claimed progression for a round.
+    /// @dev Appended storage; progression is claimed individually to keep round settlement bounded.
+    mapping(uint256 => mapping(address => bool)) public winningParticipationClaimed;
+
+    /// @notice Whether future funding rounds should use the V2.3 backer-governed grant lifecycle.
+    /// @dev Existing rounds snapshot this setting in `backerMilestonesByRound` when they start.
+    bool public backerMilestonesEnabled;
+
+    /// @notice Immutable V2.3 lifecycle selection for each funding round.
+    mapping(uint256 => bool) public backerMilestonesByRound;
+
+    /// @notice Human verifier fixed when a V2.3 round starts.
+    /// @dev A later admin configuration change must not weaken an in-flight
+    ///      backer-governed round after pledges have begun.
+    mapping(uint256 => IHumanVerifier) public backerHumanVerifierByRound;
 
     /* ========== MODIFIERS ========== */
 
@@ -270,7 +281,7 @@ contract VotingSystemUpgradeable is
         
         // Initialization of values
         IDEAS_PER_ROUND = 30;
-        VOTING_DURATION = 1 days;
+        VOTING_DURATION = 14 days;
         currentRoundId = 1;
         minStake = 10 * 10**6;
         humanOnlyVoting = false;
@@ -299,6 +310,11 @@ contract VotingSystemUpgradeable is
             revert ActiveFundingRound(currentRoundId - 1);
         }
 
+        // Backer-governed milestones require a Sybil-resistant pledge cohort.
+        if (backerMilestonesEnabled && (!humanOnlyVoting || address(humanVerifier) == address(0))) {
+            revert HumanVerifierNotConfigured();
+        }
+
         uint256 totalIdeas = ideaRegistry.totalIdeas();
         uint256 availableIdeas = totalIdeas - lastUsedIdeaId;
         
@@ -320,6 +336,10 @@ contract VotingSystemUpgradeable is
         r.startTime = block.timestamp;
         r.endTime = block.timestamp + VOTING_DURATION;
         r.active = true;
+        backerMilestonesByRound[newId] = backerMilestonesEnabled;
+        if (backerMilestonesEnabled) {
+            backerHumanVerifierByRound[newId] = humanVerifier;
+        }
 
         // Add ideas to round
         for (uint256 i = 0; i < ideaIds.length; i++) {
@@ -327,6 +347,9 @@ contract VotingSystemUpgradeable is
             if (ideaId == 0) revert InvalidId("ideaId");
             if (!ideaRegistry.isFundingProposal(ideaId)) {
                 revert InvalidMinimumFunding(ideaId, 0);
+            }
+            if (backerMilestonesByRound[newId] && !ideaRegistry.hasFundingMilestonePlan(ideaId)) {
+                revert MilestonePlanMissing(ideaId);
             }
             IdeaStatus status = ideaRegistry.getStatus(ideaId);
             if (status != IdeaStatus.Pending) revert IdeaNotPending(ideaId, uint8(status));
@@ -400,11 +423,14 @@ contract VotingSystemUpgradeable is
             revert InsufficientStake(amount, minStake);
         }
 
-        if (humanOnlyVoting) {
-            if (address(humanVerifier) == address(0)) {
+        IHumanVerifier verifier = backerMilestonesByRound[roundId]
+            ? backerHumanVerifierByRound[roundId]
+            : humanVerifier;
+        if (backerMilestonesByRound[roundId] || humanOnlyVoting) {
+            if (address(verifier) == address(0)) {
                 revert HumanVerifierNotConfigured();
             }
-            if (!humanVerifier.isVerifiedHuman(msg.sender)) {
+            if (!verifier.isVerifiedHuman(msg.sender)) {
                 revert HumanVerificationRequired(msg.sender);
             }
         }
@@ -422,10 +448,6 @@ contract VotingSystemUpgradeable is
             revert CannotVoteForOwnIdea(msg.sender, ideaId);
         }
         
-        if (r.votersForIdea[ideaId].length >= MAX_VOTERS_PER_IDEA) {
-            revert MaxVotersReached(roundId, ideaId, MAX_VOTERS_PER_IDEA);
-        }
-
         // Lock the local vote record before cross-contract interactions.
         r.ideaVotes[ideaId] += amount;
         r.totalVotes += amount;
@@ -456,6 +478,7 @@ contract VotingSystemUpgradeable is
      */
     function endVotingRound(uint256 roundId)
         external
+        nonReentrant
         roundExists(roundId)
         canEndRound(roundId)
         returns (uint256 winningIdeaId)
@@ -479,6 +502,9 @@ contract VotingSystemUpgradeable is
             uint256 votes = r.ideaVotes[id];
             uint256 netFunding = fundingPool.previewRoundNetFunding(roundId, votes);
             bool isEligible = votes != 0 && netFunding >= ideaRegistry.minimumNetFundingByIdea(id);
+            if (backerMilestonesByRound[roundId] && r.votersForIdea[id].length < 3) {
+                isEligible = false;
+            }
             if (isEligible && votes > highestVotes) {
                 highestVotes = votes;
                 winningIdeaId = id;
@@ -533,19 +559,41 @@ contract VotingSystemUpgradeable is
 
         _settleFundingRound(roundId, winningIdeaId);
 
-        // Register winning votes for voter progression
-        address[] memory voters = r.votersForIdea[winningIdeaId];
-        if (voters.length > 0) {
-            for (uint256 i = 0; i < voters.length; i++) {
-                try voterProgression.registerWinningVote(voters[i]) {
-                    // Success
-                } catch {
-                    revert ExternalCallFailed("VoterProgression", "registerWinningVote");
-                }
-            }
+        emit VotingRoundEnded(roundId, winningIdeaId, highestVotes);
+    }
+
+    /**
+     * @notice Claims one progression credit for a pledge on a completed round's winning idea.
+     * @dev The FundingPool pledge ledger is the source of truth, so losing pledges and
+     *      duplicate claims cannot receive progression. This keeps endVotingRound bounded
+     *      regardless of the number of winning pledgers.
+     * @param roundId Completed funding round identifier
+     */
+    function claimWinningParticipation(uint256 roundId)
+        external
+        nonReentrant
+        whenNotPaused
+        roundExists(roundId)
+    {
+        VotingRound storage r = votingRounds[roundId];
+        if (!r.ended || r.winningIdeaId == 0) {
+            revert WinningParticipationUnavailable(roundId, msg.sender);
+        }
+        if (winningParticipationClaimed[roundId][msg.sender]) {
+            revert WinningParticipationAlreadyClaimed(roundId, msg.sender);
         }
 
-        emit VotingRoundEnded(roundId, winningIdeaId, highestVotes);
+        (uint256 pledgedIdeaId, uint256 pledgedAmount,) = fundingPool.getPledge(roundId, msg.sender);
+        if (pledgedIdeaId != r.winningIdeaId || pledgedAmount == 0) {
+            revert WinningParticipationUnavailable(roundId, msg.sender);
+        }
+
+        winningParticipationClaimed[roundId][msg.sender] = true;
+        try voterProgression.registerWinningVote(msg.sender) {
+            emit WinningParticipationClaimed(roundId, msg.sender);
+        } catch {
+            revert ExternalCallFailed("VoterProgression", "registerWinningVote");
+        }
     }
 
     /**
@@ -693,6 +741,16 @@ contract VotingSystemUpgradeable is
         returns (address[] memory)
     {
         return votingRounds[roundId].votersForIdea[ideaId];
+    }
+
+    /** @notice Returns whether a round was started with V2.3 backer-governed milestones. */
+    function isBackerMilestoneRound(uint256 roundId)
+        external
+        view
+        roundExists(roundId)
+        returns (bool)
+    {
+        return backerMilestonesByRound[roundId];
     }
 
     /**
@@ -847,6 +905,15 @@ contract VotingSystemUpgradeable is
         maxVoteAmount = _maxVoteAmount;
         emit MaxVoteAmountUpdated(_maxVoteAmount);
     }
+
+    /**
+     * @notice Selects the V2.3 backer-governed grant lifecycle for subsequently started rounds.
+     * @dev A running round retains its stored mode, so this cannot alter rules mid-round.
+     */
+    function setBackerMilestonesEnabled(bool enabled) external onlyAdmin {
+        backerMilestonesEnabled = enabled;
+        emit BackerMilestonesEnabledUpdated(enabled);
+    }
     
     /**
      * @notice Updates the minimum ideas per round required to start a voting round
@@ -904,5 +971,5 @@ contract VotingSystemUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[47] private __gap;
+    uint256[43] private __gap;
 }

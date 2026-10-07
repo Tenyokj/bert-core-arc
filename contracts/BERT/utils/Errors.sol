@@ -153,6 +153,27 @@ error PledgeRefundUnavailable(uint256 roundId, address voter);
 /// @notice Emitted when a pledge refund has already been claimed.
 error PledgeRefundAlreadyClaimed(uint256 roundId, address voter);
 
+/// @notice Emitted when an address did not pledge to the winning idea in a completed round.
+error WinningParticipationUnavailable(uint256 roundId, address voter);
+
+/// @notice Emitted when a winning pledger has already claimed their progression credit.
+error WinningParticipationAlreadyClaimed(uint256 roundId, address voter);
+
+/// @notice Emitted when a V2.3 milestone action is attempted by a non-winning pledger.
+error BackerMilestoneVoteUnavailable(uint256 roundId, uint8 stage, address voter);
+
+/// @notice Emitted when a caller uses the legacy reviewer flow for a V2.3 backer-governed round.
+error BackerMilestoneVotingRequired(uint256 roundId, uint8 stage);
+
+/// @notice Emitted when a milestone vote repeats the caller's current position.
+error BackerMilestoneVoteUnchanged(uint256 roundId, uint8 stage, address voter);
+
+/// @notice Emitted when a backer-governed milestone cannot yet be finalized.
+error BackerMilestoneFinalizationTooEarly(uint256 roundId, uint8 stage, uint256 deadline);
+
+/// @notice Emitted when a V2.3 funding proposal has no immutable milestone plan commitment.
+error MilestonePlanMissing(uint256 ideaId);
+
 
 
 // ========== Transfer Errors ==========

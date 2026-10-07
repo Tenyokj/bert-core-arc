@@ -70,7 +70,7 @@ describe("Upgradeability edge cases", function () {
     const verifierAddress = "0x1111111111111111111111111111111111111111";
     const voteCap = 10_000n * 10n ** 6n;
 
-    expect(await votingSystem.VOTING_DURATION()).to.equal(86_400n);
+    expect(await votingSystem.VOTING_DURATION()).to.equal(14n * 24n * 60n * 60n);
     expect(await votingSystem.minStake()).to.equal(10n * 10n ** 6n);
     expect(await votingSystem.IDEAS_PER_ROUND()).to.equal(30n);
     expect(await votingSystem.humanVerifier()).to.equal(ethers.ZeroAddress);
@@ -107,7 +107,7 @@ describe("Upgradeability edge cases", function () {
       admin
     );
 
-    expect(await fixedVoting.VOTING_DURATION()).to.equal(86_400n);
+    expect(await fixedVoting.VOTING_DURATION()).to.equal(14n * 24n * 60n * 60n);
     expect(await fixedVoting.minStake()).to.equal(10n * 10n ** 6n);
     expect(await fixedVoting.IDEAS_PER_ROUND()).to.equal(BigInt(verifierAddress));
     expect(await fixedVoting.humanVerifier()).to.equal(
@@ -125,7 +125,7 @@ describe("Upgradeability edge cases", function () {
     expect(await fixedVoting.humanVerifier()).to.equal(verifierAddress);
     expect(await fixedVoting.humanOnlyVoting()).to.equal(true);
     expect(await fixedVoting.maxVoteAmount()).to.equal(voteCap);
-    expect(await fixedVoting.VOTING_DURATION()).to.equal(86_400n);
+    expect(await fixedVoting.VOTING_DURATION()).to.equal(14n * 24n * 60n * 60n);
     expect(await fixedVoting.minStake()).to.equal(10n * 10n ** 6n);
   });
 });

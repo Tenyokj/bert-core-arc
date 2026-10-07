@@ -61,7 +61,7 @@ Specific lesson from the v1.2.0 conditional-pledge upgrade:
 - after the proxy upgrades, call `initializeConditionalPledges(500)` directly from the protocol admin; proxy initializers never run a second time
 - after the proxy upgrades, call `initializeConditionalPledgeMigration()` directly from the protocol admin; legacy idea authors must explicitly set their own `minimumNetFunding` with `configureLegacyFundingProposal`
 - never infer a legacy target or silently repurpose its author bond; the pre-upgrade proposal remains the author's property until it opts into the new model
-- the legacy round queue remains ordered by idea ID. Every queued legacy idea must be configured or intentionally retired before the first BERT V2.2 round; an unconfigured ID at the front of the queue causes `startVotingRound()` to revert rather than silently skipping an author’s proposal
+- the legacy round queue remains ordered by idea ID. A legacy proposal must be explicitly configured by its author or handled by a dedicated, one-time migration; an unconfigured ID at the front of the queue causes `startFundingRound()` to revert rather than silently skipping an author’s proposal
 
 If a change breaks these rules, the upgrade can preserve admin control while silently corrupting live state.
 
@@ -113,7 +113,7 @@ For a conditional-pledge upgrade from a legacy V2 deployment, also record:
 
 Do not upgrade an active legacy round into the conditional-pledge implementation. Resolve it first with the legacy implementation. A legacy queue may be preserved by having each author configure a minimum net target after upgrade; it must not be automatically treated as a conditional pledge round.
 
-For the live Arc Testnet snapshot taken on September 21, 2026, IDs `1` through `4` are pending legacy proposals and their targets are configured. The live policy keeps `IDEAS_PER_ROUND` at `30`; the first BERT V2.2 round therefore needs 26 additional BERT V2.2 proposals. The contract permits a guarded 5..50 range, but operators must not lower the round size merely to bypass this migration readiness requirement.
+For the live Arc Testnet snapshot taken on September 21, 2026, IDs `1` through `4` are pending pre-V2.3 test proposals. The V2.3 migration may retire exactly this fixed range through `retire-v2-3-legacy-queue.ts`: every legacy ID must still be `Pending`; its author bond is returned; its status becomes `Cancelled`; and the cursor advances exactly to `4`. The live policy keeps `IDEAS_PER_ROUND` at `30`, so the first V2.3 round selects IDs `5` through `34`, each with a committed milestone plan. No V2.3 proposal can be skipped through this migration path.
 
 ## Upgrade Procedure
 
@@ -140,6 +140,20 @@ protocol-admin wallet. `ProxyAdmin.upgradeAndCall` is intentionally not used for
 these `onlyAdmin` functions because its delegated caller is ProxyAdmin rather
 than the protocol admin. VotingSystem and GrantManager do not need an initializer
 call for this release, but all four proxies must be upgraded as one coordinated release.
+
+For the V2.3 testnet migration, upgrade `IdeaRegistryUpgradeable` and
+`VotingSystemUpgradeable` while V2 remains paused. After the proxy upgrades and before
+enabling V2.3 rules, retire the fixed legacy test queue:
+
+```bash
+IDEA_REGISTRY_PROXY_ADDRESS=0x... \
+VOTING_SYSTEM_PROXY_ADDRESS=0x... \
+npx hardhat run scripts/deploy/retire-v2-3-legacy-queue.ts --network arcTestnet
+```
+
+The script refuses to run on the wrong chain, with an active/non-pristine queue, if voting
+is unpaused, if a legacy idea is no longer pending, or if the migration has already run. It
+returns all retired legacy author bonds and verifies the cursor before V2 may be unpaused.
 
 ## Post-Upgrade Validation
 

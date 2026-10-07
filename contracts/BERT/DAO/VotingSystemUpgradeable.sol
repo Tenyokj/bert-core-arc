@@ -98,7 +98,7 @@ import "../utils/Errors.sol";
  * @dev Handles USDC-committed voting, round management, and winner determination
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.3.0
+ * @custom:version 1.3.1
  */
 contract VotingSystemUpgradeable is 
     Initializable, 
@@ -208,6 +208,9 @@ contract VotingSystemUpgradeable is
     /// @dev A later admin configuration change must not weaken an in-flight
     ///      backer-governed round after pledges have begun.
     mapping(uint256 => IHumanVerifier) public backerHumanVerifierByRound;
+
+    /// @notice Prevents any second movement of the queue cursor during the pre-V2.3 migration.
+    bool public legacyFundingQueueSkipped;
 
     /* ========== MODIFIERS ========== */
 
@@ -370,6 +373,26 @@ contract VotingSystemUpgradeable is
         }
 
         emit VotingRoundStarted(newId, ideaIds, r.startTime, r.endTime);
+    }
+
+    /**
+     * @notice Advances the round cursor past the one retired pre-V2.3 queue.
+     * @dev This is only possible before the first round while voting is paused. Future pending
+     *      proposals remain strictly sequential and cannot be skipped by an administrator.
+     */
+    function skipRetiredLegacyFundingQueue() external onlyAdmin whenPaused {
+        if (legacyFundingQueueSkipped) revert LegacyQueueAlreadyProcessed();
+        if (currentRoundId != 1 || lastUsedIdeaId != 0) {
+            revert FundingRoundStateInvalid(currentRoundId);
+        }
+        if (!ideaRegistry.legacyFundingQueueRetired()) revert LegacyQueueNotRetired();
+
+        uint256 firstV23IdeaId = ideaRegistry.firstConditionalFundingIdeaId();
+        if (firstV23IdeaId <= 1) revert LegacyQueueMigrationUnavailable();
+
+        legacyFundingQueueSkipped = true;
+        lastUsedIdeaId = firstV23IdeaId - 1;
+        emit LegacyFundingQueueSkipped(lastUsedIdeaId);
     }
 
     /**
@@ -971,5 +994,5 @@ contract VotingSystemUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[43] private __gap;
+    uint256[42] private __gap;
 }

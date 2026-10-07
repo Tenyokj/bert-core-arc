@@ -153,6 +153,15 @@ error PledgeRefundUnavailable(uint256 roundId, address voter);
 /// @notice Emitted when a pledge refund has already been claimed.
 error PledgeRefundAlreadyClaimed(uint256 roundId, address voter);
 
+/// @notice Emitted when the one-time retirement of the pre-V2.3 proposal queue was already used.
+error LegacyQueueAlreadyProcessed();
+
+/// @notice Emitted when the legacy queue has not been retired before the voting cursor is advanced.
+error LegacyQueueNotRetired();
+
+/// @notice Emitted when a deployment has no pre-V2.3 proposal range to retire.
+error LegacyQueueMigrationUnavailable();
+
 /// @notice Emitted when an address did not pledge to the winning idea in a completed round.
 error WinningParticipationUnavailable(uint256 roundId, address voter);
 

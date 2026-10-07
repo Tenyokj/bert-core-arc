@@ -186,6 +186,9 @@ interface IIdeaRegistry {
         bytes32 planHash
     );
 
+    /// @notice Emitted after the fixed pre-V2.3 proposal range is retired during migration.
+    event LegacyFundingQueueRetired(uint256 indexed firstIdeaId, uint256 indexed lastIdeaId);
+
     /* ========== IDEA MANAGEMENT FUNCTIONS ========== */
 
     /**
@@ -206,8 +209,17 @@ interface IIdeaRegistry {
     /// @notice Allows a legacy proposal author to set the proposal's minimum post-fee funding target.
     function configureLegacyFundingProposal(uint256 ideaId, uint256 minimumNetFunding) external;
 
+    /// @notice Retires the fixed pre-V2.3 pending proposal range and returns its author bonds.
+    function retireLegacyFundingQueue() external;
+
     /** @notice Commits the immutable delivery plan required for a V2.3 funding round. */
     function commitFundingMilestonePlan(uint256 ideaId, string memory planURI, bytes32 planHash) external;
+
+    /// @notice Returns the first idea ID created after the V2.2 conditional-pledge migration.
+    function firstConditionalFundingIdeaId() external view returns (uint256);
+
+    /// @notice Whether the fixed pre-V2.3 queue has been retired.
+    function legacyFundingQueueRetired() external view returns (bool);
 
     /**
      * @notice Updates the status of an existing idea

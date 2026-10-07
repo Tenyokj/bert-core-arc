@@ -4,7 +4,7 @@
  */
 
 import { expect, toBeHex } from "./setup.js";
-import { deploySystem } from "./helpers.js";
+import { createIdeas, deploySystem } from "./helpers.js";
 
 const IMPLEMENTATION_SLOT = BigInt(
   "0x360894A13BA1A3210667C828492DB98DCA3E2076CC3735A920A3CA505D382BBC"
@@ -80,5 +80,71 @@ describe("BERT V2.2 conditional-pledge migration", function () {
     const [, ideaIds, , , active] = await votingSystem.getRoundInfo(1n);
     expect(ideaIds).to.deep.equal([1n, 2n, 3n, 4n, 5n]);
     expect(active).to.equal(true);
+  });
+
+  it("retires only the fixed legacy queue, refunds its bonds, and keeps V2.3 selection sequential", async function () {
+    const system = await deploySystem();
+    const { ethers, admin, user3, ideaRegistry, fundingPool, votingSystem } = system;
+    const unit = 10n ** 6n;
+    const legacyBond = 50n * unit;
+
+    await fundingPool.connect(admin).unpause();
+    await ideaRegistry.connect(admin).setAuthorMinStake(legacyBond);
+
+    const legacyFactory = await ethers.getContractFactory("MockLegacyIdeaRegistry", admin);
+    const legacyImplementation = await legacyFactory.deploy();
+    await legacyImplementation.waitForDeployment();
+    const ideaProxy = await ideaRegistry.getAddress();
+    await replaceImplementation(ethers, ideaProxy, await legacyImplementation.getAddress());
+    const legacyRegistry = await ethers.getContractAt("MockLegacyIdeaRegistry", ideaProxy, admin);
+
+    for (let index = 0; index < 4; index += 1) {
+      await legacyRegistry
+        .connect(user3)
+        .createLegacyProposal(`Legacy ${index + 1}`, "Legacy proposal", "", legacyBond);
+    }
+
+    const currentFactory = await ethers.getContractFactory("IdeaRegistryUpgradeable", admin);
+    const currentImplementation = await currentFactory.deploy();
+    await currentImplementation.waitForDeployment();
+    await replaceImplementation(ethers, ideaProxy, await currentImplementation.getAddress());
+    const migratedRegistry = await ethers.getContractAt("IdeaRegistryUpgradeable", ideaProxy, admin);
+
+    await migratedRegistry.connect(admin).initializeConditionalPledgeMigration();
+    const balanceBeforeRetirement = await fundingPool.totalPoolBalance();
+    const userBalanceBeforeRetirement = await system.usdc.balanceOf(user3.address);
+
+    await expect(votingSystem.connect(admin).skipRetiredLegacyFundingQueue())
+      .to.be.revertedWithCustomError(votingSystem, "LegacyQueueNotRetired");
+
+    await expect(migratedRegistry.connect(admin).retireLegacyFundingQueue())
+      .to.emit(migratedRegistry, "LegacyFundingQueueRetired")
+      .withArgs(1n, 4n);
+
+    expect(await migratedRegistry.legacyFundingQueueRetired()).to.equal(true);
+    expect(await fundingPool.totalPoolBalance()).to.equal(balanceBeforeRetirement - 4n * legacyBond);
+    expect(await system.usdc.balanceOf(user3.address)).to.equal(userBalanceBeforeRetirement + 4n * legacyBond);
+
+    for (let ideaId = 1n; ideaId <= 4n; ideaId += 1n) {
+      expect(await migratedRegistry.getStatus(ideaId)).to.equal(7n);
+      expect(await fundingPool.authorStakeByIdea(ideaId)).to.equal(0n);
+    }
+
+    await expect(votingSystem.connect(admin).skipRetiredLegacyFundingQueue())
+      .to.emit(votingSystem, "LegacyFundingQueueSkipped")
+      .withArgs(4n);
+    expect(await votingSystem.lastUsedIdeaId()).to.equal(4n);
+
+    await migratedRegistry.connect(admin).setAuthorMinStake(1n);
+    await createIdeas(migratedRegistry, admin, 30);
+    await votingSystem.connect(admin).unpause();
+    await votingSystem.startFundingRound();
+
+    const [, ideaIds] = await votingSystem.getRoundInfo(1n);
+    expect(ideaIds).to.deep.equal(Array.from({ length: 30 }, (_, index) => BigInt(index + 5)));
+
+    await votingSystem.connect(admin).pause();
+    await expect(votingSystem.connect(admin).skipRetiredLegacyFundingQueue())
+      .to.be.revertedWithCustomError(votingSystem, "LegacyQueueAlreadyProcessed");
   });
 });

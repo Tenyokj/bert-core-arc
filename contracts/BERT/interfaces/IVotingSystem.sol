@@ -201,11 +201,17 @@ interface IVotingSystem {
     /** @notice Emitted when future funding rounds toggle backer-governed milestones. */
     event BackerMilestonesEnabledUpdated(bool enabled);
 
+    /// @notice Emitted after the voting cursor is moved past the retired pre-V2.3 proposal range.
+    event LegacyFundingQueueSkipped(uint256 indexed lastRetiredIdeaId);
+
 
     /* ========== EXTERNAL FUNCTIONS ========== */
 
     /// @notice Starts the next funding round from the pending proposal queue.
     function startFundingRound() external;
+
+    /// @notice One-time migration step that advances the cursor past retired pre-V2.3 proposals.
+    function skipRetiredLegacyFundingQueue() external;
 
     /**
      * @notice Casts votes for an idea in a specific round

@@ -96,7 +96,7 @@ import "../utils/Errors.sol";
  * @dev Manages idea lifecycle, metadata, status transitions, and voting data
  * @dev Upgradeable
  * 
- * @custom:version 1.3.0
+ * @custom:version 1.3.1
  */
 contract IdeaRegistryUpgradeable is 
     Initializable,
@@ -209,6 +209,9 @@ contract IdeaRegistryUpgradeable is
     mapping(uint256 => string) public fundingMilestonePlanURIByIdea;
     mapping(uint256 => bytes32) public fundingMilestonePlanHashByIdea;
 
+    /// @notice Marks completion of the one-time retirement for proposals created before V2.3 plans existed.
+    bool public legacyFundingQueueRetired;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -294,6 +297,37 @@ contract IdeaRegistryUpgradeable is
 
         minimumNetFundingByIdea[ideaId] = minimumNetFunding;
         emit LegacyFundingProposalConfigured(ideaId, msg.sender, minimumNetFunding);
+    }
+
+    /**
+     * @notice Retires the fixed pre-V2.3 proposal queue and returns each legacy author's bond.
+     * @dev This migration is constrained to IDs below the immutable V2.2 boundary. It cannot
+     *      skip, cancel, or refund any proposal created after that boundary.
+     */
+    function retireLegacyFundingQueue() external onlyAdmin nonReentrant {
+        if (legacyFundingQueueRetired) revert LegacyQueueAlreadyProcessed();
+
+        uint256 boundary = firstConditionalFundingIdeaId;
+        if (boundary <= 1) revert LegacyQueueMigrationUnavailable();
+
+        legacyFundingQueueRetired = true;
+        for (uint256 ideaId = 1; ideaId < boundary; ++ideaId) {
+            Idea storage idea = ideas[ideaId];
+            if (idea.status != IdeaStatus.Pending) {
+                revert IdeaNotPending(ideaId, uint8(idea.status));
+            }
+
+            idea.status = IdeaStatus.Cancelled;
+            try fundingPool.releaseAuthorStakeToAuthor(ideaId) {
+                // The protocol, not the author, is retiring this obsolete test queue.
+            } catch {
+                revert ExternalCallFailed("FundingPool", "releaseAuthorStakeToAuthor");
+            }
+
+            emit IdeaStatusUpdated(ideaId, IdeaStatus.Cancelled);
+        }
+
+        emit LegacyFundingQueueRetired(1, boundary - 1);
     }
 
     /**
@@ -812,5 +846,5 @@ contract IdeaRegistryUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[45] private __gap;
+    uint256[44] private __gap;
 }

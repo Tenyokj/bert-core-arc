@@ -335,15 +335,16 @@ describe("VotingSystemUpgradeable edge cases", function () {
   });
 });
 
-/** @notice describe: VotingSystemUpgradeable max voters */
-describe("VotingSystemUpgradeable max voters", function () {
-  /** @notice it: reverts when max voters reached for an idea */
-  it("reverts when max voters reached for an idea", async function () {
+/** @notice describe: VotingSystemUpgradeable unbounded voter settlement */
+describe("VotingSystemUpgradeable unbounded voter settlement", function () {
+  /** @notice it: accepts more than thirty voters and awards lazy progression only to winners */
+  it("accepts more than thirty voters and awards lazy progression only to winners", async function () {
     const {
       admin,
       ideaRegistry,
       votingSystem,
       fundingPool,
+      voterProgression,
       usdc,
       networkHelpers,
       ethers,
@@ -385,9 +386,22 @@ describe("VotingSystemUpgradeable max voters", function () {
       .connect(extra)
       .approve(await fundingPool.getAddress(), minStake);
 
-    await expect(
-      votingSystem.connect(extra).vote(1, 1, minStake)
-    ).to.be.revertedWithCustomError(votingSystem, "MaxVotersReached");
+    await votingSystem.connect(extra).vote(1, 1, minStake);
+    expect((await votingSystem.getVotersForIdea(1, 1)).length).to.equal(31);
+
+    const roundInfo = await votingSystem.getRoundInfo(1);
+    await networkHelpers.time.increaseTo(Number(roundInfo[3]) + 1);
+    await votingSystem.endVotingRound(1);
+
+    expect(await voterProgression.getWinningVotes(extra.address)).to.equal(0n);
+    await expect(votingSystem.connect(extra).claimWinningParticipation(1))
+      .to.emit(votingSystem, "WinningParticipationClaimed")
+      .withArgs(1n, extra.address);
+    expect(await voterProgression.getWinningVotes(extra.address)).to.equal(1n);
+
+    await expect(votingSystem.connect(extra).claimWinningParticipation(1))
+      .to.be.revertedWithCustomError(votingSystem, "WinningParticipationAlreadyClaimed")
+      .withArgs(1n, extra.address);
   });
 });
 
@@ -502,6 +516,148 @@ describe("VotingSystemUpgradeable verified-human gating", function () {
     await expect(
       votingSystem.connect(user1).vote(1, 1, minStake)
     ).to.be.revertedWithCustomError(votingSystem, "HumanVerifierNotConfigured");
+  });
+});
+
+/** @notice describe: VotingSystemUpgradeable V2.3 round snapshots */
+describe("VotingSystemUpgradeable V2.3 round snapshots", function () {
+  it("requires human gating and committed delivery plans before a V2.3 round starts", async function () {
+    const {
+      admin,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      networkHelpers,
+      ethers,
+    } = await deploySystem();
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await votingSystem.connect(admin).setBackerMilestonesEnabled(true);
+    await createIdeas(ideaRegistry, admin, 30);
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await expect(votingSystem.startFundingRound())
+      .to.be.revertedWithCustomError(votingSystem, "HumanVerifierNotConfigured");
+
+    const verifier = await ethers.deployContract("MockHumanVerifier", []);
+    await verifier.waitForDeployment();
+    await votingSystem.connect(admin).setHumanVerifier(await verifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+
+    await expect(votingSystem.startFundingRound())
+      .to.be.revertedWithCustomError(votingSystem, "MilestonePlanMissing")
+      .withArgs(1n);
+  });
+
+  it("keeps the original verifier mandatory when global settings change mid-round", async function () {
+    const {
+      admin,
+      user1,
+      user2,
+      user3,
+      user4,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      usdc,
+      networkHelpers,
+      ethers,
+    } = await deploySystem();
+
+    const originalVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    const replacementVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    await originalVerifier.waitForDeployment();
+    await replacementVerifier.waitForDeployment();
+    for (const backer of [user1, user2, user3]) {
+      await originalVerifier.setVerified(backer.address, true);
+    }
+    await replacementVerifier.setVerified(user4.address, true);
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await votingSystem.connect(admin).setHumanVerifier(await originalVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await votingSystem.connect(admin).setBackerMilestonesEnabled(true);
+    await createIdeas(ideaRegistry, admin, 30);
+    for (let ideaId = 1; ideaId <= 30; ideaId += 1) {
+      await ideaRegistry
+        .connect(admin)
+        .commitFundingMilestonePlan(
+          ideaId,
+          `ipfs://plan-${ideaId}`,
+          ethers.id(`plan-${ideaId}`)
+        );
+    }
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startFundingRound();
+    expect(await votingSystem.backerHumanVerifierByRound(1)).to.equal(
+      await originalVerifier.getAddress()
+    );
+
+    // Changes affect future rounds only; the live V2.3 cohort is still checked by `originalVerifier`.
+    await votingSystem.connect(admin).setHumanVerifier(await replacementVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(false);
+
+    const pledge = await votingSystem.minStake();
+    await expect(votingSystem.connect(user4).vote(1, 1, pledge))
+      .to.be.revertedWithCustomError(votingSystem, "HumanVerificationRequired")
+      .withArgs(user4.address);
+
+    await votingSystem.connect(user1).vote(1, 1, pledge);
+  });
+
+  it("does not settle a V2.3 winner with fewer than three verified pledgers", async function () {
+    const {
+      admin,
+      user1,
+      user2,
+      user3,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      networkHelpers,
+      ethers,
+    } = await deploySystem();
+
+    const verifier = await ethers.deployContract("MockHumanVerifier", []);
+    await verifier.waitForDeployment();
+    await verifier.setVerified(user1.address, true);
+    await verifier.setVerified(user2.address, true);
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await votingSystem.connect(admin).setHumanVerifier(await verifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await votingSystem.connect(admin).setBackerMilestonesEnabled(true);
+    await createIdeas(ideaRegistry, admin, 30);
+    for (let ideaId = 1; ideaId <= 30; ideaId += 1) {
+      await ideaRegistry
+        .connect(admin)
+        .commitFundingMilestonePlan(
+          ideaId,
+          `ipfs://plan-${ideaId}`,
+          ethers.id(`plan-${ideaId}`)
+        );
+    }
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startFundingRound();
+    const pledge = await votingSystem.minStake();
+    await votingSystem.connect(user1).vote(1, 1, pledge);
+    await votingSystem.connect(user2).vote(1, 1, pledge);
+
+    const round = await votingSystem.getRoundInfo(1);
+    await networkHelpers.time.increaseTo(Number(round[3]) + 1);
+    await expect(votingSystem.endVotingRound(1))
+      .to.emit(votingSystem, "VotingRoundEnded")
+      .withArgs(1n, 0n, 0n);
+    expect((await votingSystem.getRoundWinner(1))[0]).to.equal(0n);
+    expect(await fundingPool.grantRefundActive(1)).to.equal(false);
   });
 });
 

@@ -135,6 +135,13 @@ interface IFundingPool {
     );
 
     event FundingRoundFeeFinalized(uint256 indexed roundId, uint256 amount);
+    event ProgressiveFundingRoundFeeStarted(uint256 indexed roundId);
+    event FundingRoundFeeReleased(
+        uint256 indexed roundId,
+        uint256 amount,
+        uint256 cumulativeTrancheBps
+    );
+    event UnvestedFundingRoundFeeRestored(uint256 indexed roundId, uint256 amount);
     event FundingRoundCancelled(uint256 indexed roundId, uint256 indexed winningIdeaId, uint256 restoredFee);
     event GrantRefundActivated(uint256 indexed roundId, uint256 indexed winningIdeaId, uint256 totalRefund);
 
@@ -262,6 +269,16 @@ interface IFundingPool {
     /// @notice Moves a successful round's pending fee to protocol reserve after grant claim.
     function finalizeFundingRoundFee(uint256 roundId) external;
 
+    /** @notice Starts progressive fee vesting for a V2.3 backer-governed grant. */
+    function beginProgressiveFundingRoundFee(uint256 roundId) external;
+
+    /**
+     * @notice Releases the fee earned by completed grant tranches up to a cumulative share.
+     * @param roundId Funding round identifier
+     * @param cumulativeTrancheBps Cumulative completed net-grant share in basis points
+     */
+    function releaseProgressiveFundingRoundFee(uint256 roundId, uint256 cumulativeTrancheBps) external;
+
     /// @notice Cancels an unclaimed winning grant and restores its fee for full refunds.
     function cancelUnclaimedFundingRound(uint256 roundId) external;
 
@@ -288,6 +305,9 @@ interface IFundingPool {
         external
         view
         returns (uint256 ideaId, uint256 amount, bool refundClaimed);
+
+    /// @notice Returns the gross pledge total behind a settled winning grant.
+    function winningGrossPledgeByRound(uint256 roundId) external view returns (uint256);
 
     /// @notice Configures the fee applied only to successful pledge rounds.
     function setPledgeFeeBps(uint256 feeBps) external;

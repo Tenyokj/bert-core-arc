@@ -185,6 +185,25 @@ interface IGrantManager {
         uint256 deadline
     );
     event GrantCancelled(uint256 indexed roundId, uint256 indexed ideaId, uint256 deadline);
+    event BackerMilestoneVoteCast(
+        uint256 indexed roundId,
+        uint8 indexed stage,
+        address indexed backer,
+        bool approved,
+        uint256 weight
+    );
+    event BackerMilestoneGraceStarted(
+        uint256 indexed roundId,
+        uint8 indexed stage,
+        uint256 requestId,
+        uint256 graceDeadline
+    );
+    event BackerMilestoneProofHashCommitted(
+        uint256 indexed roundId,
+        uint8 indexed stage,
+        uint256 indexed requestId,
+        bytes32 proofHash
+    );
 
     /* ========== EXTERNAL FUNCTIONS ========== */
 
@@ -215,6 +234,15 @@ interface IGrantManager {
         string memory details
     ) external;
 
+    /** @notice Submits a V2.3 proof package with a mandatory immutable content hash. */
+    function submitBackerMilestoneProof(
+        uint256 roundId,
+        uint8 stage,
+        string memory metadataURI,
+        string memory details,
+        bytes32 proofHash
+    ) external;
+
     /**
      * @notice Reviews the active milestone proof request for a round
      * @param roundId The ID of the funding round
@@ -226,6 +254,12 @@ interface IGrantManager {
         uint8 stage,
         bool approved
     ) external;
+
+    /** @notice Casts or changes a weighted V2.3 backer milestone vote. */
+    function castBackerMilestoneVote(uint256 roundId, uint8 stage, bool approved) external;
+
+    /** @notice Permissionlessly resolves a V2.3 backer milestone after its review window. */
+    function finalizeBackerMilestone(uint256 roundId, uint8 stage) external;
 
     /* ========== VIEW FUNCTIONS ========== */
 
@@ -311,6 +345,23 @@ interface IGrantManager {
             uint8 approvalThreshold,
             bool active
         );
+
+    /** @notice Returns V2.3 weighted vote totals for the latest milestone request. */
+    function getBackerMilestoneTally(uint256 roundId, uint8 stage)
+        external
+        view
+        returns (
+            uint256 approveWeight,
+            uint256 rejectWeight,
+            uint256 approveBackerCount,
+            uint256 graceDeadline
+        );
+
+    /** @notice Returns the immutable content hash for the latest V2.3 proof request. */
+    function getBackerMilestoneProofHash(uint256 roundId, uint8 stage)
+        external
+        view
+        returns (bytes32 proofHash);
 
     /* ========== ADMIN FUNCTIONS ========== */
 

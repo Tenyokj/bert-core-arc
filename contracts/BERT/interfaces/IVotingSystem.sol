@@ -132,6 +132,13 @@ interface IVotingSystem {
     );
 
     /**
+     * @notice Emitted when a winning pledger claims their progression credit.
+     * @param roundId Funding round that the pledger won
+     * @param voter Winning pledger who received the credit
+     */
+    event WinningParticipationClaimed(uint256 indexed roundId, address indexed voter);
+
+    /**
      * @notice Emitted when FundingPool address is updated
      * @param newFundingPool New FundingPool contract address
      */
@@ -191,6 +198,9 @@ interface IVotingSystem {
      */
     event MaxVoteAmountUpdated(uint256 newMaxVoteAmount);
 
+    /** @notice Emitted when future funding rounds toggle backer-governed milestones. */
+    event BackerMilestonesEnabledUpdated(bool enabled);
+
 
     /* ========== EXTERNAL FUNCTIONS ========== */
 
@@ -217,6 +227,16 @@ interface IVotingSystem {
      * @return winningIdeaId ID of the winning idea (0 if no votes)
      */
     function endVotingRound(uint256 roundId) external returns (uint256 winningIdeaId);
+
+    /**
+     * @notice Claims the progression credit for a pledge on the winning idea.
+     * @dev This replaces the unbounded voter loop that previously ran in endVotingRound.
+     * @param roundId Completed funding round identifier
+     */
+    function claimWinningParticipation(uint256 roundId) external;
+
+    /** @notice Returns whether a round uses the V2.3 backer-governed grant lifecycle. */
+    function isBackerMilestoneRound(uint256 roundId) external view returns (bool);
 
     /* ========== VIEW FUNCTIONS ========== */
 
@@ -355,6 +375,12 @@ interface IVotingSystem {
      * @param _maxVoteAmount New per-vote cap (0 disables the cap)
      */
     function setMaxVoteAmount(uint256 _maxVoteAmount) external;
+
+    /**
+     * @notice Enables V2.3 backer-governed milestones for funding rounds started afterwards.
+     * @dev Such rounds require human-only voting at their start.
+     */
+    function setBackerMilestonesEnabled(bool enabled) external;
     
     /**
      * @notice Updates the minimum ideas per round required to start a voting round

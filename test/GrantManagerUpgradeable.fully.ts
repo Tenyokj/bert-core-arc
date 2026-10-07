@@ -1040,6 +1040,347 @@ describe("GrantManagerUpgradeable milestone payouts", function () {
   });
 });
 
+/** @notice describe: GrantManagerUpgradeable V2.3 backer-governed milestones */
+describe("GrantManagerUpgradeable V2.3 backer-governed milestones", function () {
+  it("releases 20/40/40 with weighted backer approval and progressive fees", async function () {
+    const context = await deploySystem();
+    const {
+      admin,
+      user1,
+      user2,
+      user3,
+      user4,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      grantManager,
+      networkHelpers,
+      ethers,
+    } = context;
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await grantManager.connect(admin).unpause();
+
+    const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    for (const backer of [user2, user3, user4]) {
+      await humanVerifier.setVerified(backer.address, true);
+    }
+    await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await votingSystem.connect(admin).setBackerMilestonesEnabled(true);
+
+    await createIdeas(ideaRegistry, user1, 30);
+    for (let ideaId = 1; ideaId <= 30; ideaId += 1) {
+      await ideaRegistry
+        .connect(user1)
+        .commitFundingMilestonePlan(
+          ideaId,
+          `ipfs://bert-v2-3-plan-${ideaId}`,
+          ethers.id(`bert-v2-3-plan-${ideaId}`)
+        );
+    }
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startFundingRound();
+    expect(await votingSystem.isBackerMilestoneRound(1)).to.equal(true);
+
+    const pledge = await votingSystem.minStake();
+    for (const backer of [user2, user3, user4]) {
+      await votingSystem.connect(backer).vote(1, 1, pledge);
+    }
+
+    const round = await votingSystem.getRoundInfo(1);
+    await networkHelpers.time.increaseTo(Number(round[3]) + 1);
+    await votingSystem.endVotingRound(1);
+
+    const netGrant = await fundingPool.poolByRoundAndIdea(1, 1);
+    const initial = (netGrant * 20n) / 100n;
+    const inProcess = (netGrant * 40n) / 100n;
+    const gross = pledge * 3n;
+    const fee = (gross * 500n) / 10_000n;
+
+    const preview = await grantManager.previewGrant(1, 1);
+    expect(preview[1]).to.equal(initial);
+    expect(preview[2]).to.equal(inProcess);
+
+    const reserveBeforeGrant = await fundingPool.protocolReserve();
+    await grantManager.connect(user1).claimGrant(1);
+    expect(await fundingPool.protocolReserve()).to.equal(
+      reserveBeforeGrant + (fee * 2_000n) / 10_000n
+    );
+
+    await grantManager
+      .connect(user1)
+      .submitBackerMilestoneProof(
+        1,
+        1,
+        "ipfs://proof-one",
+        "implementation evidence",
+        ethers.id("proof-one")
+      );
+    expect(await grantManager.getBackerMilestoneProofHash(1, 1)).to.equal(ethers.id("proof-one"));
+
+    await grantManager.connect(user2).castBackerMilestoneVote(1, 1, true);
+    await grantManager.connect(user3).castBackerMilestoneVote(1, 1, true);
+    await grantManager.connect(user4).castBackerMilestoneVote(1, 1, false);
+    await grantManager.connect(user4).castBackerMilestoneVote(1, 1, true);
+
+    const tally = await grantManager.getBackerMilestoneTally(1, 1);
+    expect(tally[0]).to.equal(gross);
+    expect(tally[1]).to.equal(0n);
+    expect(tally[2]).to.equal(3n);
+
+    const request = await grantManager.getMilestoneRequest(1, 1);
+    await networkHelpers.time.increaseTo(Number(request[3]) + 14 * 24 * 60 * 60 + 1);
+    await expect(grantManager.finalizeBackerMilestone(1, 1))
+      .to.emit(grantManager, "MilestoneApproved")
+      .withArgs(1n, 1n, 1n, inProcess);
+
+    const payout = await grantManager.getGrantPayout(1);
+    expect(payout[3]).to.equal(initial + inProcess);
+    expect(payout[5]).to.equal(true);
+    expect(await fundingPool.protocolReserve()).to.equal(
+      reserveBeforeGrant + (fee * 6_000n) / 10_000n
+    );
+  });
+
+  it("never treats silence as approval and refunds the unvested gross escrow after grace", async function () {
+    const context = await deploySystem();
+    const {
+      admin,
+      user1,
+      user2,
+      user3,
+      user4,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      grantManager,
+      networkHelpers,
+      ethers,
+    } = context;
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await grantManager.connect(admin).unpause();
+
+    const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    for (const backer of [user2, user3, user4]) {
+      await humanVerifier.setVerified(backer.address, true);
+    }
+    await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await votingSystem.connect(admin).setBackerMilestonesEnabled(true);
+
+    await createIdeas(ideaRegistry, user1, 30);
+    for (let ideaId = 1; ideaId <= 30; ideaId += 1) {
+      await ideaRegistry
+        .connect(user1)
+        .commitFundingMilestonePlan(
+          ideaId,
+          `ipfs://plan-${ideaId}`,
+          ethers.id(`plan-${ideaId}`)
+        );
+    }
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startFundingRound();
+
+    const pledge = await votingSystem.minStake();
+    for (const backer of [user2, user3, user4]) {
+      await votingSystem.connect(backer).vote(1, 1, pledge);
+    }
+    const round = await votingSystem.getRoundInfo(1);
+    await networkHelpers.time.increaseTo(Number(round[3]) + 1);
+    await votingSystem.endVotingRound(1);
+
+    await grantManager.connect(user1).claimGrant(1);
+    await grantManager
+      .connect(user1)
+      .submitBackerMilestoneProof(1, 1, "ipfs://silent-proof", "evidence", ethers.id("silent-proof"));
+    await grantManager.connect(user2).castBackerMilestoneVote(1, 1, true);
+
+    const request = await grantManager.getMilestoneRequest(1, 1);
+    await networkHelpers.time.increaseTo(Number(request[3]) + 14 * 24 * 60 * 60 + 1);
+    await grantManager.finalizeBackerMilestone(1, 1);
+
+    const tally = await grantManager.getBackerMilestoneTally(1, 1);
+    expect(tally[3]).to.not.equal(0n);
+    await networkHelpers.time.increaseTo(Number(tally[3]) + 1);
+    await expect(grantManager.finalizeBackerMilestone(1, 1))
+      .to.emit(grantManager, "GrantCancelled");
+
+    expect(await fundingPool.grantRefundActive(1)).to.equal(true);
+    expect(await fundingPool.grantRefundTotalByRound(1)).to.equal((pledge * 3n * 80n) / 100n);
+
+    const balanceBefore = await context.usdc.balanceOf(user2.address);
+    await fundingPool.connect(user2).claimPledgeRefund(1);
+    expect(await context.usdc.balanceOf(user2.address)).to.equal(balanceBefore + (pledge * 80n) / 100n);
+  });
+
+  it("allows one corrected proof after quorum rejection, then cancels after a second rejection", async function () {
+    const context = await deploySystem();
+    const {
+      admin,
+      user1,
+      user2,
+      user3,
+      user4,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      grantManager,
+      networkHelpers,
+      ethers,
+    } = context;
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await grantManager.connect(admin).unpause();
+
+    const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    for (const backer of [user2, user3, user4]) {
+      await humanVerifier.setVerified(backer.address, true);
+    }
+    await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await votingSystem.connect(admin).setBackerMilestonesEnabled(true);
+
+    await createIdeas(ideaRegistry, user1, 30);
+    for (let ideaId = 1; ideaId <= 30; ideaId += 1) {
+      await ideaRegistry
+        .connect(user1)
+        .commitFundingMilestonePlan(
+          ideaId,
+          `ipfs://plan-${ideaId}`,
+          ethers.id(`plan-${ideaId}`)
+        );
+    }
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startFundingRound();
+    const pledge = await votingSystem.minStake();
+    for (const backer of [user2, user3, user4]) {
+      await votingSystem.connect(backer).vote(1, 1, pledge);
+    }
+    const round = await votingSystem.getRoundInfo(1);
+    await networkHelpers.time.increaseTo(Number(round[3]) + 1);
+    await votingSystem.endVotingRound(1);
+
+    await grantManager.connect(user1).claimGrant(1);
+    await grantManager
+      .connect(user1)
+      .submitBackerMilestoneProof(1, 1, "ipfs://rejected-once", "first proof", ethers.id("first-proof"));
+    for (const backer of [user2, user3, user4]) {
+      await grantManager.connect(backer).castBackerMilestoneVote(1, 1, false);
+    }
+
+    let request = await grantManager.getMilestoneRequest(1, 1);
+    await networkHelpers.time.increaseTo(Number(request[3]) + 14 * 24 * 60 * 60 + 1);
+    await expect(grantManager.finalizeBackerMilestone(1, 1))
+      .to.emit(grantManager, "MilestoneRejected")
+      .withArgs(1n, 1n, 1n, 1n);
+
+    await expect(
+      grantManager
+        .connect(user1)
+        .submitBackerMilestoneProof(1, 1, "ipfs://retry", "corrected proof", ethers.id("second-proof"))
+    ).to.be.revertedWithCustomError(grantManager, "MilestoneCooldownActive");
+
+    await networkHelpers.time.increase(48 * 60 * 60 + 1);
+    await grantManager
+      .connect(user1)
+      .submitBackerMilestoneProof(1, 1, "ipfs://retry", "corrected proof", ethers.id("second-proof"));
+    request = await grantManager.getMilestoneRequest(1, 1);
+    expect(request[0]).to.equal(2n);
+
+    for (const backer of [user2, user3, user4]) {
+      await grantManager.connect(backer).castBackerMilestoneVote(1, 1, false);
+    }
+    await networkHelpers.time.increaseTo(Number(request[3]) + 14 * 24 * 60 * 60 + 1);
+    await expect(grantManager.finalizeBackerMilestone(1, 1))
+      .to.emit(grantManager, "GrantCancelled");
+
+    expect(await fundingPool.grantRefundActive(1)).to.equal(true);
+  });
+
+  it("requires two-thirds of participating pledge weight even when three backers approve", async function () {
+    const context = await deploySystem();
+    const {
+      admin,
+      user1,
+      user2,
+      user3,
+      user4,
+      user5,
+      ideaRegistry,
+      votingSystem,
+      fundingPool,
+      grantManager,
+      networkHelpers,
+      ethers,
+    } = context;
+
+    await fundingPool.connect(admin).unpause();
+    await votingSystem.connect(admin).unpause();
+    await grantManager.connect(admin).unpause();
+
+    const humanVerifier = await ethers.deployContract("MockHumanVerifier", []);
+    for (const backer of [user2, user3, user4, user5]) {
+      await humanVerifier.setVerified(backer.address, true);
+    }
+    await votingSystem.connect(admin).setHumanVerifier(await humanVerifier.getAddress());
+    await votingSystem.connect(admin).setHumanOnlyVoting(true);
+    await votingSystem.connect(admin).setBackerMilestonesEnabled(true);
+    await createIdeas(ideaRegistry, user1, 30);
+    for (let ideaId = 1; ideaId <= 30; ideaId += 1) {
+      await ideaRegistry
+        .connect(user1)
+        .commitFundingMilestonePlan(
+          ideaId,
+          `ipfs://plan-${ideaId}`,
+          ethers.id(`plan-${ideaId}`)
+        );
+    }
+
+    const now = await networkHelpers.time.latest();
+    await networkHelpers.time.increaseTo(now + 700);
+    await votingSystem.startFundingRound();
+    const pledge = await votingSystem.minStake();
+    await votingSystem.connect(user2).vote(1, 1, pledge * 5n);
+    await votingSystem.connect(user3).vote(1, 1, pledge);
+    await votingSystem.connect(user4).vote(1, 1, pledge);
+    await votingSystem.connect(user5).vote(1, 1, pledge * 3n);
+    const round = await votingSystem.getRoundInfo(1);
+    await networkHelpers.time.increaseTo(Number(round[3]) + 1);
+    await votingSystem.endVotingRound(1);
+
+    await grantManager.connect(user1).claimGrant(1);
+    await grantManager
+      .connect(user1)
+      .submitBackerMilestoneProof(1, 1, "ipfs://weighted-proof", "evidence", ethers.id("weighted-proof"));
+    await grantManager.connect(user2).castBackerMilestoneVote(1, 1, false);
+    for (const backer of [user3, user4, user5]) {
+      await grantManager.connect(backer).castBackerMilestoneVote(1, 1, true);
+    }
+
+    const tally = await grantManager.getBackerMilestoneTally(1, 1);
+    expect(tally[0]).to.equal(pledge * 5n);
+    expect(tally[1]).to.equal(pledge * 5n);
+    expect(tally[2]).to.equal(3n);
+
+    const request = await grantManager.getMilestoneRequest(1, 1);
+    await networkHelpers.time.increaseTo(Number(request[3]) + 14 * 24 * 60 * 60 + 1);
+    await expect(grantManager.finalizeBackerMilestone(1, 1))
+      .to.emit(grantManager, "MilestoneRejected")
+      .withArgs(1n, 1n, 1n, 1n);
+  });
+});
+
 /** @notice describe: GrantManager grant deadlines and refundable expiry paths */
 describe("GrantManagerUpgradeable deadlines", function () {
   async function settleSingleWinner() {

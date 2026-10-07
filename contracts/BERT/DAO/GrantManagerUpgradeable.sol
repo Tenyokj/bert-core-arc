@@ -95,7 +95,7 @@ import "../utils/Errors.sol";
  * @dev Orchestrates the complete DAO grant lifecycle from creation to funding
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.2.0
+ * @custom:version 1.3.0
  */
 contract GrantManagerUpgradeable is 
     Initializable, 
@@ -125,6 +125,9 @@ contract GrantManagerUpgradeable is
     /// @dev Expressed as a percentage of the author's reserved share
     uint256 public constant INITIAL_PAYOUT_PERCENT = 30;
 
+    /// @notice V2.3 initial payout for backer-governed grants.
+    uint256 public constant BACKER_INITIAL_PAYOUT_PERCENT = 20;
+
     /// @notice Second tranche released after the in-process milestone is approved
     /// @dev Expressed as a percentage of the author's reserved share
     uint256 public constant IN_PROCESS_PAYOUT_PERCENT = 40;
@@ -144,6 +147,12 @@ contract GrantManagerUpgradeable is
 
     /// @notice Reviewers have two weeks to resolve a submitted milestone proof.
     uint256 public constant MILESTONE_REVIEW_WINDOW = 14 days;
+
+    /// @notice Additional time after a V2.3 non-quorum result before cancellation.
+    uint256 public constant BACKER_MILESTONE_GRACE_WINDOW = 7 days;
+
+    uint256 public constant BACKER_MILESTONE_QUORUM_BPS = 4_000;
+    uint256 public constant BACKER_MIN_APPROVE_BACKERS = 3;
 
     /* ========== MILESTONE CONSTANTS ========== */
 
@@ -238,6 +247,22 @@ contract GrantManagerUpgradeable is
     /// @notice Tracks whether a reviewer has already voted on a specific milestone request version
     /// @dev keccak(roundId, stage, requestId) => reviewer => voted
     mapping(bytes32 => mapping(address => bool)) private _milestoneVotes;
+
+    struct BackerMilestoneTally {
+        uint256 approveWeight;
+        uint256 rejectWeight;
+        uint256 approveBackerCount;
+        uint256 graceDeadline;
+    }
+
+    /// @dev keccak(roundId, stage, requestId) => weighted V2.3 vote totals.
+    mapping(bytes32 => BackerMilestoneTally) private _backerMilestoneTallies;
+
+    /// @dev 0 = no vote, 1 = reject, 2 = approve. Allows a backer to change position before expiry.
+    mapping(bytes32 => mapping(address => uint8)) private _backerMilestonePositions;
+
+    /// @dev keccak(roundId, stage, requestId) => immutable V2.3 proof package hash.
+    mapping(bytes32 => bytes32) private _backerMilestoneProofHashes;
 
     /* ========== INITIALIZE ========== */
 
@@ -335,7 +360,8 @@ contract GrantManagerUpgradeable is
             revert NoFundsAllocated(roundId, winningIdeaId);
         }
         uint256 authorAmount = totalIdeaStake;
-        uint256 initialPayout = (authorAmount * INITIAL_PAYOUT_PERCENT) / 100;
+        bool isBackerGoverned = votingSystem.isBackerMilestoneRound(roundId);
+        uint256 initialPayout = (authorAmount * _initialPayoutPercent(isBackerGoverned)) / 100;
 
         // Record payout state before cross-contract interactions so a future
         // dependency upgrade cannot observe this round as unclaimed mid-flow.
@@ -346,10 +372,23 @@ contract GrantManagerUpgradeable is
         payout.initialClaimed = true;
         payout.initialClaimedAt = block.timestamp;
 
-        try fundingPool.finalizeFundingRoundFee(roundId) {
-            // Fee becomes protocol reserve only when the grant lifecycle actually starts.
-        } catch {
-            revert ExternalCallFailed("FundingPool", "finalizeFundingRoundFee");
+        if (isBackerGoverned) {
+            try fundingPool.beginProgressiveFundingRoundFee(roundId) {
+                // V2.3 earns fees only as matching tranches are released.
+            } catch {
+                revert ExternalCallFailed("FundingPool", "beginProgressiveFundingRoundFee");
+            }
+            try fundingPool.releaseProgressiveFundingRoundFee(roundId, 2_000) {
+                // Initial 20% tranche vests 20% of the successful-round fee.
+            } catch {
+                revert ExternalCallFailed("FundingPool", "releaseProgressiveFundingRoundFee");
+            }
+        } else {
+            try fundingPool.finalizeFundingRoundFee(roundId) {
+                // V2.2 finalizes the whole fee when the grant lifecycle starts.
+            } catch {
+                revert ExternalCallFailed("FundingPool", "finalizeFundingRoundFee");
+            }
         }
 
         ideaRegistry.updateStatus(winningIdeaId, IdeaStatus.Funded);
@@ -388,6 +427,11 @@ contract GrantManagerUpgradeable is
 
     /** @notice Closes a stalled milestone request after its reviewer window has elapsed. */
     function expireMilestoneReview(uint256 roundId, uint8 stage) external nonReentrant whenNotPaused {
+        if (votingSystem.isBackerMilestoneRound(roundId)) {
+            _finalizeBackerMilestone(roundId, stage);
+            return;
+        }
+
         GrantPayout storage payout = _grantPayouts[roundId];
         MilestoneRequest storage request = _milestoneRequests[roundId][stage];
         if (!payout.initialClaimed || !request.active) revert NoActiveMilestoneRequest(roundId, stage);
@@ -448,6 +492,39 @@ contract GrantManagerUpgradeable is
         string memory metadataURI,
         string memory details
     ) external nonReentrant whenNotPaused {
+        if (votingSystem.isBackerMilestoneRound(roundId)) {
+            revert BackerMilestoneVotingRequired(roundId, stage);
+        }
+        _submitMilestoneProof(roundId, stage, metadataURI, details, bytes32(0), false);
+    }
+
+    /**
+     * @notice Submits a V2.3 proof package with an immutable content hash.
+     * @dev The URI can point to a rich package; the hash prevents its content from being
+     *      silently replaced after backers begin reviewing it.
+     */
+    function submitBackerMilestoneProof(
+        uint256 roundId,
+        uint8 stage,
+        string memory metadataURI,
+        string memory details,
+        bytes32 proofHash
+    ) external nonReentrant whenNotPaused {
+        if (!votingSystem.isBackerMilestoneRound(roundId)) {
+            revert BackerMilestoneVotingRequired(roundId, stage);
+        }
+        if (proofHash == bytes32(0)) revert InvalidParameter("proofHash", "zero");
+        _submitMilestoneProof(roundId, stage, metadataURI, details, proofHash, true);
+    }
+
+    function _submitMilestoneProof(
+        uint256 roundId,
+        uint8 stage,
+        string memory metadataURI,
+        string memory details,
+        bytes32 proofHash,
+        bool isBackerGoverned
+    ) internal {
         if (bytes(metadataURI).length == 0) {
             revert ZeroLength("metadataURI");
         }
@@ -476,7 +553,14 @@ contract GrantManagerUpgradeable is
         request.rejections = 0;
         request.active = true;
 
-        if (stage == IN_PROCESS_STAGE) {
+        if (isBackerGoverned) {
+            // V2.3 counts weighted pledges in separate append-only storage.
+            if (request.requestId > 2) revert MilestoneNotEligible(roundId, stage);
+            request.maxReviewers = 0;
+            request.approvalThreshold = 0;
+            _backerMilestoneProofHashes[_backerVoteKey(roundId, stage, request.requestId)] = proofHash;
+            emit BackerMilestoneProofHashCommitted(roundId, stage, request.requestId, proofHash);
+        } else if (stage == IN_PROCESS_STAGE) {
             request.maxReviewers = IN_PROCESS_MAX_REVIEWERS;
             request.approvalThreshold = IN_PROCESS_APPROVAL_THRESHOLD;
         } else if (stage == COMPLETION_STAGE) {
@@ -504,7 +588,14 @@ contract GrantManagerUpgradeable is
         uint256 roundId,
         uint8 stage,
         bool approved
-    ) external nonReentrant whenNotPaused onlyReviewer {
+    ) external nonReentrant whenNotPaused {
+        if (votingSystem.isBackerMilestoneRound(roundId)) {
+            revert BackerMilestoneVotingRequired(roundId, stage);
+        }
+        if (!roles.hasRole(roles.REVIEWER_ROLE(), msg.sender)) {
+            revert NotReviewer();
+        }
+
         GrantPayout storage payout = _grantPayouts[roundId];
         if (!payout.initialClaimed) {
             revert MilestoneNotEligible(roundId, stage);
@@ -559,6 +650,72 @@ contract GrantManagerUpgradeable is
         }
     }
 
+    /**
+     * @notice Casts or changes a weighted vote on a V2.3 milestone request.
+     * @dev Only the immutable winning pledge cohort can vote. Weight comes from the
+     *      FundingPool pledge record, not from a caller-supplied value.
+     */
+    function castBackerMilestoneVote(
+        uint256 roundId,
+        uint8 stage,
+        bool approved
+    ) external nonReentrant whenNotPaused {
+        if (!votingSystem.isBackerMilestoneRound(roundId)) {
+            revert BackerMilestoneVotingRequired(roundId, stage);
+        }
+
+        GrantPayout storage payout = _grantPayouts[roundId];
+        MilestoneRequest storage request = _milestoneRequests[roundId][stage];
+        if (!payout.initialClaimed || payout.cancelled || !request.active) {
+            revert NoActiveMilestoneRequest(roundId, stage);
+        }
+
+        uint256 deadline = request.submittedAt + MILESTONE_REVIEW_WINDOW;
+        if (block.timestamp >= deadline) {
+            revert MilestoneReviewWindowElapsed(roundId, stage, deadline);
+        }
+        if (msg.sender == payout.author) revert CannotReviewOwnIdea(payout.author);
+
+        (uint256 pledgedIdeaId, uint256 weight,) = fundingPool.getPledge(roundId, msg.sender);
+        if (pledgedIdeaId != payout.ideaId || weight == 0) {
+            revert BackerMilestoneVoteUnavailable(roundId, stage, msg.sender);
+        }
+
+        bytes32 voteKey = _backerVoteKey(roundId, stage, request.requestId);
+        uint8 nextPosition = approved ? 2 : 1;
+        uint8 previousPosition = _backerMilestonePositions[voteKey][msg.sender];
+        if (previousPosition == nextPosition) {
+            revert BackerMilestoneVoteUnchanged(roundId, stage, msg.sender);
+        }
+
+        BackerMilestoneTally storage tally = _backerMilestoneTallies[voteKey];
+        if (previousPosition == 2) {
+            tally.approveWeight -= weight;
+            tally.approveBackerCount -= 1;
+        } else if (previousPosition == 1) {
+            tally.rejectWeight -= weight;
+        }
+
+        if (nextPosition == 2) {
+            tally.approveWeight += weight;
+            tally.approveBackerCount += 1;
+        } else {
+            tally.rejectWeight += weight;
+        }
+        _backerMilestonePositions[voteKey][msg.sender] = nextPosition;
+
+        emit BackerMilestoneVoteCast(roundId, stage, msg.sender, approved, weight);
+    }
+
+    /**
+     * @notice Resolves a V2.3 milestone after its full review window has ended.
+     * @dev Anyone may finalize. Silence never releases funds: missing quorum enters a
+     *      seven-day grace period, then cancels the remaining grant escrow.
+     */
+    function finalizeBackerMilestone(uint256 roundId, uint8 stage) external nonReentrant whenNotPaused {
+        _finalizeBackerMilestone(roundId, stage);
+    }
+
     /* ========== VIEW FUNCTIONS ========== */
 
     /**
@@ -576,7 +733,7 @@ contract GrantManagerUpgradeable is
         )
     {
         totalGrant = fundingPool.poolByRoundAndIdea(roundId, ideaId);
-        initialPayout = (totalGrant * INITIAL_PAYOUT_PERCENT) / 100;
+        initialPayout = (totalGrant * _initialPayoutPercent(votingSystem.isBackerMilestoneRound(roundId))) / 100;
         inProcessPayout = (totalGrant * IN_PROCESS_PAYOUT_PERCENT) / 100;
         completionPayout = totalGrant - initialPayout - inProcessPayout;
     }
@@ -742,6 +899,39 @@ contract GrantManagerUpgradeable is
         );
     }
 
+    /** @notice Returns the weighted state for the latest V2.3 milestone request. */
+    function getBackerMilestoneTally(uint256 roundId, uint8 stage)
+        external
+        view
+        returns (
+            uint256 approveWeight,
+            uint256 rejectWeight,
+            uint256 approveBackerCount,
+            uint256 graceDeadline
+        )
+    {
+        MilestoneRequest storage request = _milestoneRequests[roundId][stage];
+        BackerMilestoneTally storage tally = _backerMilestoneTallies[
+            _backerVoteKey(roundId, stage, request.requestId)
+        ];
+        return (
+            tally.approveWeight,
+            tally.rejectWeight,
+            tally.approveBackerCount,
+            tally.graceDeadline
+        );
+    }
+
+    /** @notice Returns the latest V2.3 proof package hash for a milestone stage. */
+    function getBackerMilestoneProofHash(uint256 roundId, uint8 stage)
+        external
+        view
+        returns (bytes32 proofHash)
+    {
+        MilestoneRequest storage request = _milestoneRequests[roundId][stage];
+        return _backerMilestoneProofHashes[_backerVoteKey(roundId, stage, request.requestId)];
+    }
+
     /* ========== ADMIN FUNCTIONS ========== */
 
     /**
@@ -822,6 +1012,87 @@ contract GrantManagerUpgradeable is
 
     /* ========== INTERNAL FUNCTIONS ========== */
 
+    function _finalizeBackerMilestone(uint256 roundId, uint8 stage) internal {
+        if (!votingSystem.isBackerMilestoneRound(roundId)) {
+            revert BackerMilestoneVotingRequired(roundId, stage);
+        }
+
+        GrantPayout storage payout = _grantPayouts[roundId];
+        MilestoneRequest storage request = _milestoneRequests[roundId][stage];
+        if (!payout.initialClaimed || payout.cancelled || !request.active) {
+            revert NoActiveMilestoneRequest(roundId, stage);
+        }
+
+        uint256 reviewDeadline = request.submittedAt + MILESTONE_REVIEW_WINDOW;
+        if (block.timestamp < reviewDeadline) {
+            revert BackerMilestoneFinalizationTooEarly(roundId, stage, reviewDeadline);
+        }
+
+        bytes32 voteKey = _backerVoteKey(roundId, stage, request.requestId);
+        BackerMilestoneTally storage tally = _backerMilestoneTallies[voteKey];
+        uint256 participatingWeight = tally.approveWeight + tally.rejectWeight;
+        uint256 totalWinningWeight = fundingPool.winningGrossPledgeByRound(roundId);
+        bool quorumReached = participatingWeight * 10_000 >= totalWinningWeight * BACKER_MILESTONE_QUORUM_BPS;
+
+        if (!quorumReached) {
+            uint256 graceDeadline = reviewDeadline + BACKER_MILESTONE_GRACE_WINDOW;
+            if (block.timestamp < graceDeadline) {
+                if (tally.graceDeadline == 0) {
+                    tally.graceDeadline = graceDeadline;
+                    emit BackerMilestoneGraceStarted(roundId, stage, request.requestId, graceDeadline);
+                }
+                return;
+            }
+
+            request.active = false;
+            request.lastRejectedAt = block.timestamp;
+            emit MilestoneRejected(roundId, payout.ideaId, stage, request.requestId);
+            _cancelBackerGrant(roundId, payout, graceDeadline);
+            return;
+        }
+
+        bool approved =
+            tally.approveBackerCount >= BACKER_MIN_APPROVE_BACKERS &&
+            tally.approveWeight * 3 >= participatingWeight * 2;
+        if (approved) {
+            _approveMilestone(roundId, stage, payout, request);
+            return;
+        }
+
+        request.active = false;
+        request.lastRejectedAt = block.timestamp;
+        emit MilestoneRejected(roundId, payout.ideaId, stage, request.requestId);
+
+        // The author receives one opportunity to correct a quorum-rejected proof.
+        if (request.requestId >= 2) {
+            _cancelBackerGrant(roundId, payout, block.timestamp);
+        }
+    }
+
+    function _cancelBackerGrant(
+        uint256 roundId,
+        GrantPayout storage payout,
+        uint256 deadline
+    ) internal {
+        payout.cancelled = true;
+        try fundingPool.activateGrantRefund(roundId) {
+            // The pool restores only unvested V2.3 fee before enabling proportional refunds.
+        } catch {
+            revert ExternalCallFailed("FundingPool", "activateGrantRefund");
+        }
+
+        ideaRegistry.updateStatus(payout.ideaId, IdeaStatus.Cancelled);
+        emit GrantCancelled(roundId, payout.ideaId, deadline);
+    }
+
+    function _backerVoteKey(uint256 roundId, uint8 stage, uint256 requestId)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(roundId, stage, requestId));
+    }
+
     /**
      * @notice Validates whether a milestone submission can be created for the given stage
      * @dev This function enforces the grant flow:
@@ -882,7 +1153,8 @@ contract GrantManagerUpgradeable is
         GrantPayout storage payout,
         MilestoneRequest storage request
     ) internal {
-        uint256 amount = _milestoneAmount(payout.totalGrant, stage);
+        bool isBackerGoverned = votingSystem.isBackerMilestoneRound(roundId);
+        uint256 amount = _milestoneAmount(roundId, payout.totalGrant, stage);
 
         payout.released += amount;
         request.active = false;
@@ -892,6 +1164,15 @@ contract GrantManagerUpgradeable is
             payout.inProcessPaidAt = block.timestamp;
         } else {
             payout.completionPaid = true;
+        }
+
+        if (isBackerGoverned) {
+            uint256 cumulativeTrancheBps = stage == IN_PROCESS_STAGE ? 6_000 : 10_000;
+            try fundingPool.releaseProgressiveFundingRoundFee(roundId, cumulativeTrancheBps) {
+                // Fee vests with the matching 40% tranche.
+            } catch {
+                revert ExternalCallFailed("FundingPool", "releaseProgressiveFundingRoundFee");
+            }
         }
 
         try fundingPool.distributeFunds(roundId, payout.ideaId, amount) {
@@ -914,8 +1195,8 @@ contract GrantManagerUpgradeable is
      * @param stage Milestone stage identifier
      * @return uint256 Amount to release for the given stage
      */
-    function _milestoneAmount(uint256 totalGrant, uint8 stage) internal pure returns (uint256) {
-        uint256 initialPayout = (totalGrant * INITIAL_PAYOUT_PERCENT) / 100;
+    function _milestoneAmount(uint256 roundId, uint256 totalGrant, uint8 stage) internal view returns (uint256) {
+        uint256 initialPayout = (totalGrant * _initialPayoutPercent(votingSystem.isBackerMilestoneRound(roundId))) / 100;
         uint256 inProcessPayout = (totalGrant * IN_PROCESS_PAYOUT_PERCENT) / 100;
 
         if (stage == IN_PROCESS_STAGE) {
@@ -926,6 +1207,10 @@ contract GrantManagerUpgradeable is
         }
 
         return 0;
+    }
+
+    function _initialPayoutPercent(bool isBackerGoverned) internal pure returns (uint256) {
+        return isBackerGoverned ? BACKER_INITIAL_PAYOUT_PERCENT : INITIAL_PAYOUT_PERCENT;
     }
 
     function _milestoneDeadline(GrantPayout storage payout, uint8 stage) internal view returns (uint256) {
@@ -944,5 +1229,5 @@ contract GrantManagerUpgradeable is
      * @custom:upgrade-safety Always include 50 slots gap in upgradeable contracts
      * @custom:warning Do not remove or reduce this gap in future versions
      */
-    uint256[50] private __gap;
+    uint256[47] private __gap;
 }

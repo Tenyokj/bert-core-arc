@@ -179,6 +179,13 @@ interface IIdeaRegistry {
         uint256 minimumNetFunding
     );
 
+    event FundingMilestonePlanCommitted(
+        uint256 indexed ideaId,
+        address indexed author,
+        string planURI,
+        bytes32 planHash
+    );
+
     /* ========== IDEA MANAGEMENT FUNCTIONS ========== */
 
     /**
@@ -198,6 +205,9 @@ interface IIdeaRegistry {
 
     /// @notice Allows a legacy proposal author to set the proposal's minimum post-fee funding target.
     function configureLegacyFundingProposal(uint256 ideaId, uint256 minimumNetFunding) external;
+
+    /** @notice Commits the immutable delivery plan required for a V2.3 funding round. */
+    function commitFundingMilestonePlan(uint256 ideaId, string memory planURI, bytes32 planHash) external;
 
     /**
      * @notice Updates the status of an existing idea
@@ -292,6 +302,9 @@ interface IIdeaRegistry {
 
     /// @notice Returns whether an idea uses the stake-backed funding model.
     function isFundingProposal(uint256 ideaId) external view returns (bool);
+
+    /** @notice Returns whether an idea has committed a V2.3 milestone plan. */
+    function hasFundingMilestonePlan(uint256 ideaId) external view returns (bool);
 
     /**
      * @notice Returns the total number of created ideas

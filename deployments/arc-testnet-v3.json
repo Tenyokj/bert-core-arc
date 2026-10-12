@@ -2,6 +2,7 @@
   "network": "arcTestnet",
   "chainId": 5042002,
   "deployedAt": "2026-09-09",
+  "updatedAt": "2026-10-12",
   "usdc": "0x3600000000000000000000000000000000000000",
   "rolesRegistry": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
   "popVerifier": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
@@ -21,27 +22,31 @@
   "v2": {
     "ideaRegistry": {
       "proxy": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
-      "implementation": "0x1d9efBE1c6bC8c1052f116E200f9CD83944bB842",
+      "implementation": "0xbcF691cc4160E2fc31D2bCe83fFc61821e931658",
       "proxyAdmin": "0xc56a44edE787c5C046c79E1BA5b1236Aec0C7347",
-      "upgradeBlock": 61277189,
-      "upgradeTransaction": "0x770192ab591bd70c08c2a21fb20b02babc5abbf1dcb02ea37e236238f1398d30"
+      "upgradeBlock": 65961605,
+      "upgradeTransaction": "0x25e04b6ab0565ce090536473922d30b3b9eddbb5bacb508b954093f670f835cf"
     },
     "fundingPool": {
       "proxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
-      "implementation": "0x821E23Cf1a6E34f26544522965cb02D1da3B3d61",
+      "implementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
       "proxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
-      "upgradeBlock": 61277325,
-      "upgradeTransaction": "0x7f66bc89ee0bff9508a2ca58af4345acc3aefe6a48dfed560d57ad3ff03706ec"
+      "upgradeBlock": 66809444,
+      "upgradeTransaction": "0x6a3f82c71d2cbc2130908e86b8210b913668508c4afd68551b931a006c048593"
     },
     "votingSystem": {
       "proxy": "0xD008fC96902A9680FF77305881Ad6C6C075e7a68",
-      "implementation": "0x53fb8d4cedf1e260ec231e13032ef8ac8ebb9847",
-      "proxyAdmin": "0x971a69360f30ff671f40e692b3b72b812c1c9bf0"
+      "implementation": "0xfbf81677C3958Aa5D677022360302f365528888c",
+      "proxyAdmin": "0x971a69360f30ff671f40e692b3b72b812c1c9bf0",
+      "upgradeBlock": 65961663,
+      "upgradeTransaction": "0x27ee898d0856b0e5ee473040cd209282c75612f70da236ef04732518f4a7c461"
     },
     "grantManager": {
       "proxy": "0xA110baB4562d59d8bb7eDA4a05E53F40c678ccB2",
-      "implementation": "0xadd92ca4b314758eccbfc8c7d4d5950d595152a7",
-      "proxyAdmin": "0x1d3e84217702fdd53fae2ea652e520777e7caa47"
+      "implementation": "0x8A46C5Bab3b1e62d3eB055C070c53D74d72A30F3",
+      "proxyAdmin": "0x1d3e84217702fdd53fae2ea652e520777e7caa47",
+      "upgradeBlock": 65961794,
+      "upgradeTransaction": "0x69835e5aea756ff89b0257ce1a27a21d6465ec353ca643c5b0d72e261066b5f8"
     },
     "voterProgression": {
       "proxy": "0xF6EB65957bb5e363FCD6B84AAdf76E41Ba754E14",
@@ -54,13 +59,29 @@
       "proxyAdmin": "0x1e8feb21d8e73a1eec44aa09ec5b59fb9376c0b1"
     }
   },
-  "v3": {
+  "v3Legacy": {
     "factory": "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",
     "factoryImplementation": "0x53532C921EC65e71d89Eb54D2A767d6AbA3D818c",
     "factoryProxyAdmin": "0x7CeA6Fd35d8248d0691686Db10fCd94849Cd3a79",
     "factoryDeploymentBlock": 61277385,
     "treasuryDeployer": "0x84594a42E59789C687e9397a994D71CFfa522409",
     "adminActionsLibrary": "0x5EA79A8a98f588aa342f53baCBC8729A6Ea1177E",
-    "fundingPoolConfigurationTransaction": "0x64f72f6faa86dab29a674a8da8ded1e4440661f31e15d16a1f966f33530e0dd8"
+    "fundingPoolConfigurationTransaction": "0x7ccb8902cf7036951820126e051e18ca8508c8cc8349ffc34469d1a25a1cdf74"
+  },
+  "v3": {
+    "version": "3.1.0",
+    "factory": "0xe16Cd61a21feA97393e6eEE3A7F7A26828021dD0",
+    "factoryImplementation": "0x98B9f4C5AE645861a54944cf4C4299Cf1b08e618",
+    "factoryProxyAdmin": "0x67ba9074bC2B696f3d5c808623429Cd2D207e81f",
+    "factoryDeploymentBlock": 66809847,
+    "factoryDeploymentTransaction": "0x4f60aeca659d275ef8cef0c761441207a83a78012b1006c8a79b3beaca84ec32",
+    "treasuryDeployer": "0x009F80F6Eab73806655B10E2A5f42Ed3F2A9125b",
+    "membershipModuleDeployer": "0x1bC3fe5821B88d4Dcf5253Ee860D21eCEe235010",
+    "proposalModuleDeployer": "0xe7421a97D168825E048E29eb70196918d71c5a7D",
+    "votingModuleDeployer": "0xb3f60c1dB662b1d62F9Aa7652F95B62D819FfA6d",
+    "milestoneModuleDeployer": "0xdb7846846011792cf9c70391078a0399E8a91569",
+    "adminActionsLibrary": "0x889A087A90cf711D86B208681ea8AfE668479303",
+    "fundingPoolConfigurationTransaction": "0x845f814537778cdd61d2e11fe3eb80d4fda9557058212afc3ef884c70f16e66a",
+    "subgraph": "https://api.studio.thegraph.com/query/1742046/bert-v-3-1-arc-testnet/v3.1.0"
   }
 }

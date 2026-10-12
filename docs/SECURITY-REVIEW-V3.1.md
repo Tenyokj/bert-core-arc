@@ -1,6 +1,7 @@
 # BERT V3.1 Security Review Notes
 
-**Status:** internal pre-testnet review. This document is not an audit and does not claim that V3.1 is safe for mainnet use.
+**Status:** internal Arc Testnet release review. This document is not an audit
+and does not claim that V3.1 is safe for mainnet use.
 
 ## Scope
 

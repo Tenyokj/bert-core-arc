@@ -1,7 +1,8 @@
 # BERT Contributor Testing Guide
 
-**Status:** pre-release testnet guide for BERT V2.3 and V3.1. This is not an
-audit report, a production readiness claim, or permission to use real funds.
+**Status:** public Arc Testnet testing guide for deployed BERT V2.3 and V3.1.
+This is not an audit report, a production readiness claim, or permission to
+use real funds.
 
 This document is the canonical QA and security-testing playbook for external
 testers, frontend contributors, indexer operators, and smart-contract

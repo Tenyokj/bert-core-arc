@@ -198,6 +198,7 @@ If `USDC_ADDRESS` is not set, the deploy script falls back to `MockUSDC` for loc
 10. [Local V3.1 E2E runbook](docs/LOCAL-V3.1-E2E.md)
 11. [V3.1 security review notes](docs/SECURITY-REVIEW-V3.1.md)
 12. [V3.1 Arc Testnet release runbook](docs/V3.1-ARC-TESTNET-RELEASE.md)
+13. [Contributing guide](CONTRIBUTING.md)
 
 **Disclaimer**
 This repository contains the core smart contracts of the protocol. The codebase may evolve rapidly, so older guides may not match the current layout. Refer to the latest docs for accurate integration guidance.

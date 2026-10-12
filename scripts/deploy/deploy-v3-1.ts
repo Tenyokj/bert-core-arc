@@ -86,6 +86,14 @@ async function main() {
     initData,
   );
   await proxy.waitForDeployment();
+  const factoryDeploymentTransaction = proxy.deploymentTransaction();
+  if (factoryDeploymentTransaction == null) {
+    throw new Error("Missing CommunityFactory proxy deployment transaction");
+  }
+  const factoryDeploymentReceipt = await factoryDeploymentTransaction.wait();
+  if (factoryDeploymentReceipt == null) {
+    throw new Error("Missing CommunityFactory proxy deployment receipt");
+  }
 
   const factoryAddress = await proxy.getAddress();
   const factory = await ethers.getContractAt("CommunityFactory", factoryAddress, deployer);
@@ -110,8 +118,12 @@ async function main() {
   console.log("CommunityFactory implementation:", await factoryImplementation.getAddress());
   console.log("CommunityFactory proxy:", factoryAddress);
   console.log("CommunityFactory ProxyAdmin:", await readProxyAdmin(ethers, factoryAddress));
+  console.log("CommunityFactory deployment transaction:", factoryDeploymentTransaction.hash);
+  console.log("CommunityFactory deployment block:", factoryDeploymentReceipt.blockNumber);
   console.log("\nSave these values:");
   console.log(`V3_1_FACTORY_ADDRESS=${factoryAddress}`);
+  console.log(`V3_1_FACTORY_DEPLOYMENT_TRANSACTION=${factoryDeploymentTransaction.hash}`);
+  console.log(`V3_1_FACTORY_START_BLOCK=${factoryDeploymentReceipt.blockNumber}`);
   console.log(`V3_1_TREASURY_DEPLOYER_ADDRESS=${await treasuryDeployer.getAddress()}`);
   console.log(`V3_1_MEMBERSHIP_MODULE_DEPLOYER_ADDRESS=${await membershipDeployer.getAddress()}`);
   console.log(`V3_1_PROPOSAL_MODULE_DEPLOYER_ADDRESS=${await proposalDeployer.getAddress()}`);

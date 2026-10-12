@@ -1,0 +1,562 @@
+// SPDX-License-Identifier: GPL-3.0
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##########################▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#######%********************%#####@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▁@###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%%******%#################%******%####@▇▇▇▇▇▇▇▇▇▇▇@####▓▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▓######▇▇▇▇▇▇▇▇▇█#####*****##############################*****%####▇▇▇▇▇▇@######▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##%####@▇▇▇▇#####****######################################****#####▇#####%##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##**%###▇@###%***############################################***%######**##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***#####***%########################*#######################%*%###***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%****%#############################%**##########################%****##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%*****%#######################%##*%**%##%#####################*****###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####*******%###############%%****##%%%***%##****%##############******%#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇█######********##%######%*********##%%%%****%#%********%#####%##*******###%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###*###%*******%#%***###%********##*%%%%*****%#%*******###%**##*******###***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%###%*******##*****###******##%*%%%%%*****%#%****%##****%#%*******####***####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%#####%*******##%**###******##%*%%%%%*******##%*****##%**##*******######%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**%########*******##%##%******##%*%%%######%****##%*****#####******%########%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%###########%*****###******%##%*##############%*###*****%##*****%###########%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***#####@#########****%##%****########################%***###****%##############***@##▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**######**%%##%*%###%***###****%##%%%###########%*%##****##%**%###%**###%**%#####**%##@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%########%***%#%**%###%*%##%***%###%***%###%***%###***%##*%###%***%%****%#######%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**%###########%*********%######****####%********###%***######%*********%###########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**###############%*********%####%***#####*****####%**%####%*********%##############%**###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##@**%##########**%######%********%###***%#####*#####***%##%********%#####%**###########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###**%#########*****#########%************%#########***%*********%########****##########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**#########%****#########%###%***********#######**********%###%########%***%#########**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**#########*****@##%#####****%###%********####%*******%###%****%########****%########***###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**########******###*#####%*******####%*****%#******%####*******%###%%##%*****########***###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####**%######%*******##*%######****%#########%*****%#########%***%#####*###*******#######**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##@***######********###**######################%####################%**##%*******#######**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇###%**#######********%##**%##############%%%%%###%**%#############%***##********#######%**%###▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##%**%#######*********###%********%####%%%%%%%******%####%%*******%##%*******%########%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***@########%*********%%######%%**###%%%%%%*****%###%*%%######%*********%##########***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###**%#####*####%*****************###%##%%%%%*****######%***************%####*%#####%**####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###***####%**%######%**********%##%***###%%%%****###%***###*********%######%***#####***###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▓####***####****##########@######*******###%%%***%###******%#####@#########%***%####***@###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇####***####****%###%##########%********###%%%*%###********#########%%###****%###@***%###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###%***######%**##%%%%%########%*******##%%**###******%########%%%%##%*%#@#####***%###@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@###%***############%%%%%%#######%*****%##%%###*****%######%%%%%%########%####***%####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#####***####******%#####%%%%%######****%#####****%#####%%%%%#####%******####***%####@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####***%###%******%####%%%%%%%#####%**%###%**######%%%%%#####*******####%***#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%***####%*******####%%%%%##%%####%##%%###%*##%%%%%####*******%####***%#####▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####****####%*******####%%%%##%%%%######%***%##%%%###%*******%####****#####@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%****#####******#%####%##%%%%%%%%******##%%#####%*****#####****%####@@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@####%****######***##**######%%%%%%******%#####%*%#***%#####****%#####@#▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇######*****########****######%%%%*****#####%***##%#####%****%######@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#######%*****######*****######%%***%####%****######%****%#######@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@#####@%*****%####%****#####%*%#####****%###%******########@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#@#######%****####%****#########****####*****%#########▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇##########%*######***%#####***%#####%%#@########@█▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@##############@%**%#***%################@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇@@@############***#############@#@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇#@@###############@▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+// ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇  
+/**
+ *     NOTICE
+ *
+ *     BERT V3 is the Community Layer of the BERT protocol, designed to enable
+ *     independent on-chain communities to turn proposals into transparent,
+ *     stake-backed decisions and route resulting capital automatically.
+ *
+ *     Each community operates through its own governance infrastructure,
+ *     including stake-gated membership, administrators, validators, proposal
+ *     validation, USDC-backed binary voting, community treasury management,
+ *     and integration with the global BERT reserve.
+ *
+ *     BERT V3 extends the BERT ecosystem as a separate Community Layer while
+ *     preserving the existing protocol architecture and enabling communities
+ *     to coordinate decisions and capital transparently on EVM-compatible
+ *     blockchains.
+ *
+ *     Copyright (C) 2026, BERT contributors.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
+ * @notice BERT V3 Community Layer custom errors.
+ * @dev Generic errors remain in contracts/BERT/utils/Errors.sol to preserve one protocol-wide vocabulary.
+ * 
+ * @custom:version 1.0.0
+ */
+pragma solidity ^0.8.20;
+
+// Generic errors such as ZeroAddress, ZeroAmount, InvalidId, and InvalidParameter
+// remain defined in contracts/BERT/utils/Errors.sol and are imported by V3 contracts.
+
+// ========== Community State And Roles ==========
+
+/**
+ * @notice The requested action requires an active community.
+ */
+error CommunityNotActive();
+
+/**
+ * @notice The requested action is unavailable while the community is paused.
+ */
+error CommunityIsPaused();
+
+/**
+ * @notice The requested action is unavailable after a community is archived.
+ */
+error CommunityIsArchived();
+
+/**
+ * @notice A community cannot archive while unresolved governance could lock user funds.
+ * @param pendingValidationProposals Member proposals still awaiting validator decisions.
+ * @param activeBinaryProposals Binary votes still open for settlement.
+ * @param activeSlateRounds Slate rounds still open for settlement.
+ * @param unresolvedMemberProposals Member proposals with bonds not yet returned or slashed.
+ */
+error CommunityArchiveBlocked(
+    uint256 pendingValidationProposals,
+    uint256 activeBinaryProposals,
+    uint256 activeSlateRounds,
+    uint256 unresolvedMemberProposals
+);
+
+/** @notice An Admin action request identifier does not exist. @param requestId Missing request identifier. */
+error AdminActionRequestNotFound(uint256 requestId);
+/** @notice An Admin action request has already reached a terminal state. @param requestId Terminal request identifier. */
+error AdminActionRequestClosed(uint256 requestId);
+/** @notice An Admin action request has exceeded its Community-clock approval lifetime. @param requestId Expired request identifier. */
+error AdminActionRequestExpired(uint256 requestId);
+/** @notice An Admin already approved this action request. @param requestId Request identifier. @param admin Duplicate approver. */
+error AdminActionAlreadyApproved(uint256 requestId, address admin);
+/** @notice A request lacks the configured Admin approval quorum. @param requestId Request identifier. @param approvals Recorded approvals. @param required Required approvals. */
+error AdminActionApprovalThresholdNotMet(uint256 requestId, uint256 approvals, uint256 required);
+/** @notice Only the request proposer may cancel a pending Admin action request. @param requestId Request identifier. @param caller Unauthorized caller. */
+error NotAdminActionProposer(uint256 requestId, address caller);
+/** @notice The selected Admin action parameters do not match its declared action type. */
+error InvalidAdminActionParameters();
+/** @notice A live quorum cancellation request already targets this withdrawal. @param withdrawalRequestId Treasury withdrawal identifier. @param actionRequestId Existing Admin action identifier. */
+error WithdrawalCancellationAlreadyRequested(uint256 withdrawalRequestId, uint256 actionRequestId);
+
+/**
+ * @notice The caller does not hold the community-local admin role.
+ * @param account Address that attempted the admin-only action.
+ */
+error NotCommunityAdmin(address account);
+
+/**
+ * @notice The caller does not hold the community-local validator role.
+ * @param account Address that attempted the validator-only action.
+ */
+error NotCommunityValidator(address account);
+
+/**
+ * @notice The caller is not an active member of this community.
+ * @param account Address that attempted the member-only action.
+ */
+error NotCommunityMember(address account);
+
+/**
+ * @notice An address is already an active member.
+ * @param account Existing member address.
+ */
+error AlreadyCommunityMember(address account);
+
+/**
+ * @notice An address cannot hold more than one active Community state.
+ * @param account Address that would violate the local role-separation invariant.
+ */
+error AdminValidatorRoleConflict(address account);
+
+/**
+ * @notice A role-management action attempted to add an address that already has that role.
+ * @param account Address that is already assigned.
+ */
+error RoleAlreadyAssigned(address account);
+
+/**
+ * @notice A role-management action referenced an address without that role.
+ * @param account Address that is not assigned to the required role.
+ */
+error RoleNotAssigned(address account);
+
+/**
+ * @notice Removing an admin would leave the community without an admin.
+ */
+error CannotRemoveLastAdmin();
+
+/**
+ * @notice The validator set cannot change while member proposal validation is open.
+ */
+error ValidatorSetLocked();
+
+/**
+ * @notice A community configuration value is outside its permitted range.
+ * @param field Configuration field name.
+ */
+error InvalidCommunityConfig(string field);
+
+/** @notice Raised when a compact V3 Community configuration validation code fails. */
+error InvalidCommunityConfigCode(uint8 code);
+
+/** @notice Raised when a named V3 Community address field is zero, encoded as a compact code. */
+error CommunityZeroAddress(uint8 field);
+
+/**
+ * @notice The rejection fee exceeds the protocol's hard cap.
+ * @param feeBps Requested fee in basis points.
+ * @param maxFeeBps Maximum permitted fee in basis points.
+ */
+error RejectionFeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
+
+// ========== Membership ==========
+
+/**
+ * @notice The supplied membership stake is below the community minimum.
+ * @param supplied Amount supplied by the member.
+ * @param required Minimum amount configured for the community.
+ */
+error MembershipStakeTooLow(uint256 supplied, uint256 required);
+
+/**
+ * @notice A member has not started the exit process.
+ * @param account Member address.
+ */
+error ExitNotRequested(address account);
+
+/**
+ * @notice A member has already started the exit process.
+ * @param account Member address.
+ */
+error ExitAlreadyRequested(address account);
+
+/**
+ * @notice A member attempted to finalize exit before the cooldown ended.
+ * @param availableAt Timestamp at which exit becomes available.
+ */
+error ExitCooldownNotFinished(uint256 availableAt);
+
+/**
+ * @notice A member has an unresolved governance obligation and cannot exit yet.
+ * @param account Member address.
+ */
+error MembershipExitBlocked(address account);
+
+// ========== Proposal And Validation ==========
+
+/**
+ * @notice A referenced proposal ID does not exist.
+ * @param proposalId Proposal identifier.
+ */
+error CommunityProposalNotFound(uint256 proposalId);
+
+/**
+ * @notice A proposal is not in the required lifecycle state.
+ * @param proposalId Proposal identifier.
+ */
+error InvalidProposalState(uint256 proposalId);
+
+/**
+ * @notice The caller already recorded a validator decision for this proposal.
+ * @param proposalId Proposal identifier.
+ * @param validator Validator address.
+ */
+error ValidatorDecisionAlreadyCast(uint256 proposalId, address validator);
+
+/**
+ * @notice The validator decision window has closed.
+ * @param proposalId Proposal identifier.
+ */
+error ValidationWindowClosed(uint256 proposalId);
+
+/**
+ * @notice Validation cannot be finalized until its configured deadline.
+ * @param proposalId Proposal identifier.
+ * @param availableAt Timestamp at which finalization becomes available.
+ */
+error ValidationStillOpen(uint256 proposalId, uint256 availableAt);
+
+// ========== Binary Voting ==========
+
+/**
+ * @notice A proposal's binary voting window has not been opened.
+ * @param proposalId Proposal identifier.
+ */
+error VotingNotOpen(uint256 proposalId);
+
+/**
+ * @notice The binary voting deadline has passed.
+ * @param proposalId Proposal identifier.
+ */
+error VotingWindowClosed(uint256 proposalId);
+
+/**
+ * @notice A member can cast only one binary vote for a proposal.
+ * @param proposalId Proposal identifier.
+ * @param voter Member address.
+ */
+error BinaryVoteAlreadyCast(uint256 proposalId, address voter);
+
+/**
+ * @notice A proposal author attempted to vote on their own binary proposal.
+ * @dev Authors must not influence the direct outcome of a proposal they submitted.
+ * @param proposalId Proposal identifier.
+ * @param author Proposal creator that attempted the vote.
+ */
+error ProposalAuthorCannotVote(uint256 proposalId, address author);
+
+/**
+ * @notice A voter has already released their exit lock for a settled proposal.
+ * @param proposalId Proposal identifier.
+ * @param voter Voter address.
+ */
+error VoteLockAlreadyCleared(uint256 proposalId, address voter);
+
+/**
+ * @notice The supplied voting stake is below the community minimum.
+ * @param supplied Amount supplied by the voter.
+ * @param required Community minimum vote amount.
+ */
+error VoteStakeTooLow(uint256 supplied, uint256 required);
+
+/**
+ * @notice A binary vote choice must be Yes or No, never None.
+ */
+error InvalidVoteChoice();
+
+/**
+ * @notice A proposal cannot be settled before its voting deadline.
+ * @param proposalId Proposal identifier.
+ * @param availableAt Timestamp at which settlement becomes available.
+ */
+error VotingStillOpen(uint256 proposalId, uint256 availableAt);
+
+/**
+ * @notice A proposal's funds and lifecycle have already been settled.
+ * @param proposalId Proposal identifier.
+ */
+error ProposalAlreadySettled(uint256 proposalId);
+
+/**
+ * @notice A requested action requires a binary proposal that Treasury has already settled.
+ * @param proposalId Proposal identifier.
+ */
+error ProposalNotSettled(uint256 proposalId);
+
+/**
+ * @notice A referenced slate round does not exist.
+ * @param roundId Round identifier.
+ */
+error CommunityRoundNotFound(uint256 roundId);
+
+/**
+ * @notice A proposal does not satisfy the required slate-round constraints.
+ * @param proposalId Proposal identifier.
+ */
+error InvalidRoundProposal(uint256 proposalId);
+
+/**
+ * @notice A member has not earned enough local proposal points for validator nomination.
+ * @param account Member considered for appointment.
+ * @param points Current local proposal points.
+ * @param required Minimum points required for eligibility.
+ */
+error ValidatorNotEligible(address account, uint256 points, uint256 required);
+
+/**
+ * @notice A member already selected an option in this slate round.
+ * @param roundId Round identifier.
+ * @param voter Member address.
+ */
+error RoundVoteAlreadyCast(uint256 roundId, address voter);
+
+/**
+ * @notice A voter has no unresolved vote lock for this proposal.
+ * @param proposalId Proposal identifier.
+ * @param voter Voter address.
+ */
+error VoteLockNotFound(uint256 proposalId, address voter);
+
+// ========== Treasury, Refunds, And Rewards ==========
+
+/**
+ * @notice The caller is not the Hub paired with this treasury.
+ * @param caller Address that attempted the Hub-only action.
+ */
+error NotCommunityHub(address caller);
+
+/**
+ * @notice A requested execution withdrawal exceeds available execution funds.
+ * @param requested Amount requested for transfer.
+ * @param available Current execution balance.
+ */
+error InsufficientExecutionBalance(uint256 requested, uint256 available);
+
+/**
+ * @notice No refund is available for this voter and proposal.
+ * @param proposalId Proposal identifier.
+ * @param voter Voter address.
+ */
+error RefundNotAvailable(uint256 proposalId, address voter);
+
+/**
+ * @notice The voter has already claimed this proposal refund.
+ * @param proposalId Proposal identifier.
+ * @param voter Voter address.
+ */
+error RefundAlreadyClaimed(uint256 proposalId, address voter);
+
+/**
+ * @notice A referenced validator reward epoch does not exist.
+ * @param epochId Epoch identifier.
+ */
+error ValidatorRewardEpochNotFound(uint256 epochId);
+
+/**
+ * @notice Validator rewards cannot be claimed until the epoch is finalized.
+ * @param epochId Epoch identifier.
+ */
+error ValidatorRewardEpochNotFinalized(uint256 epochId);
+
+/**
+ * @notice A validator reward epoch has already been finalized.
+ * @param epochId Epoch identifier.
+ */
+error ValidatorRewardEpochAlreadyFinalized(uint256 epochId);
+
+/**
+ * @notice The epoch has no claimable reward for validators.
+ * @param epochId Epoch identifier.
+ */
+error ValidatorRewardUnavailable(uint256 epochId);
+
+/**
+ * @notice The validator did not meet the epoch participation threshold.
+ * @param epochId Epoch identifier.
+ * @param validator Validator address.
+ */
+error ValidatorNotActiveForEpoch(uint256 epochId, address validator);
+
+/**
+ * @notice The validator has already claimed the reward for this epoch.
+ * @param epochId Epoch identifier.
+ * @param validator Validator address.
+ */
+error ValidatorRewardAlreadyClaimed(uint256 epochId, address validator);
+
+// ========== Multi-Admin Withdrawals ==========
+
+/**
+ * @notice A referenced withdrawal request does not exist.
+ * @param requestId Withdrawal request identifier.
+ */
+error WithdrawalRequestNotFound(uint256 requestId);
+
+/**
+ * @notice An admin may approve a withdrawal request only once.
+ * @param requestId Withdrawal request identifier.
+ * @param admin Admin address.
+ */
+error WithdrawalAlreadyApproved(uint256 requestId, address admin);
+
+/**
+ * @notice A withdrawal request has already been executed.
+ * @param requestId Withdrawal request identifier.
+ */
+error WithdrawalAlreadyExecuted(uint256 requestId);
+
+/**
+ * @notice A withdrawal request has already been cancelled.
+ * @param requestId Withdrawal request identifier.
+ */
+error WithdrawalAlreadyCancelled(uint256 requestId);
+
+/**
+ * @notice The admin approval quorum has not yet been reached.
+ * @param requestId Withdrawal request identifier.
+ * @param approvals Current approval count.
+ * @param required Required approval count.
+ */
+error WithdrawalApprovalThresholdNotMet(uint256 requestId, uint256 approvals, uint256 required);
+
+/**
+ * @notice The caller is not the factory that deployed the treasury.
+ * @param caller Unauthorized caller address.
+ */
+error NotCommunityFactory(address caller);
+
+/**
+ * @notice A treasury action requires a paired CommunityHub that has not been configured yet.
+ */
+error CommunityHubNotConfigured();
+
+/**
+ * @notice CommunityHub can be linked to a treasury only once.
+ */
+error CommunityHubAlreadyConfigured();
+
+/**
+ * @notice The requested amount exceeds membership funds locked in the treasury.
+ * @param requested Amount requested for release.
+ * @param available Amount currently locked for all members.
+ */
+error InsufficientMembershipLocked(uint256 requested, uint256 available);
+
+/**
+ * @notice A proposal already has a bond recorded in this treasury.
+ * @param proposalId Proposal identifier.
+ */
+error ProposalBondAlreadyDeposited(uint256 proposalId);
+
+/**
+ * @notice A proposal has no bond recorded in this treasury.
+ * @param proposalId Proposal identifier.
+ */
+error ProposalBondNotFound(uint256 proposalId);
+
+/**
+ * @notice A proposal bond has already been returned or slashed.
+ * @param proposalId Proposal identifier.
+ */
+error ProposalBondAlreadySettled(uint256 proposalId);
+
+/**
+ * @notice Settlement inputs do not match the vote escrow recorded for a proposal.
+ * @param proposalId Proposal identifier.
+ * @param expected Escrowed USDC amount.
+ * @param supplied Sum of YES and NO amounts supplied for settlement.
+ */
+error VoteEscrowMismatch(uint256 proposalId, uint256 expected, uint256 supplied);
+
+/**
+ * @notice The chosen settlement path does not match the binary vote totals.
+ * @param proposalId Proposal identifier.
+ * @param yesStake Total YES stake.
+ * @param noStake Total NO stake.
+ */
+error InvalidBinarySettlement(uint256 proposalId, uint256 yesStake, uint256 noStake);
+
+/**
+ * @notice Only the creator recorded for a pending community may activate it.
+ * @param communityId Factory-assigned community identifier.
+ * @param caller Unauthorized caller address.
+ */
+error NotCommunityCreator(uint256 communityId, address caller);
+
+/**
+ * @notice A community already has a linked and registered Hub.
+ * @param communityId Factory-assigned community identifier.
+ */
+error CommunityAlreadyActivated(uint256 communityId);
+
+/**
+ * @notice The supplied Hub does not match the pending community's creator, treasury, or configuration.
+ * @param hub Supplied Hub address.
+ */
+error InvalidCommunityHub(address hub);

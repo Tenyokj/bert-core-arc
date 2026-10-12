@@ -99,6 +99,12 @@ interface ICommunityFactory {
      */
     function humanVerifier() external view returns (address);
 
+    /** @notice Fixed V3.1 module deployer boundaries used by every new CommunityHub. */
+    function membershipModuleDeployer() external view returns (address);
+    function proposalModuleDeployer() external view returns (address);
+    function votingModuleDeployer() external view returns (address);
+    function milestoneModuleDeployer() external view returns (address);
+
     /**
      * @notice Emitted when Factory deploys and reserves a Treasury for a new community.
      * @param communityId Monotonic Factory-assigned community identifier.

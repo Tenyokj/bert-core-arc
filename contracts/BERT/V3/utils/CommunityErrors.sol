@@ -89,7 +89,7 @@
  * @notice BERT V3 Community Layer custom errors.
  * @dev Generic errors remain in contracts/BERT/utils/Errors.sol to preserve one protocol-wide vocabulary.
  * 
- * @custom:version 1.0.0
+ * @custom:version 1.1.0
  */
 pragma solidity ^0.8.20;
 
@@ -490,6 +490,10 @@ error WithdrawalApprovalThresholdNotMet(uint256 requestId, uint256 approvals, ui
  * @param caller Unauthorized caller address.
  */
 error NotCommunityFactory(address caller);
+error NotCommunityMilestoneManager(address caller);
+error CommunityMilestoneManagerAlreadyConfigured();
+error CommunityV31ModulesAlreadyConfigured();
+error InsufficientMilestoneReserve(uint256 requested, uint256 available);
 
 /**
  * @notice A treasury action requires a paired CommunityHub that has not been configured yet.

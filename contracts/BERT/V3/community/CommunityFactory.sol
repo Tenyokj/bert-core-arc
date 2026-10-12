@@ -90,6 +90,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 import {ICommunityFactory} from "../interfaces/ICommunityFactory.sol";
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
+import {ICommunityHubV31} from "../interfaces/ICommunityHubV31.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
 import {ICommunityTreasuryDeployer} from "../interfaces/ICommunityTreasuryDeployer.sol";
 import {CommunityTypes} from "../libraries/CommunityTypes.sol";
@@ -103,7 +104,7 @@ import "../utils/CommunityErrors.sol";
  * @dev Direct Hub deployment avoids storing CommunityHub creation bytecode in a contract exceeding EVM size limits.
  * This contract never owns a community after deployment and has no withdrawal or governance authority.
  * 
- * @custom:version 1.0.0
+ * @custom:version 2.0.0
  */
 contract CommunityFactory is Initializable, ICommunityFactory {
     /**
@@ -113,6 +114,11 @@ contract CommunityFactory is Initializable, ICommunityFactory {
     ICommunityTreasuryDeployer public communityTreasuryDeployer;
     /** @notice Protocol-wide PoP verifier that every community created through this Factory must use. */
     address public humanVerifier;
+    /** @notice Stateless V3.1 module deployment boundaries fixed for all Factory communities. */
+    address public membershipModuleDeployer;
+    address public proposalModuleDeployer;
+    address public votingModuleDeployer;
+    address public milestoneModuleDeployer;
     /** @notice Last assigned monotonic community identifier. */
     uint256 public communityCount;
 
@@ -139,7 +145,14 @@ contract CommunityFactory is Initializable, ICommunityFactory {
      * @param communityTreasuryDeployer_ Contract that deploys CommunityTreasury instances.
      * @param humanVerifier_ Shared BERT proof-of-personhood verifier for all Factory communities.
      */
-    function initialize(ICommunityTreasuryDeployer communityTreasuryDeployer_, address humanVerifier_) external initializer {
+    function initialize(
+        ICommunityTreasuryDeployer communityTreasuryDeployer_,
+        address humanVerifier_,
+        address membershipModuleDeployer_,
+        address proposalModuleDeployer_,
+        address votingModuleDeployer_,
+        address milestoneModuleDeployer_
+    ) external initializer {
         if (address(communityTreasuryDeployer_) == address(0)) {
             revert ZeroAddress("communityTreasuryDeployer");
         }
@@ -149,9 +162,17 @@ contract CommunityFactory is Initializable, ICommunityFactory {
         if (humanVerifier_.code.length == 0) {
             revert InvalidParameter("humanVerifier", "must be a contract");
         }
+        _requireContract(membershipModuleDeployer_, "membershipModuleDeployer");
+        _requireContract(proposalModuleDeployer_, "proposalModuleDeployer");
+        _requireContract(votingModuleDeployer_, "votingModuleDeployer");
+        _requireContract(milestoneModuleDeployer_, "milestoneModuleDeployer");
 
         communityTreasuryDeployer = communityTreasuryDeployer_;
         humanVerifier = humanVerifier_;
+        membershipModuleDeployer = membershipModuleDeployer_;
+        proposalModuleDeployer = proposalModuleDeployer_;
+        votingModuleDeployer = votingModuleDeployer_;
+        milestoneModuleDeployer = milestoneModuleDeployer_;
     }
 
     /**
@@ -226,7 +247,14 @@ contract CommunityFactory is Initializable, ICommunityFactory {
         communityIdByHub[hub] = communityId;
 
         // Effects precede the trusted Treasury link; a failed link reverts these writes atomically.
-        ICommunityTreasury(deployment.treasury).setCommunityHub(hub);
+        ICommunityTreasury treasury = ICommunityTreasury(deployment.treasury);
+        treasury.setCommunityHub(hub);
+        treasury.setV31Modules(
+            ICommunityHubV31(hub).membershipModule(),
+            ICommunityHubV31(hub).proposalModule(),
+            ICommunityHubV31(hub).votingModule()
+        );
+        treasury.setMilestoneManager(ICommunityHubV31(hub).milestoneManager());
 
         emit CommunityCreated(communityId, deployment.creator, hub, deployment.treasury);
     }
@@ -275,5 +303,10 @@ contract CommunityFactory is Initializable, ICommunityFactory {
      * @notice Reserved storage slots for future CommunityFactory proxy upgrades.
      * @dev Do not reorder existing storage variables; consume slots only by appending new state.
      */
-    uint256[49] private __gap;
+    function _requireContract(address candidate, string memory name) private view {
+        if (candidate == address(0)) revert ZeroAddress(name);
+        if (candidate.code.length == 0) revert InvalidParameter(name, "must be a contract");
+    }
+
+    uint256[45] private __gap;
 }

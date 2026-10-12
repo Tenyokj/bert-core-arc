@@ -92,9 +92,15 @@ pragma solidity ^0.8.20;
  * @notice Shared V3 data shapes used by CommunityFactory, CommunityHub, and CommunityTreasury.
  * @dev This library is a namespace only. It has no storage, executable business logic, or access control.
  * 
- * @custom:version 1.0.0
+ * @custom:version 2.0.0
  */
 library CommunityTypes {
+    uint256 internal constant MILESTONE_BPS_DENOMINATOR = 10_000;
+    uint256 internal constant MILESTONE_QUORUM_BPS = 4_000;
+    uint256 internal constant MILESTONE_APPROVAL_BPS = 6_667;
+    uint256 internal constant MILESTONE_MIN_APPROVER_SHARE_BPS = 300;
+    uint256 internal constant MILESTONE_MIN_UNIQUE_APPROVERS = 3;
+
     /**
      * @notice Lifecycle state of a community.
      * @dev Variants:
@@ -229,6 +235,9 @@ library CommunityTypes {
      * - validatorRewardEpoch: duration of one validator reward epoch.
      * - validatorActiveThresholdBps: minimum validation-case participation, in basis points.
      * - validatorProposalPointsThreshold: winning member proposals required before validator nomination.
+     * - executionRecipient: immutable Community administration/team wallet receiving approved tranches.
+     * - milestoneReviewDuration: pause-adjusted duration of one supporter milestone review.
+     * - milestoneProofDuration: pause-adjusted deadline for submitting each milestone proof.
      */
     struct CommunityConfig {
         string name;
@@ -251,6 +260,9 @@ library CommunityTypes {
         uint256 validatorRewardEpoch;
         uint256 validatorActiveThresholdBps;
         uint256 validatorProposalPointsThreshold;
+        address executionRecipient;
+        uint64 milestoneReviewDuration;
+        uint64 milestoneProofDuration;
     }
 
     /**
@@ -397,5 +409,47 @@ library CommunityTypes {
         address hub;
         address treasury;
         uint64 createdAt;
+    }
+
+    /** @notice V3.1 lifecycle for the execution budget of a settled winner. */
+    enum ExecutionPlanStatus {
+        None,
+        AwaitingProof,
+        Reviewing,
+        CorrectionCooldown,
+        GraceReview,
+        Completed,
+        Failed
+    }
+
+    enum MilestoneReviewChoice {
+        None,
+        Approve,
+        Reject
+    }
+
+    /** @notice Immutable payment schedule and mutable review state for one winning proposal. */
+    struct ExecutionPlan {
+        uint256 proposalId;
+        uint256 totalBudget;
+        uint256 eligibleSupportWeight;
+        uint256 releasedAmount;
+        uint256 refundableAmount;
+        uint64 proofDeadline;
+        uint8 currentMilestone;
+        ExecutionPlanStatus status;
+    }
+
+    /** @notice Per-stage aggregate review state. Detailed evidence remains off-chain. */
+    struct MilestoneReview {
+        uint64 openedAt;
+        uint64 closesAt;
+        uint64 correctionAvailableAt;
+        uint256 approvingWeight;
+        uint256 rejectingWeight;
+        uint256 approvingAddresses;
+        uint256 participatingAddresses;
+        uint8 proofAttempts;
+        bytes32 evidenceHash;
     }
 }

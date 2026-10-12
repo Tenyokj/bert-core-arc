@@ -43,6 +43,8 @@ The protocol must defend against:
 - reviewer abuse during milestone approval
 - accounting drift between token balances and internal pool state
 - broken upgrades that preserve admin control but corrupt storage layout
+- a malicious or incorrectly approved Community Factory routing reserve from an arbitrary Treasury
+- a non-standard ERC-20 attempting callbacks during stake intake, payout, or refund
 
 The protocol does not assume a fully trustless governance environment today. Admin authority, role assignment, and reviewer behavior remain meaningful trust boundaries.
 
@@ -61,6 +63,13 @@ Admin compromise is one of the highest-severity scenarios in the system.
 ### System Contract Trust
 Core modules trust each other through configured addresses and role assignments. Incorrect wiring can break valid flows even when the contract code itself is correct.
 
+### Community Factory Trust
+`FundingPoolUpgradeable` maintains an explicit allowlist of Community Factories
+for protocol-reserve intake. The protocol Admin is trusted to add only reviewed
+Factory deployments and to revoke only after considering outstanding Community
+flows. V3.0 and V3.1 Factories may be approved concurrently; replacing the
+legacy Factory pointer is not an authorization migration strategy.
+
 ### Reviewer and Curator Trust
 Curators and reviewers are not arbitrary users; they are earned-role or admin-granted actors. Even so, they remain a trust boundary because:
 - curators can mark ideas as low quality
@@ -75,6 +84,8 @@ Curators and reviewers are not arbitrary users; they are earned-role or admin-gr
 5. milestone proof approval and rejection flow
 6. reserve allocation, fee finalization, and distribution logic
 7. admin-owned configuration parameters
+8. V3.1 Factory/Treasury/module activation and capability binding
+9. non-standard ERC-20 behavior at every transfer boundary
 
 ## Access Control Risks
 
@@ -147,6 +158,13 @@ Mitigation:
 - post-upgrade and post-incident reconciliation
 - explicit pool balance validation
 - controlled use of reserve allocation and pool reconciliation functions
+
+### Community Reserve Routing Risk
+Only an active Treasury recognised by an approved Community Factory may call
+`receiveCommunityReserve`. The Factory list is bounded to keep the authorization
+lookup predictable. Testers must attempt reserve routing from an arbitrary
+Treasury, an inactive Treasury, and a Treasury belonging to a revoked Factory.
+They must also confirm that approving V3.1 leaves V3.0 routing functional.
 
 ## Voting and Round Risks
 
@@ -229,6 +247,14 @@ An upgrade that changes storage safely can still break the protocol if it change
 - role registry address
 - reputation system address
 - voter progression address
+
+### Community Factory Migration Risk
+The V3.1 deployment requires an append-only FundingPool upgrade and a one-time
+initializer that seeds the historical Factory into the allowlist. The migration
+must run while the V2 operational modules are paused. Before authorizing V3.1,
+operators must snapshot `totalPoolBalance`, `protocolReserve`, legacy Factory
+approval, and the configured USDC address; each value must match after the
+migration.
 
 ### Proxy Administration Risk
 Wrong proxy or wrong admin usage can:

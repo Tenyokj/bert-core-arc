@@ -64,16 +64,52 @@ The script:
 6. If PoP participation is enabled, confirm VotingSystem `humanVerifier`, `humanOnlyVoting`, `maxVoteAmount`; IdeaRegistry `humanVerifier`, `humanOnlyIdeaCreation`; and verifier `trustedSigner`.
 7. Confirm `FundingPoolUpgradeable.pledgeFeeBps()` matches the intended policy and that `VotingSystemUpgradeable.IDEAS_PER_ROUND()` is between `5` and `50`.
 
-## V3 PoP Configuration
+## Archived V3.0 Community Deployment
 
-`CommunityFactory` requires the same deployed `PoPVerifierUpgradeable` used by V2. Set its proxy address before deploying the Community Layer:
+The commands below applied to the previous V3.0 Community Layer. Its source,
+scripts, tests, and full deployment guide now live under
+[`legacy/V3_0`](../../../legacy/V3_0/). Do not use them to deploy the modular
+current V3 implementation.
+
+## Current V3.1 Community Deployment
+
+V3.1 is deployed as a new modular Community Factory; it does not replace or
+modify V3.0 Communities. Read the dedicated
+[V3.1 Arc Testnet release runbook](../../../docs/V3.1-ARC-TESTNET-RELEASE.md)
+before deploying it.
+
+> **Do not replace an existing Factory address in `FundingPoolUpgradeable`.**
+> The legacy FundingPool configuration accepts one Factory today. Replacing its
+> configured V3.0 Factory with V3.1 would prevent V3.0 Community Treasuries
+> from routing future protocol-reserve transfers. A multi-Factory allowlist
+> upgrade and its tests are required before V3.1 is deployed beside V3.0.
+
+After that upgrade, deploy V3.1 after V2 and allowlist it in the V2 FundingPool
+before creating a Community:
+
+```bash
+POP_VERIFIER_ADDRESS=0x... \
+V3_PROXY_ADMIN_OWNER=0x... \
+npx hardhat run scripts/deploy/deploy-v3-1.ts --network arcTestnet
+
+FUNDING_POOL_ADDRESS=0x... \
+V3_1_FACTORY_ADDRESS=0x... \
+npx hardhat run scripts/deploy/configure-v3-1-funding-pool.ts --network arcTestnet
+```
+
+The second command will become an additive allowlist action. It must permit only
+Treasuries activated by the specified V3.1 Factory to transfer Community
+protocol reserve into `FundingPoolUpgradeable`, without removing the V3.0
+Factory.
+
+V3.0 required the same deployed `PoPVerifierUpgradeable` used by V2:
 
 ```bash
 export POP_VERIFIER_ADDRESS=0x...
-npx hardhat run scripts/deploy/deploy-v3.ts --network arcTestnet
+npx hardhat run legacy/V3_0/scripts/deploy/deploy-v3.ts --network arcTestnet
 ```
 
-V3 requires a verified creator to reserve a Community and a verified wallet to lock entry stake and become a Member. This preserves read access and fund-recovery flows for already-existing users.
+V3.0 required a verified creator to reserve a Community and a verified wallet to lock entry stake and become a Member. This preserved read access and fund-recovery flows for already-existing users.
 
 **Post-Deploy Console Checks**
 

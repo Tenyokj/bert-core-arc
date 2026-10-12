@@ -215,6 +215,13 @@ interface IFundingPool {
     event CommunityFactoryUpdated(address indexed communityFactory);
 
     /**
+     * @notice Emitted when a Factory's authority to authenticate V3 Treasury reserve callers changes.
+     * @param communityFactory CommunityFactory registry address.
+     * @param approved Whether the Factory can currently authenticate an active Treasury caller.
+     */
+    event CommunityFactoryApprovalUpdated(address indexed communityFactory, bool approved);
+
+    /**
      * @notice Emitted when an active V3 Treasury contributes USDC to protocol reserve
      * @param communityTreasury Authenticated V3 Treasury that supplied the reserve capital
      * @param amount USDC amount routed to protocol reserve
@@ -238,10 +245,24 @@ interface IFundingPool {
     function receiveCommunityReserve(uint256 amount) external;
 
     /**
-     * @notice Configures the BERT V3 Factory used to authenticate CommunityTreasury callers
+     * @notice Records the legacy primary V3 Factory and adds it to the Factory allowlist.
      * @param communityFactory V3 CommunityFactory address
      */
     function setCommunityFactory(address communityFactory) external;
+
+    /**
+     * @notice Adds or revokes a V3 Factory used to authenticate CommunityTreasury callers.
+     * @param communityFactory V3 CommunityFactory address.
+     * @param approved Whether the Factory may authenticate reserve callers.
+     */
+    function setCommunityFactoryApproval(address communityFactory, bool approved) external;
+
+    /**
+     * @notice Reports whether a Factory is approved to authenticate CommunityTreasury callers.
+     * @param communityFactory V3 CommunityFactory address.
+     * @return True when the Factory is allowlisted.
+     */
+    function isCommunityFactoryApproved(address communityFactory) external view returns (bool);
 
     /**
      * @notice Deposits author stake for an idea directly from the author

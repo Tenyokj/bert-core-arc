@@ -95,6 +95,8 @@ import {IGlobalBertReserve} from "../interfaces/IGlobalBertReserve.sol";
 import {ICommunityFactory} from "../interfaces/ICommunityFactory.sol";
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
+import {ICommunityVotingModule} from "../interfaces/ICommunityVotingModule.sol";
+import {ICommunityMilestoneTreasury} from "../interfaces/ICommunityMilestoneTreasury.sol";
 import {IHumanVerifier} from "../../interfaces/IHumanVerifier.sol";
 
 import "../utils/CommunityErrors.sol";
@@ -105,9 +107,9 @@ import "../../utils/Errors.sol";
  * @notice Holds USDC and settlement accounting for one BERT V3 community.
  * @dev Governance decisions live in CommunityHub; this contract only executes authorized fund flows.
  * 
- * @custom:version 1.0.0
+ * @custom:version 2.0.2
  */
-contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
+contract CommunityTreasury is ICommunityTreasury, ICommunityMilestoneTreasury, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /**
@@ -126,6 +128,12 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
      * @notice Paired Hub that authorizes governance-originated fund flows.
      */
     address public communityHub;
+    /** @notice V3.1 execution-plan module, configured once by the Factory. */
+    address public milestoneManager;
+    /** @notice Narrow V3.1 callers for membership, proposal-bond and vote-settlement flows. */
+    address public membershipModule;
+    address public proposalModule;
+    address public votingModule;
 
     /**
      * @notice Refundable member stakes; never spendable as execution funds.
@@ -159,6 +167,10 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
      * @notice Proposal bonds not yet returned or routed to the global reserve.
      */
     uint256 public totalProposalBondLocked;
+    /** @notice Capital protected for active V3.1 winner execution plans. */
+    uint256 public totalMilestoneReserved;
+    /** @notice Unreleased plan capital converted into winning-supporter refund liabilities. */
+    uint256 public totalMilestoneRefundLiability;
 
     /**
      * @notice Bond amount recorded for each member proposal.
@@ -167,6 +179,8 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     mapping(uint256 proposalId => uint256 amount) public proposalBondById;
     /** @notice Whether each proposal bond has already been returned or routed to global reserve. */
     mapping(uint256 proposalId => bool settled) public proposalBondSettled;
+    mapping(uint256 planId => uint256 amount) public milestoneReserveByPlan;
+    mapping(uint256 planId => uint256 amount) public milestoneRefundByPlan;
 
     /**
      * @notice Whether a binary proposal's vote escrow has already been settled.
@@ -275,6 +289,39 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         _;
     }
 
+    modifier onlyMilestoneManager() {
+        if (msg.sender != milestoneManager) revert NotCommunityMilestoneManager(msg.sender);
+        _;
+    }
+
+    /* ========== V3.1 CONFIGURATION AND EXECUTION EVENTS ========== */
+
+    /// @notice Emitted when the Factory permanently binds the execution-plan manager.
+    event CommunityMilestoneManagerConfigured(address indexed milestoneManager);
+    /// @notice Emitted when the Factory permanently binds the least-privilege V3.1 modules.
+    event CommunityV31ModulesConfigured(
+        address indexed membershipModule,
+        address indexed proposalModule,
+        address votingModule
+    );
+    /// @notice Emitted when execution balance becomes reserved for a V3.1 plan.
+    event ExecutionPlanReserved(uint256 indexed planId, uint256 amount);
+
+    modifier onlyMembershipAuthority() {
+        if (msg.sender != communityHub && msg.sender != membershipModule) revert NotCommunityHub(msg.sender);
+        _;
+    }
+
+    modifier onlyProposalAuthority() {
+        if (msg.sender != communityHub && msg.sender != proposalModule) revert NotCommunityHub(msg.sender);
+        _;
+    }
+
+    modifier onlyVotingAuthority() {
+        if (msg.sender != communityHub && msg.sender != votingModule) revert NotCommunityHub(msg.sender);
+        _;
+    }
+
     /**
      * @notice Restricts governance-changing actions to an active community.
      */
@@ -304,15 +351,15 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     function depositMembershipStake(
         address member,
         uint256 amount
-    ) external override onlyCommunityHub onlyActiveCommunity {
+    ) external override onlyMembershipAuthority onlyActiveCommunity nonReentrant {
         if (amount == 0) revert ZeroAmount();
         if (member == address(0)) revert ZeroAddress("member");
         if (!IHumanVerifier(ICommunityFactory(factory).humanVerifier()).isVerifiedHuman(member)) {
             revert HumanVerificationRequired(member);
         }
 
-        usdc.safeTransferFrom(member, address(this), amount);
         totalMembershipLocked += amount;
+        usdc.safeTransferFrom(member, address(this), amount);
 
         emit MembershipStakeDeposited(member, amount);
     }
@@ -326,7 +373,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     function finalizeValidatorRewardEpoch(
         uint256 epochId,
         uint256 activeValidatorCount
-    ) external override onlyCommunityHub onlyActiveCommunity {
+    ) external override onlyProposalAuthority onlyActiveCommunity {
         if (epochId == 0) revert InvalidId("epochId");
         if (validatorRewardEpochFinalized[epochId]) {
             revert ValidatorRewardEpochAlreadyFinalized(epochId);
@@ -340,15 +387,14 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
             return;
         }
 
-        uint256 rewardPerValidator;
+        uint256 rewardPerValidator = 0;
         if (activeValidatorCount == 0) {
             // No validator earned this epoch, so the community retains the inflow for execution.
             executionBalance += epochReward;
             validatorRewardBalance -= epochReward;
         } else {
             rewardPerValidator = epochReward / activeValidatorCount;
-            uint256 distributableReward = rewardPerValidator * activeValidatorCount;
-            uint256 roundingDust = epochReward - distributableReward;
+            uint256 roundingDust = epochReward % activeValidatorCount;
 
             if (roundingDust != 0) {
                 executionBalance += roundingDust;
@@ -370,7 +416,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     function releaseMembershipStake(
         address member,
         uint256 amount
-    ) external override onlyCommunityHub nonReentrant {
+    ) external override onlyMembershipAuthority nonReentrant {
         if (member == address(0)) revert ZeroAddress("member");
         if (amount == 0) revert ZeroAmount();
         if (amount > totalMembershipLocked) {
@@ -393,7 +439,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         uint256 proposalId,
         address author,
         uint256 amount
-    ) external override onlyCommunityHub onlyActiveCommunity {
+    ) external override onlyProposalAuthority onlyActiveCommunity nonReentrant {
         if (proposalId == 0) revert InvalidId("proposalId");
         if (author == address(0)) revert ZeroAddress("author");
         if (amount == 0) revert ZeroAmount();
@@ -401,9 +447,9 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
             revert ProposalBondAlreadyDeposited(proposalId);
         }
 
-        usdc.safeTransferFrom(author, address(this), amount);
         proposalBondById[proposalId] = amount;
         totalProposalBondLocked += amount;
+        usdc.safeTransferFrom(author, address(this), amount);
 
         emit ProposalBondDeposited(proposalId, author, amount);
     }
@@ -443,7 +489,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
      */
     function slashProposalBond(
         uint256 proposalId
-    ) external override onlyCommunityHub nonReentrant {
+    ) external override onlyProposalAuthority nonReentrant {
         uint256 amount = proposalBondById[proposalId];
 
         if (amount == 0) revert ProposalBondNotFound(proposalId);
@@ -465,7 +511,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
     function returnProposalBond(
         uint256 proposalId,
         address author
-    ) external override onlyCommunityHub nonReentrant {
+    ) external override onlyProposalAuthority nonReentrant {
         uint256 amount = proposalBondById[proposalId];
 
         if (author == address(0)) revert ZeroAddress("author");
@@ -489,15 +535,15 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         uint256 proposalId,
         address voter,
         uint256 amount
-    ) external override onlyCommunityHub onlyActiveCommunity {
+    ) external override onlyVotingAuthority onlyActiveCommunity nonReentrant {
         if (proposalId == 0) revert InvalidId("proposalId");
         if (voter == address(0)) revert ZeroAddress("voter");
         if (amount == 0) revert ZeroAmount();
         if (binaryVoteSettled[proposalId]) revert ProposalAlreadySettled(proposalId);
 
-        usdc.safeTransferFrom(voter, address(this), amount);
         totalVoteEscrow += amount;
         voteEscrowByProposal[proposalId] += amount;
+        usdc.safeTransferFrom(voter, address(this), amount);
 
         emit VoteStakeDeposited(proposalId, voter, amount);
     }
@@ -509,15 +555,15 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         uint256 roundId,
         address voter,
         uint256 amount
-    ) external override onlyCommunityHub onlyActiveCommunity {
+    ) external override onlyVotingAuthority onlyActiveCommunity nonReentrant {
         if (roundId == 0) revert InvalidId("roundId");
         if (voter == address(0)) revert ZeroAddress("voter");
         if (amount == 0) revert ZeroAmount();
         if (slateRoundSettled[roundId]) revert ProposalAlreadySettled(roundId);
 
-        usdc.safeTransferFrom(voter, address(this), amount);
         totalRoundVoteEscrow += amount;
         voteEscrowByRound[roundId] += amount;
+        usdc.safeTransferFrom(voter, address(this), amount);
         emit RoundVoteStakeDeposited(roundId, voter, amount);
     }
 
@@ -530,14 +576,14 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         uint256 roundId,
         uint256 totalStake,
         uint256 epochId
-    ) external override onlyCommunityHub onlyActiveCommunity nonReentrant {
+    ) external override onlyVotingAuthority onlyActiveCommunity nonReentrant {
         if (roundId == 0) revert InvalidId("roundId");
         if (slateRoundSettled[roundId]) revert ProposalAlreadySettled(roundId);
         if (voteEscrowByRound[roundId] != totalStake) {
             revert VoteEscrowMismatch(roundId, voteEscrowByRound[roundId], totalStake);
         }
 
-        uint256 validatorReward;
+        uint256 validatorReward = 0;
         if (epochId != 0) {
             uint256 rewardShareBps = ICommunityHub(communityHub).validatorRewardShareBps();
             validatorReward = (totalStake * rewardShareBps) / 10_000;
@@ -567,7 +613,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         uint256 yesStake,
         uint256 noStake,
         uint256 epochId
-    ) external override onlyCommunityHub onlyActiveCommunity nonReentrant {
+    ) external override onlyVotingAuthority onlyActiveCommunity nonReentrant {
         if (proposalId == 0) revert InvalidId("proposalId");
         if (binaryVoteSettled[proposalId]) revert ProposalAlreadySettled(proposalId);
         if (yesStake <= noStake) {
@@ -580,7 +626,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
             revert VoteEscrowMismatch(proposalId, proposalEscrow, totalStake);
         }
 
-        uint256 validatorReward;
+        uint256 validatorReward = 0;
         if (epochId != 0) {
             uint256 rewardShareBps = ICommunityHub(communityHub).validatorRewardShareBps();
             if (rewardShareBps > 10_000) revert InvalidCommunityConfig("validatorRewardShareBps");
@@ -615,7 +661,7 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         uint256 yesStake,
         uint256 noStake,
         uint256 feeBps
-    ) external override onlyCommunityHub onlyActiveCommunity nonReentrant {
+    ) external override onlyVotingAuthority onlyActiveCommunity nonReentrant {
         if (proposalId == 0) revert InvalidId("proposalId");
         if (binaryVoteSettled[proposalId]) revert ProposalAlreadySettled(proposalId);
         if (noStake < yesStake) {
@@ -662,8 +708,9 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
             revert RefundAlreadyClaimed(proposalId, msg.sender);
         }
 
-        (CommunityTypes.VoteChoice choice, uint256 stake) = ICommunityHub(communityHub)
-            .getBinaryVote(proposalId, msg.sender);
+        (CommunityTypes.VoteChoice choice, uint256 stake) = votingModule == address(0)
+            ? ICommunityHub(communityHub).getBinaryVote(proposalId, msg.sender)
+            : ICommunityVotingModule(votingModule).getBinaryVote(proposalId, msg.sender);
         if (choice != CommunityTypes.VoteChoice.No || stake == 0) {
             revert RefundNotAvailable(proposalId, msg.sender);
         }
@@ -864,6 +911,93 @@ contract CommunityTreasury is ICommunityTreasury, ReentrancyGuard {
         communityHub = communityHub_;
 
         emit CommunityHubConfigured(communityHub_);
+    }
+
+    /**
+     * @notice Binds the V3.1 execution-plan module exactly once.
+     * @dev The Factory controls this binding; neither Community admins nor the
+     *      Hub may install a replacement spender after Community creation.
+     */
+    function setMilestoneManager(address milestoneManager_) external onlyFactory {
+        if (milestoneManager != address(0)) revert CommunityMilestoneManagerAlreadyConfigured();
+        if (milestoneManager_ == address(0) || milestoneManager_.code.length == 0) {
+            revert ZeroAddress("milestoneManager");
+        }
+        milestoneManager = milestoneManager_;
+        emit CommunityMilestoneManagerConfigured(milestoneManager_);
+    }
+
+    /** @notice Binds the least-privilege V3.1 runtime modules once. */
+    function setV31Modules(address membershipModule_, address proposalModule_, address votingModule_)
+        external
+        onlyFactory
+    {
+        if (membershipModule != address(0) || proposalModule != address(0) || votingModule != address(0)) {
+            revert CommunityV31ModulesAlreadyConfigured();
+        }
+        if (
+            membershipModule_ == address(0) || proposalModule_ == address(0) || votingModule_ == address(0)
+                || membershipModule_.code.length == 0 || proposalModule_.code.length == 0 || votingModule_.code.length == 0
+        ) revert ZeroAddress("v31Module");
+        membershipModule = membershipModule_;
+        proposalModule = proposalModule_;
+        votingModule = votingModule_;
+        emit CommunityV31ModulesConfigured(membershipModule_, proposalModule_, votingModule_);
+    }
+
+    /** @notice Moves settled Community execution capital into a protected V3.1 plan reserve. */
+    function reserveExecutionPlan(uint256 planId, uint256 amount)
+        external
+        onlyMilestoneManager
+        nonReentrant
+    {
+        if (planId == 0 || amount == 0) revert ZeroAmount();
+        if (amount > executionBalance) revert InsufficientExecutionBalance(amount, executionBalance);
+        executionBalance -= amount;
+        totalMilestoneReserved += amount;
+        milestoneReserveByPlan[planId] += amount;
+        emit ExecutionPlanReserved(planId, amount);
+    }
+
+    /** @notice Releases an approved tranche only to the Community's immutable execution recipient. */
+    function releaseExecutionTranche(uint256 planId, address recipient, uint256 amount)
+        external
+        onlyMilestoneManager
+        nonReentrant
+    {
+        if (recipient == address(0)) revert ZeroAddress("recipient");
+        uint256 reserved = milestoneReserveByPlan[planId];
+        if (amount == 0 || amount > reserved) revert InsufficientMilestoneReserve(amount, reserved);
+        milestoneReserveByPlan[planId] = reserved - amount;
+        totalMilestoneReserved -= amount;
+        usdc.safeTransfer(recipient, amount);
+    }
+
+    /** @notice Converts unreleased plan capital into a pull-refund reserve for winning supporters. */
+    function seedExecutionPlanRefund(uint256 planId, uint256 amount)
+        external
+        onlyMilestoneManager
+    {
+        uint256 reserved = milestoneReserveByPlan[planId];
+        if (amount == 0 || amount > reserved) revert InsufficientMilestoneReserve(amount, reserved);
+        milestoneReserveByPlan[planId] = reserved - amount;
+        totalMilestoneReserved -= amount;
+        totalMilestoneRefundLiability += amount;
+        milestoneRefundByPlan[planId] += amount;
+    }
+
+    /** @notice Pays a pro-rata failed-plan refund after Manager verifies the supporter snapshot. */
+    function claimExecutionPlanRefund(uint256 planId, address recipient, uint256 amount)
+        external
+        onlyMilestoneManager
+        nonReentrant
+    {
+        if (recipient == address(0)) revert ZeroAddress("recipient");
+        uint256 available = milestoneRefundByPlan[planId];
+        if (amount == 0 || amount > available) revert InsufficientMilestoneReserve(amount, available);
+        milestoneRefundByPlan[planId] = available - amount;
+        totalMilestoneRefundLiability -= amount;
+        usdc.safeTransfer(recipient, amount);
     }
 
     /**

@@ -95,7 +95,7 @@ import "../utils/Errors.sol";
  * @dev Handles donor balances, fund safekeeping, and controlled distribution
  * @dev Pausable, Upgradeable
  * 
- * @custom:version 1.3.0
+ * @custom:version 1.4.0
  */
 contract FundingPoolUpgradeable is 
     Initializable, 
@@ -198,6 +198,18 @@ contract FundingPoolUpgradeable is
     mapping(uint256 => uint256) public progressiveFeeTrancheBpsByRound;
     mapping(uint256 => bool) public progressiveFeeRestoredForRefund;
 
+    /// @notice Factories explicitly allowed to authenticate active CommunityTreasury reserve callers.
+    /// @dev Appended for the V3.1 release. It preserves legacy proxy storage and allows V3.0
+    ///      and V3.1 Factories to coexist without replacing each other's reserve-routing access.
+    mapping(address => bool) public approvedCommunityFactories;
+
+    /// @dev Enumerable allowlist required to authenticate a Treasury against each approved Factory.
+    ///      The list is deliberately capped because `receiveCommunityReserve` checks it onchain.
+    address[] private approvedCommunityFactoryList;
+
+    /// @notice Maximum Factory count permitted for CommunityTreasury reserve authentication.
+    uint256 public constant MAX_COMMUNITY_FACTORIES = 16;
+
     /* ========== INITIALIZE ========== */
 
     constructor() {
@@ -248,6 +260,18 @@ contract FundingPoolUpgradeable is
         emit PledgeFeeUpdated(initialFeeBps);
     }
 
+    /**
+     * @notice Seeds the V3 Factory allowlist from the legacy configured Factory after upgrade.
+     * @dev This one-time migration preserves V3.0 reserve routing before a V3.1 Factory is added.
+     *      It may initialize an empty allowlist when no legacy Factory was configured.
+     * @custom:emits CommunityFactoryApprovalUpdated
+     */
+    function initializeCommunityFactoryAllowlist() external reinitializer(3) onlyAdmin {
+        if (communityFactory != address(0)) {
+            _setCommunityFactoryApproval(communityFactory, true);
+        }
+    }
+
     /* ========== EXTERNAL FUNCTIONS ========== */
 
     /**
@@ -277,12 +301,12 @@ contract FundingPoolUpgradeable is
      * @notice Pulls USDC routed by an active BERT V3 CommunityTreasury into protocol reserve
      * @dev Unlike `deposit`, this does not create a donor balance because V3 outcomes are protocol revenue.
      * @param amount Amount of USDC to move from the calling CommunityTreasury
-     * @custom:requires V3 Factory configured and caller is an activated Treasury in that Factory
+     * @custom:requires At least one V3 Factory allowlisted and caller active in one of them
      */
     function receiveCommunityReserve(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
-        if (communityFactory == address(0)) revert CommunityFactoryNotConfigured();
-        if (!ICommunityFactoryRegistry(communityFactory).isActiveCommunityTreasury(msg.sender)) {
+        if (approvedCommunityFactoryList.length == 0) revert CommunityFactoryNotConfigured();
+        if (!_isActiveCommunityTreasury(msg.sender)) {
             revert UnauthorizedCommunityTreasury(msg.sender);
         }
 
@@ -838,8 +862,12 @@ contract FundingPoolUpgradeable is
     }
 
     /**
-     * @notice Configures the BERT V3 CommunityFactory that authenticates reserve contributors
-     * @param _communityFactory Factory address for active CommunityTreasury validation
+     * @notice Records the legacy primary V3 Factory and allows it to authenticate reserve contributors.
+     * @dev Retained for ABI compatibility. It never revokes a previously allowlisted Factory;
+     *      use `setCommunityFactoryApproval` for explicit additive or revocation changes.
+     * @param _communityFactory Factory address for active CommunityTreasury validation.
+     * @custom:emits CommunityFactoryUpdated
+     * @custom:emits CommunityFactoryApprovalUpdated
      */
     function setCommunityFactory(address _communityFactory) external onlyAdmin {
         if (_communityFactory == address(0)) {
@@ -847,7 +875,87 @@ contract FundingPoolUpgradeable is
         }
 
         communityFactory = _communityFactory;
+        _setCommunityFactoryApproval(_communityFactory, true);
         emit CommunityFactoryUpdated(_communityFactory);
+    }
+
+    /**
+     * @notice Adds or revokes a Factory that may authenticate active CommunityTreasury callers.
+     * @dev Revocation blocks future reserve transfers from that Factory; it does not modify
+     *      historical accounting or any Community Treasury balance.
+     * @param factory CommunityFactory registry address.
+     * @param approved Whether the Factory may authenticate reserve callers.
+     * @custom:emits CommunityFactoryApprovalUpdated
+     */
+    function setCommunityFactoryApproval(address factory, bool approved) external onlyAdmin {
+        if (factory == address(0)) revert ZeroAddress("communityFactory");
+        _setCommunityFactoryApproval(factory, approved);
+    }
+
+    /**
+     * @notice Reports whether a Factory may authenticate CommunityTreasury reserve callers.
+     * @param factory CommunityFactory registry address to inspect.
+     * @return True when the Factory is explicitly allowlisted.
+     */
+    function isCommunityFactoryApproved(address factory) external view returns (bool) {
+        return approvedCommunityFactories[factory];
+    }
+
+    /**
+     * @notice Returns the number of Factory addresses retained in the reserve-routing registry.
+     * @dev Includes revoked entries so an address can be reapproved without shifting indices.
+     */
+    function communityFactoryCount() external view returns (uint256) {
+        return approvedCommunityFactoryList.length;
+    }
+
+    /**
+     * @notice Returns a Factory address retained in the reserve-routing registry.
+     * @param index Zero-based Factory registry index.
+     */
+    function communityFactoryAt(uint256 index) external view returns (address) {
+        return approvedCommunityFactoryList[index];
+    }
+
+    /* ========== INTERNAL FUNCTIONS ========== */
+
+    /**
+     * @dev Updates the Factory allowlist while preserving a bounded enumerable registry.
+     * @param factory CommunityFactory registry address.
+     * @param approved Desired allowlist status.
+     */
+    function _setCommunityFactoryApproval(address factory, bool approved) internal {
+        if (approved && !approvedCommunityFactories[factory]) {
+            if (approvedCommunityFactoryList.length >= MAX_COMMUNITY_FACTORIES) {
+                revert InvalidParameter("communityFactories", "maximum reached");
+            }
+            approvedCommunityFactoryList.push(factory);
+        }
+
+        approvedCommunityFactories[factory] = approved;
+        emit CommunityFactoryApprovalUpdated(factory, approved);
+    }
+
+    /**
+     * @dev Returns true only when `treasury` is active in an explicitly approved Factory.
+     *      A malformed/reverted third-party Factory response is ignored rather than blocking
+     *      other approved Factories from authenticating their own Treasury.
+     * @param treasury CommunityTreasury caller attempting to route reserve USDC.
+     */
+    function _isActiveCommunityTreasury(address treasury) internal view returns (bool) {
+        uint256 factoryCount = approvedCommunityFactoryList.length;
+        for (uint256 i = 0; i < factoryCount; ++i) {
+            address factory = approvedCommunityFactoryList[i];
+            if (!approvedCommunityFactories[factory]) continue;
+
+            try ICommunityFactoryRegistry(factory).isActiveCommunityTreasury(treasury) returns (bool active) {
+                if (active) return true;
+            } catch {
+                // A revoked, malformed, or temporarily unavailable Factory cannot block another one.
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -96,7 +96,7 @@ import {ICommunityTreasuryDeployer} from "../interfaces/ICommunityTreasuryDeploy
  * @notice Deploys CommunityTreasury instances without bloating CommunityFactory runtime code.
  * @dev The supplied Factory remains the only account that can bind the new Treasury to a Hub.
  * 
- * @custom:version 1.0.0
+ * @custom:version 2.0.0
  */
 contract CommunityTreasuryDeployer is ICommunityTreasuryDeployer {
     /**

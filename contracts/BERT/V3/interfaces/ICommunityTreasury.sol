@@ -94,6 +94,9 @@ import "../libraries/CommunityTypes.sol";
  * @dev Amounts are denominated in the configured USDC-compatible asset's native units.
  */
 interface ICommunityTreasury {
+    /** @notice Factory that deployed and may configure this Treasury exactly once. */
+    function factory() external view returns (address);
+
     /**
      * @notice Emitted when the factory permanently links the paired CommunityHub.
      */
@@ -203,6 +206,12 @@ interface ICommunityTreasury {
      * @param communityHub_ Validated Hub address authorized to initiate Treasury flows.
      */
     function setCommunityHub(address communityHub_) external;
+
+    /** @notice Binds the immutable V3.1 module authorities after Hub activation. */
+    function setV31Modules(address membershipModule_, address proposalModule_, address votingModule_) external;
+
+    /** @notice Binds the immutable V3.1 milestone custody authority after Hub activation. */
+    function setMilestoneManager(address milestoneManager_) external;
 
     /**
      * @notice Returns a Hub-approved member exit stake.

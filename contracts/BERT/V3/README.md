@@ -1,86 +1,61 @@
-![LOGO](/docs//assets/v3-banner.png)
+# BERT V3.1 Community Layer
 
-# BERT V3 Community Layer
+This directory is the current, deployable V3.1 Community Layer. The original
+testnet implementation is retained unchanged in `legacy/V3_0/`; it is not
+imported by the current contracts and must not be used for a new deployment.
 
-BERT V3 is the Community Layer module of the main BERT protocol. It lets an organization create an isolated, stake-gated governance space with local administrators, validators, members, proposal voting, and a USDC treasury.
+## Runtime layout
 
-It is not a replacement for BERT V2. V2 remains the global protocol layer; V3 communities are independent local governance domains that route defined protocol revenue into the existing V2 `FundingPoolUpgradeable` reserve.
+`community/CommunityFactory.sol` is the shared, upgradeable entry point. It
+reserves a Community Treasury, records the immutable config hash, and activates
+only a Hub deployed by the Community creator with that exact config.
 
-For the whole protocol, start with the [main BERT README](../../../README.md).
+`community/CommunityHub.sol` is intentionally thin. It owns the Community
+clock, immutable configuration, and quorum-protected admin actions. It forwards
+operations to the modules below rather than embedding their creation bytecode.
 
-## What A Community Contains
+`community/CommunityTreasury.sol` remains the sole USDC custodian. It retains
+V3.0 accounting and adds isolated execution-plan reserves and refund liabilities.
 
-1. Stake-gated USDC membership.
-2. Local admin and validator roles that cannot overlap.
-3. A creator-selected, immutable `1-100` proposal-point threshold for validator nomination; `15` is the recommended default.
-4. Admin and member proposals.
-5. Validator review before member proposals become votable.
-6. Binary `YES / NO` voting and optional slate rounds.
-7. A local Treasury with execution funds, validator rewards, refunds, and admin-quorum withdrawals.
-8. A controlled V2 reserve route for protocol-level inflows.
+`modules/CommunityMembershipModule.sol` owns membership, role exclusivity,
+PoP-gated entry, and exit obligations.
 
-## Economic Model
+`modules/CommunityProposalModule.sol` owns all four proposal lanes and the
+validator review epoch for Member proposals.
 
-- A winning Member binary proposal sends YES stake to the community Treasury: `85%` execution and `15%` validator rewards by default. Winning Admin binary and slate proposals route their complete local stake to execution because they do not require validator review.
-- Binary NO stake is refundable less the configured rejection fee; YES stake and that fee route to the V2 global reserve.
-- Slate rounds have no NO side. All round stake is split between local execution and validator rewards.
-- A rejected member proposal loses its bond to the V2 reserve. A fairly considered member proposal receives its bond back when voting settles.
+`modules/CommunityVotingModule.sol` owns binary/slate voting, winner snapshots,
+and vote-exit locks. It starts a plan for every accepted Admin or Member winner.
 
-All amounts use the configured USDC-compatible token's native units. Arc USDC uses six decimals.
+`modules/CommunityWinnerSnapshot.sol` seals the exact winner-supporter cohort.
 
-## Architecture
+`modules/CommunityMilestoneManager.sol` runs 20/40/40 execution plans. Only
+winning supporters review evidence; failed plans return unreleased USDC pro rata.
 
-```text
-Community creator
-       |
-       v
-CommunityFactory proxy ----> CommunityTreasuryDeployer
-       |                              |
-       |                              v
-       +----------------------> CommunityTreasury
-       |                              ^
-       v                              |
-CommunityHub -------------------------+
-       |
-       +----> V2 FundingPoolUpgradeable.receiveCommunityReserve(...)
-```
+`modules/deployers/` are separate stateless deployment boundaries. Keeping their
+creation bytecode outside the Hub prevents the EVM initcode-size failure that a
+single monolithic CommunityHub would otherwise hit.
 
-`CommunityFactory` is the only upgradeable V3 contract and uses the same Transparent proxy pattern as BERT V2. `CommunityHub`, `CommunityTreasury`, and `CommunityTreasuryDeployer` are immutable per deployment.
+## V3.1 execution plan
 
-### Protected Community Actions
+1. An Admin or validator-approved Member proposal wins binary or slate voting.
+2. Only winning-supporter voting weight is snapshotted as the review electorate.
+3. The Community Treasury reserves the winner budget and releases 20% to the
+   immutable Community execution recipient.
+4. Each of two proofs has a Community-configured review window. Passing review
+   releases 40%, then the final 40%.
+5. Review requires 40% of winner weight participating, two-thirds of that
+   participating weight approving, and at least `max(3, ceil(3% of the
+   snapshot supporter addresses))` unique approving supporters.
+6. A rejected proof may be corrected once after cooldown. A second rejection,
+   proof timeout, or no-quorum after grace fails the plan and makes the unspent
+   reserve refundable only to the winning-supporter cohort.
 
-The linked `CommunityAdminActions` library protects every control-plane action that could change a Community's authority or release a Treasury reservation. It is executed through the CommunityHub, so action requests, approvals, and events remain scoped to the Community address.
+The Hub applies one Community clock to voting, proof, and review deadlines, so
+pausing the Community pauses its governance lifecycle consistently.
 
-- The creator of a request supplies its first approval automatically.
-- The immutable `adminApprovalThreshold` selected at creation is required for execution.
-- Requests expire after seven days of active Community time. Paused time does not consume that deadline.
-- Protected actions are pause, resume, archive, add/remove Admin, add/remove Validator, and cancellation of a pending withdrawal request.
-- Admin transfer is intentionally a two-request handover: add the replacement through quorum, then remove the former Admin through quorum. No Admin can unilaterally rewrite the Community control set.
+## Contributor references
 
-## Deployment Boundary
-
-1. Deploy V3 infrastructure: `CommunityTreasuryDeployer` and the `CommunityFactory` proxy.
-2. Upgrade an existing V2 FundingPool only when moving an already-deployed V2 protocol to V3-aware code.
-3. Configure the FundingPool with the V3 Factory address.
-4. Each creator later creates and activates their own Community separately.
-
-See [V3 deployment guide](../../../scripts/deploy/docs_deploy/V3_DEPLOY.md).
-
-## Contract Documentation
-
-1. [Contract documentation index](docs_contracts/README.md)
-2. [CommunityFactory](docs_contracts/CommunityFactory.md)
-3. [CommunityHub](docs_contracts/CommunityHub.md)
-4. [CommunityTreasury](docs_contracts/CommunityTreasury.md)
-5. [CommunityTreasuryDeployer](docs_contracts/CommunityTreasuryDeployer.md)
-6. [Interfaces](docs_contracts/Interfaces.md)
-7. [CommunityTypes](docs_contracts/CommunityTypes.md)
-8. [CommunityErrors](docs_contracts/CommunityErrors.md)
-9. [CommunityAdminActions](docs_contracts/CommunityAdminActions.md)
-10. [Manual testing checklist](TESTING-CHECKLIST.md)
-
-## Scope Notes
-
-V3 local roles are intentionally separate from V2 `RolesRegistryUpgradeable`, `VoterProgressionUpgradeable`, and `ReputationSystemUpgradeable`. A V2 curator or reviewer has no automatic authority in a V3 community.
-
-NFT rewards, general airdrops, onchain implementation milestones, and a separate V3 reputation system are outside the current Community Layer scope.
+- [Contributor testing guide](../../../docs/TESTING.md)
+- [Local V3.1 E2E runbook](../../../docs/LOCAL-V3.1-E2E.md)
+- [Arc Testnet release runbook](../../../docs/V3.1-ARC-TESTNET-RELEASE.md)
+- [V3.1 security review notes](../../../docs/SECURITY-REVIEW-V3.1.md)

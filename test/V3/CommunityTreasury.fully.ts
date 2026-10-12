@@ -1,339 +1,268 @@
-/**
- * @file CommunityTreasury.fully.ts
- * @notice Unit tests for BERT V3 USDC custody, settlement, rewards, refunds, and withdrawals.
- * @dev V3 tests live under test/V3 so judges can distinguish them from the established V2 suite.
- */
+import { expect, hre } from "../setup.js";
 
-import { expect } from "../setup.js";
-import { getConnection } from "../helpers.js";
-
-/** @notice describe: CommunityTreasury */
-describe("CommunityTreasury", function () {
-  /** @notice Deploys an isolated Treasury with USDC and a test-only Hub. */
-  async function deployTreasury() {
-    const { ethers } = await getConnection();
-    const [factory, voterYes, voterNo, withdrawalRecipient] = await ethers.getSigners();
-
-    const usdc = await (await ethers.getContractFactory("MockUSDC", factory)).deploy();
+describe("V3.1 CommunityTreasury", function () {
+  async function deployTreasury(tokenContract = "MockUSDC") {
+    const { ethers } = await hre.network.connect();
+    const [deployer, supporter, recipient, outsider] = await ethers.getSigners();
+    const token = await (await ethers.getContractFactory(tokenContract, deployer)).deploy();
     const reserve = await (
-      await ethers.getContractFactory("MockGlobalBertReserve", factory)
-    ).deploy(await usdc.getAddress());
-    const hub = await (
-      await ethers.getContractFactory("MockCommunityHub", factory)
-    ).deploy(1_500);
-    const factoryRegistry = await (
-      await ethers.getContractFactory("MockCommunityFactoryRegistry", factory)
+      await ethers.getContractFactory("MockV3GlobalBertReserve", deployer)
+    ).deploy(await token.getAddress());
+    const verifier = await (await ethers.getContractFactory("MockHumanVerifier", deployer)).deploy();
+    const factory = await (
+      await ethers.getContractFactory("MockV3CommunityFactory", deployer)
+    ).deploy(await verifier.getAddress());
+    const hub = await (await ethers.getContractFactory("MockV3CommunityHub", deployer)).deploy();
+    const membership = await (
+      await ethers.getContractFactory("MockV3TreasuryModule", deployer)
     ).deploy();
-    const humanVerifier = await (
-      await ethers.getContractFactory("MockHumanVerifier", factory)
+    const proposals = await (
+      await ethers.getContractFactory("MockV3TreasuryModule", deployer)
     ).deploy();
-    await factoryRegistry.setHumanVerifier(await humanVerifier.getAddress());
-    await humanVerifier.setVerified(voterYes.address, true);
-    await humanVerifier.setVerified(voterNo.address, true);
+    const voting = await (
+      await ethers.getContractFactory("MockV3TreasuryModule", deployer)
+    ).deploy();
+    const milestones = await (
+      await ethers.getContractFactory("MockV3TreasuryModule", deployer)
+    ).deploy();
     const treasury = await (
-      await ethers.getContractFactory("CommunityTreasury", factory)
-    ).deploy(await usdc.getAddress(), await reserve.getAddress(), await factoryRegistry.getAddress());
+      await ethers.getContractFactory("CommunityTreasury", deployer)
+    ).deploy(await token.getAddress(), await reserve.getAddress(), await factory.getAddress());
 
-    await factoryRegistry.setCommunityHub(await treasury.getAddress(), await hub.getAddress());
+    const setHub = treasury.interface.encodeFunctionData("setCommunityHub", [await hub.getAddress()]);
+    await factory.callTarget(await treasury.getAddress(), setHub);
+    const setModules = treasury.interface.encodeFunctionData("setV31Modules", [
+      await membership.getAddress(),
+      await proposals.getAddress(),
+      await voting.getAddress(),
+    ]);
+    await factory.callTarget(await treasury.getAddress(), setModules);
+    const setMilestoneManager = treasury.interface.encodeFunctionData("setMilestoneManager", [
+      await milestones.getAddress(),
+    ]);
+    await factory.callTarget(await treasury.getAddress(), setMilestoneManager);
 
-    for (const voter of [voterYes, voterNo]) {
-      await usdc.mint(voter.address, 1_000_000n);
-      await usdc.connect(voter).approve(await treasury.getAddress(), 1_000_000n);
+    async function moduleCall(module: any, functionName: string, args: readonly unknown[]) {
+      const data = treasury.interface.encodeFunctionData(functionName, args);
+      return module.callTarget(await treasury.getAddress(), data);
     }
 
-    return {
-      ethers,
-      factory,
-      factoryRegistry,
-      humanVerifier,
-      voterYes,
-      voterNo,
-      withdrawalRecipient,
-      reserve,
-      usdc,
-      hub,
-      treasury,
-    };
+    return { deployer, outsider, supporter, recipient, token, reserve, factory, hub, membership, proposals, voting, milestones, treasury, moduleCall };
   }
 
-  /** @notice it: escrows votes and routes a YES win into local and global balances */
-  it("escrows votes and routes a YES win into execution, rewards, and global reserve", async function () {
-    const { voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
-    const proposalId = 1n;
-    const yesStake = 100_000n;
-    const noStake = 40_000n;
+  it("allows each capability only its own custody surface", async function () {
+    const { outsider, supporter, token, treasury, membership, proposals, voting, moduleCall } = await deployTreasury();
+    await token.mint(supporter.address, 100n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 100n);
 
-    await hub.depositVoteStake(await treasury.getAddress(), proposalId, voterYes.address, yesStake);
-    await hub.depositVoteStake(await treasury.getAddress(), proposalId, voterNo.address, noStake);
+    await expect(treasury.connect(outsider).depositVoteStake(1n, supporter.address, 10n))
+      .to.be.revertedWithCustomError(treasury, "NotCommunityHub");
+    await expect(moduleCall(membership, "depositVoteStake", [1n, supporter.address, 10n]))
+      .to.be.revertedWithCustomError(treasury, "NotCommunityHub");
 
-    expect(await treasury.totalVoteEscrow()).to.equal(yesStake + noStake);
-    expect(await treasury.voteEscrowByProposal(proposalId)).to.equal(yesStake + noStake);
-
-    await expect(
-      hub.settleBinaryYesWin(await treasury.getAddress(), proposalId, yesStake, noStake, 7)
-    )
-      .to.emit(treasury, "BinaryYesWinSettled")
-      .withArgs(proposalId, 85_000n, 15_000n, noStake);
-
-    expect(await treasury.totalVoteEscrow()).to.equal(0n);
-    expect(await treasury.voteEscrowByProposal(proposalId)).to.equal(0n);
-    expect(await treasury.executionBalance()).to.equal(85_000n);
-    expect(await treasury.validatorRewardBalance()).to.equal(15_000n);
-    expect(await treasury.rewardAmountByEpoch(7)).to.equal(15_000n);
-    expect(await usdc.balanceOf(await reserve.getAddress())).to.equal(noStake);
-    expect(await reserve.totalReceived()).to.equal(noStake);
-    expect(await usdc.balanceOf(await treasury.getAddress())).to.equal(100_000n);
+    await moduleCall(proposals, "depositProposalBond", [1n, supporter.address, 10n]);
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 20n]);
+    expect(await treasury.totalProposalBondLocked()).to.equal(10n);
+    expect(await treasury.totalVoteEscrow()).to.equal(20n);
   });
 
-  /** @notice it: keeps membership stake outside execution funds until Hub release */
-  it("keeps membership stake locked until the paired Hub releases it", async function () {
-    const { voterYes, usdc, hub, treasury } = await deployTreasury();
-    const membershipStake = 250_000n;
+  it("rejects malformed escrow deposits and inconsistent settlement inputs", async function () {
+    const { ethers } = await hre.network.connect();
+    const { supporter, token, treasury, membership, voting, moduleCall } = await deployTreasury();
+    await token.mint(supporter.address, 100n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 100n);
 
-    await hub.depositMembershipStake(await treasury.getAddress(), voterYes.address, membershipStake);
+    await expect(moduleCall(membership, "depositMembershipStake", [ethers.ZeroAddress, 1n]))
+      .to.be.revertedWithCustomError(treasury, "ZeroAddress");
+    await expect(moduleCall(membership, "depositMembershipStake", [supporter.address, 0n]))
+      .to.be.revertedWithCustomError(treasury, "ZeroAmount");
+    await expect(moduleCall(voting, "depositVoteStake", [0n, supporter.address, 1n]))
+      .to.be.revertedWithCustomError(treasury, "InvalidId");
+    await expect(moduleCall(voting, "depositRoundVoteStake", [1n, supporter.address, 0n]))
+      .to.be.revertedWithCustomError(treasury, "ZeroAmount");
 
-    expect(await treasury.totalMembershipLocked()).to.equal(membershipStake);
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 20n]);
+    await expect(moduleCall(voting, "settleBinaryYesWin", [1n, 10n, 10n, 0n]))
+      .to.be.revertedWithCustomError(treasury, "InvalidBinarySettlement");
+    await expect(moduleCall(voting, "settleBinaryYesWin", [1n, 30n, 0n, 0n]))
+      .to.be.revertedWithCustomError(treasury, "VoteEscrowMismatch");
+    await moduleCall(voting, "settleBinaryYesWin", [1n, 20n, 0n, 0n]);
+    await expect(moduleCall(voting, "depositVoteStake", [1n, supporter.address, 1n]))
+      .to.be.revertedWithCustomError(treasury, "ProposalAlreadySettled");
+  });
+
+  it("blocks a malicious token callback during escrow collection and preserves the original deposit", async function () {
+    const { supporter, token, treasury, voting, moduleCall } = await deployTreasury("MockReentrantUSDC");
+    await token.mint(supporter.address, 100n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 100n);
+
+    const reentry = treasury.interface.encodeFunctionData("depositVoteStake", [1n, supporter.address, 1n]);
+    const callback = voting.interface.encodeFunctionData("callTarget", [await treasury.getAddress(), reentry]);
+    await token.configureCallback(await voting.getAddress(), callback, true);
+
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 20n]);
+
+    expect(await token.callbackAttempted()).to.equal(true);
+    expect(await token.lastCallbackSucceeded()).to.equal(false);
+    expect(await treasury.totalVoteEscrow()).to.equal(20n);
+    expect(await token.balanceOf(await treasury.getAddress())).to.equal(20n);
+  });
+
+  it("keeps V3 binary and slate settlement ledgers separate", async function () {
+    const { supporter, token, reserve, treasury, voting, moduleCall } = await deployTreasury();
+    await token.mint(supporter.address, 1_000n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 1_000n);
+
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 300n]);
+    await moduleCall(voting, "settleBinaryYesWin", [1n, 200n, 100n, 0n]);
+    expect(await treasury.executionBalance()).to.equal(200n);
+    expect(await reserve.received()).to.equal(100n);
+
+    await moduleCall(voting, "depositRoundVoteStake", [1n, supporter.address, 400n]);
+    await moduleCall(voting, "settleSlateRound", [1n, 400n, 0n]);
+    expect(await treasury.executionBalance()).to.equal(600n);
+    expect(await treasury.totalRoundVoteEscrow()).to.equal(0n);
+  });
+
+  it("protects execution-plan reserve and unreleased winner refunds from every other module", async function () {
+    const { ethers } = await hre.network.connect();
+    const { supporter, recipient, token, treasury, voting, milestones, moduleCall } = await deployTreasury();
+    await token.mint(supporter.address, 100n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 100n);
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 100n]);
+    await moduleCall(voting, "settleBinaryYesWin", [1n, 100n, 0n, 0n]);
+
+    await expect(moduleCall(voting, "reserveExecutionPlan", [1n, 100n]))
+      .to.be.revertedWithCustomError(treasury, "NotCommunityMilestoneManager");
+    await expect(moduleCall(milestones, "reserveExecutionPlan", [0n, 1n]))
+      .to.be.revertedWithCustomError(treasury, "ZeroAmount");
+    await expect(moduleCall(milestones, "reserveExecutionPlan", [1n, 101n]))
+      .to.be.revertedWithCustomError(treasury, "InsufficientExecutionBalance");
+    await moduleCall(milestones, "reserveExecutionPlan", [1n, 100n]);
+    await expect(moduleCall(milestones, "releaseExecutionTranche", [1n, ethers.ZeroAddress, 1n]))
+      .to.be.revertedWithCustomError(treasury, "ZeroAddress");
+    await expect(moduleCall(milestones, "releaseExecutionTranche", [1n, recipient.address, 101n]))
+      .to.be.revertedWithCustomError(treasury, "InsufficientMilestoneReserve");
+    await moduleCall(milestones, "releaseExecutionTranche", [1n, recipient.address, 20n]);
+    await expect(moduleCall(milestones, "seedExecutionPlanRefund", [1n, 0n]))
+      .to.be.revertedWithCustomError(treasury, "InsufficientMilestoneReserve");
+    await moduleCall(milestones, "seedExecutionPlanRefund", [1n, 80n]);
+
+    expect(await token.balanceOf(recipient.address)).to.equal(20n);
     expect(await treasury.executionBalance()).to.equal(0n);
-    expect(await usdc.balanceOf(await treasury.getAddress())).to.equal(membershipStake);
+    expect(await treasury.totalMilestoneReserved()).to.equal(0n);
+    expect(await treasury.totalMilestoneRefundLiability()).to.equal(80n);
 
-    await hub.releaseMembershipStake(await treasury.getAddress(), voterYes.address, membershipStake);
-
-    expect(await treasury.totalMembershipLocked()).to.equal(0n);
-    expect(await usdc.balanceOf(voterYes.address)).to.equal(1_000_000n);
+    await expect(moduleCall(milestones, "claimExecutionPlanRefund", [1n, supporter.address, 81n]))
+      .to.be.revertedWithCustomError(treasury, "InsufficientMilestoneReserve");
+    await moduleCall(milestones, "claimExecutionPlanRefund", [1n, supporter.address, 80n]);
+    expect(await token.balanceOf(supporter.address)).to.equal(80n);
+    expect(await treasury.totalMilestoneRefundLiability()).to.equal(0n);
   });
 
-  /** @notice it: resolves proposal bonds exactly once through slash or return */
-  it("slashes rejected proposal bonds to the global reserve and returns settled bonds to authors", async function () {
-    const { voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
-    const bondAmount = 50_000n;
+  it("updates a plan reserve before a malicious token can reenter a tranche release", async function () {
+    const { supporter, recipient, token, treasury, voting, milestones, moduleCall } = await deployTreasury("MockReentrantUSDC");
+    await token.mint(supporter.address, 100n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 100n);
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 100n]);
+    await moduleCall(voting, "settleBinaryYesWin", [1n, 100n, 0n, 0n]);
+    await moduleCall(milestones, "reserveExecutionPlan", [1n, 100n]);
 
-    await hub.depositProposalBond(await treasury.getAddress(), 10, voterYes.address, bondAmount);
-    await hub.slashProposalBond(await treasury.getAddress(), 10);
+    const overdraft = treasury.interface.encodeFunctionData("releaseExecutionTranche", [1n, recipient.address, 81n]);
+    const callback = milestones.interface.encodeFunctionData("callTarget", [await treasury.getAddress(), overdraft]);
+    await token.configureCallback(await milestones.getAddress(), callback, false);
 
-    expect(await treasury.totalProposalBondLocked()).to.equal(0n);
-    expect(await usdc.balanceOf(await reserve.getAddress())).to.equal(bondAmount);
-    expect(await treasury.getProposalBond(10)).to.deep.equal([bondAmount, true]);
+    await moduleCall(milestones, "releaseExecutionTranche", [1n, recipient.address, 20n]);
 
-    await hub.depositProposalBond(await treasury.getAddress(), 11, voterNo.address, bondAmount);
-    await hub.returnProposalBond(await treasury.getAddress(), 11, voterNo.address);
-
-    expect(await treasury.totalProposalBondLocked()).to.equal(0n);
-    expect(await usdc.balanceOf(voterNo.address)).to.equal(1_000_000n);
-    expect(await treasury.getProposalBond(11)).to.deep.equal([bondAmount, true]);
-
-    await expect(hub.returnProposalBond(await treasury.getAddress(), 11, voterNo.address))
-      .to.be.revertedWithCustomError(treasury, "ProposalBondAlreadySettled")
-      .withArgs(11n);
+    expect(await token.callbackAttempted()).to.equal(true);
+    expect(await token.lastCallbackSucceeded()).to.equal(false);
+    expect(await treasury.milestoneReserveByPlan(1n)).to.equal(80n);
+    expect(await token.balanceOf(recipient.address)).to.equal(20n);
   });
 
-  /** @notice it: creates and settles pull-based NO-side refunds */
-  it("records NO-side refunds and routes YES stake plus rejection fee to the reserve", async function () {
-    const { voterYes, voterNo, reserve, usdc, hub, treasury } = await deployTreasury();
-    const proposalId = 2n;
-    const yesStake = 40_000n;
-    const noStake = 100_000n;
-    const feeBps = 300n;
+  it("binds its Hub and all V3.1 module authorities exactly once", async function () {
+    const { treasury, factory, hub, membership, proposals, voting, milestones } = await deployTreasury();
+    const setHub = treasury.interface.encodeFunctionData("setCommunityHub", [await hub.getAddress()]);
+    await expect(factory.callTarget(await treasury.getAddress(), setHub))
+      .to.be.revertedWithCustomError(treasury, "CommunityHubAlreadyConfigured");
 
-    await hub.depositVoteStake(await treasury.getAddress(), proposalId, voterYes.address, yesStake);
-    await hub.depositVoteStake(await treasury.getAddress(), proposalId, voterNo.address, noStake);
-    await hub.setBinaryVote(proposalId, voterNo.address, 2, noStake);
-
-    await expect(
-      hub.settleBinaryNoWin(await treasury.getAddress(), proposalId, yesStake, noStake, feeBps)
-    )
-      .to.emit(treasury, "BinaryNoWinSettled")
-      .withArgs(proposalId, 97_000n, 43_000n);
-
-    expect(await treasury.binaryVoteSettled(proposalId)).to.equal(true);
-    expect(await treasury.noWonByProposal(proposalId)).to.equal(true);
-    expect(await treasury.rejectionFeeBpsByProposal(proposalId)).to.equal(feeBps);
-    expect(await treasury.totalVoteEscrow()).to.equal(0n);
-    expect(await treasury.totalRefundLiability()).to.equal(97_000n);
-    expect(await usdc.balanceOf(await reserve.getAddress())).to.equal(43_000n);
-    expect(await usdc.balanceOf(await treasury.getAddress())).to.equal(97_000n);
-
-    expect(await treasury.getRefundPreview(proposalId, voterNo.address)).to.deep.equal([
-      97_000n,
-      true,
+    const setModules = treasury.interface.encodeFunctionData("setV31Modules", [
+      await membership.getAddress(),
+      await proposals.getAddress(),
+      await voting.getAddress(),
     ]);
-
-    await expect(treasury.connect(voterNo).claimNoVoteRefund(proposalId))
-      .to.emit(treasury, "RefundClaimed")
-      .withArgs(proposalId, voterNo.address, 97_000n);
-
-    expect(await treasury.totalRefundLiability()).to.equal(0n);
-    expect(await usdc.balanceOf(voterNo.address)).to.equal(997_000n);
-
-    await expect(treasury.connect(voterNo).claimNoVoteRefund(proposalId))
-      .to.be.revertedWithCustomError(treasury, "RefundAlreadyClaimed")
-      .withArgs(proposalId, voterNo.address);
+    await expect(factory.callTarget(await treasury.getAddress(), setModules))
+      .to.be.revertedWithCustomError(treasury, "CommunityV31ModulesAlreadyConfigured");
+    const setMilestones = treasury.interface.encodeFunctionData("setMilestoneManager", [await milestones.getAddress()]);
+    await expect(factory.callTarget(await treasury.getAddress(), setMilestones))
+      .to.be.revertedWithCustomError(treasury, "CommunityMilestoneManagerAlreadyConfigured");
   });
 
-  /** @notice it: rejects Hub settlement inputs that disagree with per-proposal escrow */
-  it("rejects settlement totals that do not match the proposal escrow", async function () {
-    const { voterYes, hub, treasury } = await deployTreasury();
+  it("executes and cancels quorum-protected withdrawals without touching plan reserves", async function () {
+    const { ethers } = await hre.network.connect();
+    const { deployer, supporter, recipient, token, treasury, hub, voting, moduleCall } = await deployTreasury();
+    await hub.setAdmin(deployer.address, true);
+    await hub.setAdmin(supporter.address, true);
+    await hub.setAdminApprovalThreshold(2n);
+    await token.mint(supporter.address, 300n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 300n);
 
-    await hub.depositVoteStake(await treasury.getAddress(), 3, voterYes.address, 100_000n);
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 100n]);
+    await moduleCall(voting, "settleBinaryYesWin", [1n, 100n, 0n, 0n]);
+    await expect(treasury.connect(recipient).createWithdrawalRequest(recipient.address, 1n, "no role", "ipfs://no-role"))
+      .to.be.revertedWithCustomError(treasury, "NotCommunityAdmin");
+    await expect(treasury.createWithdrawalRequest(ethers.ZeroAddress, 1n, "bad", "ipfs://bad"))
+      .to.be.revertedWithCustomError(treasury, "ZeroAddress");
+    await expect(treasury.createWithdrawalRequest(recipient.address, 0n, "bad", "ipfs://bad"))
+      .to.be.revertedWithCustomError(treasury, "ZeroAmount");
+    await expect(treasury.createWithdrawalRequest(recipient.address, 1n, "", "ipfs://bad"))
+      .to.be.revertedWithCustomError(treasury, "InvalidParameter");
+    await expect(treasury.createWithdrawalRequest(recipient.address, 101n, "too much", "ipfs://bad"))
+      .to.be.revertedWithCustomError(treasury, "InsufficientExecutionBalance");
+    await treasury.createWithdrawalRequest(recipient.address, 40n, "audit tooling", "ipfs://withdrawal/1");
+    expect(await treasury.availableExecutionBalance()).to.equal(60n);
+    expect(await treasury.hasApprovedWithdrawal(1n, deployer.address)).to.equal(true);
+    await expect(treasury.executeWithdrawal(1n))
+      .to.be.revertedWithCustomError(treasury, "WithdrawalApprovalThresholdNotMet");
+    await expect(treasury.approveWithdrawal(1n))
+      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyApproved");
+    await treasury.connect(supporter).approveWithdrawal(1n);
+    expect((await treasury.getWithdrawalRequest(1n)).approvalCount).to.equal(2n);
+    await treasury.executeWithdrawal(1n);
+    expect(await token.balanceOf(recipient.address)).to.equal(40n);
+    expect((await treasury.getWithdrawalRequest(1n)).executed).to.equal(true);
+    await expect(treasury.executeWithdrawal(1n))
+      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyExecuted");
 
-    await expect(
-      hub.settleBinaryYesWin(await treasury.getAddress(), 3, 90_000n, 1n, 1)
-    )
-      .to.be.revertedWithCustomError(treasury, "VoteEscrowMismatch")
-      .withArgs(3n, 100_000n, 90_001n);
+    await moduleCall(voting, "depositVoteStake", [2n, supporter.address, 100n]);
+    await moduleCall(voting, "settleBinaryYesWin", [2n, 100n, 0n, 0n]);
+    await treasury.createWithdrawalRequest(recipient.address, 25n, "cancelled", "ipfs://withdrawal/2");
+    const cancelData = treasury.interface.encodeFunctionData("cancelWithdrawalRequestByGovernance", [2n]);
+    await hub.callTarget(await treasury.getAddress(), cancelData);
+    expect((await treasury.getWithdrawalRequest(2n)).cancelled).to.equal(true);
+    expect(await treasury.availableExecutionBalance()).to.equal(160n);
+    await expect(hub.callTarget(await treasury.getAddress(), cancelData))
+      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyCancelled");
   });
 
-  /** @notice it: distributes active validator rewards and returns rounding dust to execution */
-  it("splits an epoch reward equally between active validators and returns rounding dust to execution", async function () {
-    const { voterYes, voterNo, usdc, hub, treasury } = await deployTreasury();
-    const proposalId = 4n;
-    const epochId = 9n;
-    const yesStake = 100_007n;
+  it("finalizes validator rewards with a real eligibility check and pull claim", async function () {
+    const { deployer, supporter, token, treasury, hub, proposals, voting, moduleCall } = await deployTreasury();
+    await hub.setValidatorRewardShareBps(1_000n);
+    await hub.setValidatorActiveForEpoch(1n, deployer.address, true);
+    await token.mint(supporter.address, 100n);
+    await token.connect(supporter).approve(await treasury.getAddress(), 100n);
 
-    await hub.depositVoteStake(await treasury.getAddress(), proposalId, voterYes.address, yesStake);
-    await hub.settleBinaryYesWin(await treasury.getAddress(), proposalId, yesStake, 0, epochId);
-    await hub.setValidatorActiveForEpoch(epochId, voterYes.address, true);
-    await hub.setValidatorActiveForEpoch(epochId, voterNo.address, true);
+    await moduleCall(voting, "depositVoteStake", [1n, supporter.address, 100n]);
+    await moduleCall(voting, "settleBinaryYesWin", [1n, 100n, 0n, 1n]);
+    await moduleCall(proposals, "finalizeValidatorRewardEpoch", [1n, 1n]);
+    expect(await treasury.rewardPerValidatorByEpoch(1n)).to.equal(10n);
 
-    await expect(
-      hub.finalizeValidatorRewardEpoch(await treasury.getAddress(), epochId, 2)
-    )
-      .to.emit(treasury, "ValidatorRewardEpochFinalized")
-      .withArgs(epochId, 7_500n, 2n);
-
-    expect(await treasury.executionBalance()).to.equal(85_007n);
-    expect(await treasury.validatorRewardBalance()).to.equal(15_000n);
-
-    await expect(treasury.connect(voterYes).claimValidatorReward(epochId))
-      .to.emit(treasury, "ValidatorRewardClaimed")
-      .withArgs(epochId, voterYes.address, 7_500n);
-
-    await treasury.connect(voterNo).claimValidatorReward(epochId);
-    expect(await treasury.validatorRewardBalance()).to.equal(0n);
-
-    await expect(treasury.connect(voterYes).claimValidatorReward(epochId))
-      .to.be.revertedWithCustomError(treasury, "ValidatorRewardAlreadyClaimed")
-      .withArgs(epochId, voterYes.address);
-  });
-
-  /** @notice it: reserves execution funds and requires the configured admin quorum */
-  it("reserves execution funds and requires the admin quorum before withdrawal", async function () {
-    const { factory, voterYes, voterNo, withdrawalRecipient, usdc, hub, treasury } = await deployTreasury();
-    const proposalId = 5n;
-    const executionAmount = 85_000n;
-    const withdrawalAmount = 60_000n;
-
-    await hub.depositVoteStake(await treasury.getAddress(), proposalId, voterYes.address, 100_000n);
-    await hub.settleBinaryYesWin(await treasury.getAddress(), proposalId, 100_000n, 0, 10);
-    await hub.setAdmin(factory.address, true);
-    await hub.setAdmin(voterNo.address, true);
-    await hub.setAdminApprovalThreshold(2);
-
-    await expect(
-      treasury.connect(factory).createWithdrawalRequest(
-        withdrawalRecipient.address,
-        withdrawalAmount,
-        "Fund Minecraft server implementation",
-        "ipfs://bert-v3/withdrawal/1"
-      )
-    )
-      .to.emit(treasury, "WithdrawalRequestCreated")
-      .withArgs(
-        1n,
-        factory.address,
-        withdrawalRecipient.address,
-        withdrawalAmount,
-        "Fund Minecraft server implementation",
-        "ipfs://bert-v3/withdrawal/1"
-      );
-
-    expect(await treasury.reservedExecutionBalance()).to.equal(withdrawalAmount);
-    expect(await treasury.availableExecutionBalance()).to.equal(executionAmount - withdrawalAmount);
-
-    await expect(treasury.connect(factory).executeWithdrawal(1))
-      .to.be.revertedWithCustomError(treasury, "WithdrawalApprovalThresholdNotMet")
-      .withArgs(1n, 1n, 2n);
-
-    await treasury.connect(voterNo).approveWithdrawal(1);
-    await expect(treasury.connect(factory).executeWithdrawal(1))
-      .to.emit(treasury, "WithdrawalExecuted")
-      .withArgs(1n, withdrawalRecipient.address, withdrawalAmount);
-
-    const request = await treasury.getWithdrawalRequest(1);
-    expect(request.executed).to.equal(true);
-    expect(await treasury.executionBalance()).to.equal(executionAmount - withdrawalAmount);
-    expect(await treasury.reservedExecutionBalance()).to.equal(0n);
-    expect(await usdc.balanceOf(withdrawalRecipient.address)).to.equal(withdrawalAmount);
-  });
-
-  /** @notice it: releases the execution reservation when an admin cancels a request */
-  it("cancels a withdrawal request and releases its execution reservation", async function () {
-    const { factory, voterYes, withdrawalRecipient, hub, treasury } = await deployTreasury();
-
-    await hub.depositVoteStake(await treasury.getAddress(), 6, voterYes.address, 100_000n);
-    await hub.settleBinaryYesWin(await treasury.getAddress(), 6, 100_000n, 0, 11);
-    await hub.setAdmin(factory.address, true);
-
-    await treasury
-      .connect(factory)
-      .createWithdrawalRequest(withdrawalRecipient.address, 50_000n, "Incorrect recipient", "ipfs://bert-v3/withdrawal/2");
-
-    await hub.cancelWithdrawalRequestByGovernance(await treasury.getAddress(), 1);
-
-    const request = await treasury.getWithdrawalRequest(1);
-    expect(request.cancelled).to.equal(true);
-    expect(await treasury.reservedExecutionBalance()).to.equal(0n);
-    expect(await treasury.availableExecutionBalance()).to.equal(85_000n);
-  });
-
-  /** @notice it: returns an epoch reward to execution when no validator met the activity requirement */
-  it("returns undistributed validator rewards to execution when an epoch has no active validators", async function () {
-    const { voterYes, hub, treasury } = await deployTreasury();
-
-    await hub.depositVoteStake(await treasury.getAddress(), 7, voterYes.address, 100_000n);
-    await hub.settleBinaryYesWin(await treasury.getAddress(), 7, 100_000n, 0, 12);
-    await hub.finalizeValidatorRewardEpoch(await treasury.getAddress(), 12, 0);
-
-    expect(await treasury.executionBalance()).to.equal(100_000n);
-    expect(await treasury.validatorRewardBalance()).to.equal(0n);
-    await expect(treasury.connect(voterYes).claimValidatorReward(12))
-      .to.be.revertedWithCustomError(treasury, "ValidatorNotActiveForEpoch")
-      .withArgs(12n, voterYes.address);
-  });
-
-  /** @notice it: blocks all Hub-driven capital movement while the community is not active */
-  it("rejects governance fund movement while the paired Hub reports a paused community", async function () {
-    const { voterYes, hub, treasury } = await deployTreasury();
-
-    await hub.setStatus(1);
-    await expect(hub.depositMembershipStake(await treasury.getAddress(), voterYes.address, 100_000n))
-      .to.be.revertedWithCustomError(treasury, "CommunityNotActive");
-  });
-
-  /** @notice it: prevents duplicate approvals and all terminal withdrawal state transitions */
-  it("protects withdrawal approvals and execution from duplicate or terminal actions", async function () {
-    const { factory, voterYes, voterNo, withdrawalRecipient, hub, treasury } = await deployTreasury();
-
-    await hub.depositVoteStake(await treasury.getAddress(), 8, voterYes.address, 100_000n);
-    await hub.settleBinaryYesWin(await treasury.getAddress(), 8, 100_000n, 0, 13);
-    await hub.setAdmin(factory.address, true);
-    await hub.setAdmin(voterNo.address, true);
-    await hub.setAdminApprovalThreshold(2);
-    await treasury
-      .connect(factory)
-      .createWithdrawalRequest(withdrawalRecipient.address, 50_000n, "Ship feature", "ipfs://withdrawal/3");
-
-    await expect(treasury.connect(factory).approveWithdrawal(1))
-      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyApproved")
-      .withArgs(1n, factory.address);
-
-    await treasury.connect(voterNo).approveWithdrawal(1);
-    await treasury.connect(factory).executeWithdrawal(1);
-
-    await expect(hub.cancelWithdrawalRequestByGovernance(await treasury.getAddress(), 1))
-      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyExecuted")
-      .withArgs(1n);
-    await expect(treasury.connect(voterNo).executeWithdrawal(1))
-      .to.be.revertedWithCustomError(treasury, "WithdrawalAlreadyExecuted")
-      .withArgs(1n);
+    const before = await token.balanceOf(deployer.address);
+    await treasury.claimValidatorReward(1n);
+    expect(await token.balanceOf(deployer.address)).to.equal(before + 10n);
+    await expect(treasury.claimValidatorReward(1n)).to.be.revertedWithCustomError(
+      treasury,
+      "ValidatorRewardAlreadyClaimed",
+    );
   });
 });

@@ -72,6 +72,77 @@ describe("FundingPoolUpgradeable", function () {
       .withArgs(user1.address);
   });
 
+  /** @notice it: preserves reserve routing for more than one explicitly approved Factory */
+  it("allows V3.0 and V3.1 Factory Treasuries concurrently and blocks a revoked Factory", async function () {
+    const { admin, ethers, fundingPool, usdc } = await deploySystem();
+    const [legacyFactory, v31Factory, unrelatedFactory] = await Promise.all([
+      (await ethers.getContractFactory("MockCommunityFactoryRegistry", admin)).deploy(),
+      (await ethers.getContractFactory("MockCommunityFactoryRegistry", admin)).deploy(),
+      (await ethers.getContractFactory("MockCommunityFactoryRegistry", admin)).deploy(),
+    ]);
+    const [legacyTreasury, v31Treasury, unrelatedTreasury] = await Promise.all([
+      (await ethers.getContractFactory("MockCommunityReserveTreasury", admin)).deploy(await usdc.getAddress()),
+      (await ethers.getContractFactory("MockCommunityReserveTreasury", admin)).deploy(await usdc.getAddress()),
+      (await ethers.getContractFactory("MockCommunityReserveTreasury", admin)).deploy(await usdc.getAddress()),
+    ]);
+
+    await fundingPool.connect(admin).setCommunityFactory(await legacyFactory.getAddress());
+    await fundingPool.connect(admin).setCommunityFactoryApproval(await v31Factory.getAddress(), true);
+    await legacyFactory.setActiveCommunityTreasury(await legacyTreasury.getAddress(), true);
+    await v31Factory.setActiveCommunityTreasury(await v31Treasury.getAddress(), true);
+    await unrelatedFactory.setActiveCommunityTreasury(await unrelatedTreasury.getAddress(), true);
+    await usdc.mint(await legacyTreasury.getAddress(), 100n);
+    await usdc.mint(await v31Treasury.getAddress(), 200n);
+    await usdc.mint(await unrelatedTreasury.getAddress(), 300n);
+    await fundingPool.connect(admin).unpause();
+
+    expect(await fundingPool.isCommunityFactoryApproved(await legacyFactory.getAddress())).to.equal(true);
+    expect(await fundingPool.isCommunityFactoryApproved(await v31Factory.getAddress())).to.equal(true);
+    expect(await fundingPool.isCommunityFactoryApproved(await unrelatedFactory.getAddress())).to.equal(false);
+
+    await legacyTreasury.routeReserve(await fundingPool.getAddress(), 100n);
+    await v31Treasury.routeReserve(await fundingPool.getAddress(), 200n);
+    expect(await fundingPool.protocolReserve()).to.equal(300n);
+
+    await expect(unrelatedTreasury.routeReserve(await fundingPool.getAddress(), 300n))
+      .to.be.revertedWithCustomError(fundingPool, "UnauthorizedCommunityTreasury")
+      .withArgs(await unrelatedTreasury.getAddress());
+
+    await fundingPool.connect(admin).setCommunityFactoryApproval(await legacyFactory.getAddress(), false);
+    expect(await fundingPool.isCommunityFactoryApproved(await legacyFactory.getAddress())).to.equal(false);
+    await expect(legacyTreasury.routeReserve(await fundingPool.getAddress(), 1n))
+      .to.be.revertedWithCustomError(fundingPool, "UnauthorizedCommunityTreasury")
+      .withArgs(await legacyTreasury.getAddress());
+    expect(await fundingPool.communityFactory()).to.equal(await legacyFactory.getAddress());
+  });
+
+  /** @notice it: keeps Factory allowlist administration on the protocol Admin boundary */
+  it("restricts Factory allowlist changes to the protocol Admin", async function () {
+    const { admin, user1, ethers, fundingPool } = await deploySystem();
+    const factory = await (
+      await ethers.getContractFactory("MockCommunityFactoryRegistry", admin)
+    ).deploy();
+
+    await expect(
+      fundingPool.connect(user1).setCommunityFactoryApproval(await factory.getAddress(), true)
+    ).to.be.revertedWithCustomError(fundingPool, "NotAdmin");
+  });
+
+  /** @notice it: makes the Factory allowlist migration one-time and safe to replay operationally */
+  it("seeds the legacy Factory allowlist once through the V3.1 migration initializer", async function () {
+    const { admin, ethers, fundingPool } = await deploySystem();
+    const legacyFactory = await (
+      await ethers.getContractFactory("MockCommunityFactoryRegistry", admin)
+    ).deploy();
+
+    await fundingPool.connect(admin).setCommunityFactory(await legacyFactory.getAddress());
+    await fundingPool.connect(admin).initializeCommunityFactoryAllowlist();
+
+    expect(await fundingPool.isCommunityFactoryApproved(await legacyFactory.getAddress())).to.equal(true);
+    await expect(fundingPool.connect(admin).initializeCommunityFactoryAllowlist())
+      .to.be.revertedWithCustomError(fundingPool, "InvalidInitialization");
+  });
+
   /** @notice it: allows voting system deposits for ideas */
   it("allows voting system deposits for ideas", async function () {
     const { admin, user1, roles, fundingPool, usdc } =

@@ -16,6 +16,8 @@ Current documented core flow:
 - `v1.0.0`: proposal registry, rounds, voting, treasury accounting, winner selection, one-step grant claim
 - `v1.1.0`: author stake on idea creation, staged grant release `30 / 40 / 30`, milestone proof review, rejection cooldown, reserve-aware rejected stake flow
 - `v1.2.0`: conditional stake-backed grant selection, proposal-level net funding targets, refundable losing pledges, fee escrow, deadline-driven grant refunds, and a bounded `5..50` round size
+- `v1.3.0`: V2.3 supporter-reviewed grant delivery, including winner-only milestone review and refund of unreleased failed-plan capital
+- `v1.4.0`: additive Community Factory authorization in `FundingPoolUpgradeable`, allowing V3.0 and V3.1 Treasuries to route protocol reserve concurrently without replacing either Factory
 
 ## Core Contracts
 
@@ -125,6 +127,8 @@ Critical invariants:
 - payout flow must not double-distribute
 - internal accounting should remain reconcilable with token balances
 - losing pledges are refundable to their recorded owners, not allocated to a different winner
+- a Community Treasury may route protocol reserve only when it is active in an explicitly approved Community Factory
+- approving V3.1 must not revoke the historical V3.0 Factory; revocation affects only future reserve inflows from that Factory
 
 ### `GrantManagerUpgradeable`
 Reference:
@@ -159,6 +163,30 @@ Critical invariants:
 - stage order must be enforced
 - rejected proof must respect cooldown
 - an unclaimed or expired grant must open only the documented refund path
+
+### V3.1 Community Layer
+
+V3.1 is deployed as a new Community Factory, not an upgrade of existing V3.0
+Communities. Each Community has a thin `CommunityHub`, a sole
+`CommunityTreasury` custodian, and dedicated Membership, Proposal, Voting,
+Winner Snapshot, and Milestone Manager modules.
+
+State ownership:
+- `CommunityFactory`: reserve/activate a canonical Hub and Treasury pair
+- `CommunityHub`: cross-module lifecycle, pause-adjusted time, and Admin quorum routing
+- `CommunityMembershipModule`: local roles, entry stake, obligations, and safe exits
+- `CommunityProposalModule`: Admin/Member proposal intake and validator review
+- `CommunityVotingModule`: Binary and Slate voting, settlement, and vote locks
+- `CommunityWinnerSnapshot`: immutable eligible-supporter weight for a winning proposal
+- `CommunityMilestoneManager`: `20 / 40 / 40` plan release and supporter-review outcomes
+- `CommunityTreasury`: USDC custody, escrows, execution reserves, and pull refunds
+
+Critical invariants:
+- only the Factory-bound Hub and one-time configured modules may use their narrow Treasury capabilities
+- the immutable Administration execution wallet receives approved tranches only; it has no generic Treasury withdrawal right
+- only supporters of the winning proposal may review its execution plan; the author/execution wallet cannot self-review
+- failed-plan refunds cover only unreleased plan capital and only the sealed winning-supporter snapshot
+- a FundingPool reserve receiver accepts a Treasury only when its Factory remains explicitly approved
 
 ## Supporting Contracts
 

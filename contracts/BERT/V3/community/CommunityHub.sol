@@ -88,1134 +88,297 @@ pragma solidity ^0.8.20;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+import {ICommunityFactory} from "../interfaces/ICommunityFactory.sol";
+import {IHumanVerifier} from "../../interfaces/IHumanVerifier.sol";
 import {ICommunityHub} from "../interfaces/ICommunityHub.sol";
+import {ICommunityHubV31} from "../interfaces/ICommunityHubV31.sol";
 import {ICommunityTreasury} from "../interfaces/ICommunityTreasury.sol";
-import {CommunityAdminActions} from "../libraries/CommunityAdminActions.sol";
+import {ICommunityMilestoneTreasury} from "../interfaces/ICommunityMilestoneTreasury.sol";
+import {ICommunityWinnerSnapshot} from "../interfaces/ICommunityWinnerSnapshot.sol";
+import {ICommunityMilestoneManager} from "../interfaces/ICommunityMilestoneManager.sol";
 import {CommunityTypes} from "../libraries/CommunityTypes.sol";
+import {CommunityAdminActions, ICommunityAdminActionTarget} from "../libraries/CommunityAdminActions.sol";
+import {CommunityMembershipModule} from "../modules/CommunityMembershipModule.sol";
+import {CommunityProposalModule} from "../modules/CommunityProposalModule.sol";
+import {CommunityVotingModule} from "../modules/CommunityVotingModule.sol";
+import {CommunityWinnerSnapshot} from "../modules/CommunityWinnerSnapshot.sol";
+import {CommunityMilestoneManager} from "../modules/CommunityMilestoneManager.sol";
+import {CommunityMembershipModuleDeployer} from "../modules/deployers/CommunityMembershipModuleDeployer.sol";
+import {CommunityProposalModuleDeployer} from "../modules/deployers/CommunityProposalModuleDeployer.sol";
+import {CommunityVotingModuleDeployer} from "../modules/deployers/CommunityVotingModuleDeployer.sol";
+import {CommunityMilestoneModuleDeployer} from "../modules/deployers/CommunityMilestoneModuleDeployer.sol";
 import "../../utils/Errors.sol";
 import "../utils/CommunityErrors.sol";
 
 /**
  * @title CommunityHub
- * @notice Stores the governance state and enforces the rules of one BERT V3 community.
- * @dev CommunityTreasury holds USDC. This contract records membership, roles, proposal lifecycle,
- * validator participation, and calls Treasury only after the required governance checks pass.
- * 
- * @custom:version 1.0.0
+ * @notice Thin V3.1 Community facade: lifecycle, admin quorum and safe module routing.
+ * @dev Membership, proposal validation, voting and execution reviews each own
+ *      their storage in a dedicated module. This contract deliberately retains
+ *      only cross-module invariants and pause-adjusted governance time.
+ *
+ *      The immutable execution recipient is selected at Community creation,
+ *      normally an administration/team multisig. It cannot be redirected
+ *      after members have voted funds into a proposal.
+ *
+ * @custom:version 2.0.1
  */
-contract CommunityHub is ICommunityHub, ReentrancyGuard {
-    /** @notice Highest configurable winning-proposal threshold for local validator nomination. */
-    uint256 private constant MAX_VALIDATOR_PROPOSAL_POINTS_THRESHOLD = 100;
-    /** @notice Maximum simultaneous local validators, limiting validation-set iteration cost. */
-    uint256 public constant MAX_ACTIVE_VALIDATORS = 50;
-    /** @notice Maximum proposals that one slate round may contain. */
-    uint256 public constant MAX_SLATE_PROPOSALS_PER_ROUND = 30;
-    /** @notice Hard protocol-wide maximum USDC stake for one binary or slate vote. */
-    uint256 public constant MAX_VOTE_STAKE_USDC = 10_000 * 1e6;
-    /** @notice Basis-point denominator used by fee and reward-share calculations. */
-    uint256 private constant BPS_DENOMINATOR = 10_000;
-    /** @notice Highest permitted binary rejection fee, equal to ten percent. */
-    uint256 private constant MAX_REJECTION_FEE_BPS = 1_000;
+contract CommunityHub is ICommunityHub, ICommunityHubV31, ICommunityAdminActionTarget, ReentrancyGuard {
 
-    /** @notice Community creator recorded at deployment and required to be an initial admin. */
-    address public immutable creator;
-    /** @notice Paired Treasury that exclusively custody-holds this community's USDC. */
+    /* ========== IMMUTABLE COMMUNITY CONFIGURATION ========== */
+
+    /// @notice Wallet that created this Community through CommunityFactory.
+    /// @dev Only this address may activate its Factory-reserved Treasury.
+    address public immutable override creator;
+
+    /// @notice Sole USDC custodian for this Community.
+    /// @dev Kept private so every user-facing asset action is routed through a
+    ///      narrow module rather than exposing Treasury authority from the Hub.
     ICommunityTreasury private immutable treasury;
-    /** @notice Hash of the full immutable CommunityConfig that Factory checks during activation. */
+
+    /// @notice Hash of the complete immutable Community configuration.
+    /// @dev CommunityFactory checks this during activation to prevent config substitution.
     bytes32 public immutable override configHash;
 
-    /** @notice USDC stake required to join the community. */
-    uint256 public immutable entryStakeUSDC;
-    /** @notice USDC anti-spam bond required to submit a member proposal. */
-    uint256 public immutable proposalBondUSDC;
-    /** @notice Minimum USDC commitment permitted for each vote. */
-    uint256 public immutable voteMinStakeUSDC;
-    /** @notice Community-clock delay between requesting and finalizing member exit. */
-    uint256 public immutable membershipExitCooldown;
-    /** @notice Number of validator approvals required for a member proposal to pass review. */
-    uint256 public immutable validatorApprovalThreshold;
-    /** @notice Number of local admin approvals required for a Treasury withdrawal. */
-    uint256 public immutable override adminApprovalThreshold;
-    /** @notice NO-side fee in basis points retained by BERT when a binary proposal is rejected. */
-    uint256 public immutable binaryRejectionFeeBps;
-    /** @notice Portion of successful local funding routed to active validators, in basis points. */
-    uint256 public immutable override validatorRewardShareBps;
-    /** @notice Duration of the validator review window measured by the community clock. */
-    uint256 public immutable validationWindow;
-    /** @notice Duration of an open binary voting window measured by the community clock. */
-    uint256 public immutable binaryVotingDuration;
-    /** @notice Duration of an open slate-round voting window measured by the community clock. */
-    uint256 public immutable roundVotingDuration;
-    /** @notice Duration of one validator activity and reward-accounting epoch. */
-    uint256 public immutable validatorRewardEpoch;
-    /** @notice Required share of available validation cases, in basis points, for epoch rewards. */
-    uint256 public immutable validatorActiveThresholdBps;
-    /** @notice Winning member proposals required before a former member becomes eligible for validator nomination. */
+    /// @notice Proposal-point threshold that makes an inactive account eligible for validator nomination.
     uint256 public immutable override validatorProposalPointsThreshold;
 
-    /** @notice Wall-clock timestamp at which the current pause began; zero while unpaused. */
+    /// @notice Basis-point share of successful Member-origin votes reserved for validator epochs.
+    uint256 public immutable override validatorRewardShareBps;
+
+    /// @notice Immutable number of Admin approvals required for a control-plane action.
+    uint256 public immutable override(ICommunityHub, ICommunityAdminActionTarget) adminApprovalThreshold;
+
+    /* ========== COMMUNITY LIFECYCLE ========== */
+
+    /// @notice Current lifecycle state: Active, Paused, or Archived.
+    CommunityTypes.CommunityStatus public override(ICommunityHub, ICommunityAdminActionTarget) communityStatus;
+    /// @notice Wall-clock timestamp at which the current pause began; zero when active.
     uint64 public pausedAt;
-    /** @notice Final frozen community-clock timestamp recorded on archival; zero before archive. */
+    /// @notice Final pause-adjusted Community timestamp frozen when the Community is archived.
     uint64 public archivedAt;
-    /** @notice Aggregate real-time seconds excluded from the community governance clock. */
+    /// @notice Aggregate wall-clock seconds excluded from all Community deadlines.
     uint256 public totalPausedDuration;
-    /** @notice Current lifecycle state: Active, Paused, or Archived. */
-    CommunityTypes.CommunityStatus public override communityStatus;
 
-    /** @notice Last assigned monotonic proposal identifier. */
-    uint256 public proposalCount;
-    /** @notice Last assigned monotonic slate-round identifier. */
-    uint256 public roundCount;
-    /** @notice Open binary proposals whose voting escrow has not yet settled. */
-    uint256 public activeBinaryProposalCount;
-    /** @notice Open slate rounds whose aggregate voting escrow has not yet settled. */
-    uint256 public activeSlateRoundCount;
-    /** @notice Member proposals still pending validation, voting, or slate-round settlement. */
-    uint256 public unresolvedMemberProposalCount;
-    /** @notice Identifier of the currently open validator activity epoch. */
-    uint256 public currentValidatorRewardEpochId;
-    /** @notice Number of accounts currently holding the local admin role. */
-    uint256 public adminCount;
-    /** @notice Number of accounts currently holding the local validator role. */
-    uint256 public validatorCount;
-    /** @notice Member proposals still awaiting a validator outcome. */
-    uint256 public pendingValidationProposalCount;
+    /* ========== MODULE ADDRESSES ========== */
 
-    /** @notice Full governance record for each proposal ID. */
-    mapping(uint256 => CommunityTypes.Proposal) private proposals;
-    /** @notice Full state record for each slate round ID. */
-    mapping(uint256 => CommunityTypes.CommunityRound) private rounds;
-    /** @notice Ordered proposal IDs per slate round; order is the deterministic tie-break order. */
-    mapping(uint256 => uint256[]) private proposalIdsByRound;
-    /** @notice Whether a proposal ID was included in a given slate round. */
-    mapping(uint256 => mapping(uint256 => bool)) private proposalIncludedInRound;
-    /** @notice The one slate proposal selected by a voter in a given round. */
-    mapping(uint256 => mapping(address => uint256)) private selectedProposalByRound;
-    /** @notice Whether a voter has cleared their post-settlement slate vote exit lock. */
-    mapping(uint256 => mapping(address => bool)) private roundVoteLockCleared;
-    /** @notice Whether a validator has already cast a review decision for a member proposal. */
-    mapping(uint256 => mapping(address => bool)) public validatorDecisionCast;
-    /** @notice Review direction recorded for each validator decision. */
-    mapping(uint256 => mapping(address => bool)) public validatorApprovedProposal;
-    /** @notice Binary choice cast by each voter for each proposal. */
-    mapping(uint256 => mapping(address => CommunityTypes.VoteChoice)) private voteChoiceByProposal;
-    /** @notice USDC stake committed by each voter to each binary proposal. */
-    mapping(uint256 => mapping(address => uint256)) private voteStakeByProposal;
-    /** @notice Whether a voter has cleared their post-settlement binary vote exit lock. */
-    mapping(uint256 => mapping(address => bool)) public voteLockCleared;
-    /** @notice Validator reward epoch in which each member proposal was submitted for review. */
-    mapping(uint256 => uint256) public validationEpochIdByProposal;
+    /// @notice Module that owns roles, membership stake, and exit obligations.
+    CommunityMembershipModule public immutable membership;
+    /// @notice Module that owns proposal state and validator-review epochs.
+    CommunityProposalModule public immutable proposals;
+    /// @notice Module that owns binary/slate vote state and settlement.
+    CommunityVotingModule public immutable voting;
+    /// @notice Module that seals winning-supporter weight before milestone review.
+    CommunityWinnerSnapshot public immutable winnerSnapshot;
+    /// @notice Module that releases execution tranches and failure refunds.
+    CommunityMilestoneManager public immutable milestones;
 
-    /** @notice Activity and reward snapshot for each validator epoch. */
-    mapping(uint256 => CommunityTypes.ValidatorRewardEpoch) private validatorRewardEpochs;
-    /** @notice Validation cases completed by each validator during each epoch. */
-    mapping(uint256 => mapping(address => uint256)) public validatorValidationCount;
+    /* ========== ACCESS CONTROL ========== */
 
-    /** @notice Local admin role membership by account. */
-    mapping(address => bool) private admins;
-    /** @notice Local validator role membership by account. */
-    mapping(address => bool) private validators;
-    /** @notice Membership, exit, stake, and proposal-point state by account. */
-    mapping(address => CommunityTypes.MemberInfo) private members;
-    /** @notice Unresolved member proposals created by each account, used as an exit blocker. */
-    mapping(address => uint256) public activeMemberProposalCount;
-    /** @notice Settled vote locks not yet cleared by each account, used as an exit blocker. */
-    mapping(address => uint256) public unresolvedVoteLockCount;
-
-    /**
-     * @dev Epoch settlement iterates only validators that performed validation work in that epoch.
-     * This avoids an ever-growing historical validator list making finalization uncallable.
-     */
-    mapping(uint256 => address[]) private validatorsByRewardEpoch;
-    /** @notice Prevents duplicate inclusion of a validator in one epoch's compact participant list. */
-    mapping(uint256 => mapping(address => bool)) private validatorRecordedForEpoch;
-
-    /**
-     * @notice Restricts actions to a governance-active community.
-     * @dev Rejects both temporary pauses and permanent archival.
-     */
+    /// @notice Restricts a call to a currently active Community.
+    /// @dev Paused Communities stop all governance actions; archived Communities
+    ///      allow only explicitly documented post-archive claims/finalization.
     modifier onlyActiveCommunity() {
-        if (communityStatus == CommunityTypes.CommunityStatus.Paused) revert CommunityIsPaused();
-        if (communityStatus == CommunityTypes.CommunityStatus.Archived) revert CommunityIsArchived();
+        if (communityStatus != CommunityTypes.CommunityStatus.Active) {
+            if (communityStatus == CommunityTypes.CommunityStatus.Paused) revert CommunityIsPaused();
+            revert CommunityIsArchived();
+        }
         _;
     }
 
-    /** @notice Restricts actions to an unpaused community while still allowing archival unwind paths. */
-    modifier onlyUnpausedCommunity() {
-        if (communityStatus == CommunityTypes.CommunityStatus.Paused) revert CommunityIsPaused();
-        _;
-    }
-
-    /** @notice Restricts roster mutations to communities that have not been permanently archived. */
+    /// @notice Blocks actions after permanent Community archival.
     modifier onlyNotArchived() {
         if (communityStatus == CommunityTypes.CommunityStatus.Archived) revert CommunityIsArchived();
         _;
     }
 
-    /** @notice Restricts a call to an account with the local admin role. */
+    /// @notice Restricts a call to a local Community Admin.
     modifier onlyAdmin() {
-        if (!admins[msg.sender]) revert NotCommunityAdmin(msg.sender);
+        if (!membership.isAdmin(msg.sender)) revert NotCommunityAdmin(msg.sender);
         _;
     }
 
-    /** @notice Restricts a call to this Hub itself through its linked Admin-action library. */
-    modifier onlySelf() {
-        if (msg.sender != address(this)) revert NotCommunityAdmin(msg.sender);
-        _;
-    }
-
-    /** @notice Restricts a call to an account with the local validator role. */
+    /// @notice Restricts a call to a local Community validator.
     modifier onlyValidator() {
-        if (!validators[msg.sender]) revert NotCommunityValidator(msg.sender);
+        if (!membership.isValidator(msg.sender)) revert NotCommunityValidator(msg.sender);
         _;
     }
 
-    /** @notice Restricts a call to an account with an active, stake-backed membership. */
-    modifier onlyActiveMember() {
-        if (!members[msg.sender].active) revert NotCommunityMember(msg.sender);
+    /// @notice Restricts a call to an active stake-backed Community member.
+    modifier onlyMember() {
+        if (!membership.isActiveMember(msg.sender)) revert NotCommunityMember(msg.sender);
         _;
     }
+
+    /// @notice Restricts a control-plane action to a quorum-approved self-call.
+    /// @dev CommunityAdminActions performs the external self-call only after
+    ///      the immutable Admin quorum has approved the request.
+    modifier onlySelf() {
+        if (msg.sender != address(this)) revert NotCommunityHub(msg.sender);
+        _;
+    }
+
+    /* ========== CONSTRUCTOR ========== */
 
     /**
-     * @notice Restricts a call to an existing proposal ID.
-     * @param proposalId Proposal identifier that must be in the range one through proposalCount.
+     * @notice Creates a thin V3.1 Hub and deploys its dedicated runtime modules.
+     * @dev The Factory reserves `communityTreasury_` first. This constructor
+     *      reads the Factory-bound deployer addresses from that Treasury, which
+     *      makes a forged Hub unable to select replacement modules. The Factory
+     *      subsequently verifies `creator`, Treasury, and `configHash` before
+     *      binding Treasury authorities exactly once.
+     * @param config_ Immutable Community rules, assets, roles, durations, and execution recipient.
+     * @param communityTreasury_ Factory-reserved Treasury that custody-holds all Community USDC.
+     * @param creator_ Account that reserved the Treasury and is permitted to activate this Hub.
      */
-    modifier proposalExists(uint256 proposalId) {
-        if (proposalId == 0 || proposalId > proposalCount) {
-            revert CommunityProposalNotFound(proposalId);
-        }
-        _;
-    }
-
-    /**
-     * @notice Creates a CommunityHub from a validated immutable configuration.
-     * @param config_ Community-level settings and initial role holders.
-     * @param communityTreasury_ Treasury paired with this Hub by CommunityFactory.
-     * @param creator_ Address that created the community and must be an initial admin.
-     */
-    constructor(
-        CommunityTypes.CommunityConfig memory config_,
-        ICommunityTreasury communityTreasury_,
-        address creator_
-    ) {
+    constructor(CommunityTypes.CommunityConfig memory config_, ICommunityTreasury communityTreasury_, address creator_) {
         _validateConfig(config_, communityTreasury_, creator_);
-
         creator = creator_;
         treasury = communityTreasury_;
         configHash = keccak256(abi.encode(config_));
-        entryStakeUSDC = config_.entryStakeUSDC;
-        proposalBondUSDC = config_.proposalBondUSDC;
-        voteMinStakeUSDC = config_.voteMinStakeUSDC;
-        membershipExitCooldown = config_.membershipExitCooldown;
-        validatorApprovalThreshold = config_.validatorApprovalThreshold;
-        adminApprovalThreshold = config_.adminApprovalThreshold;
-        binaryRejectionFeeBps = config_.binaryRejectionFeeBps;
-        validatorRewardShareBps = config_.validatorRewardShareBps;
-        validationWindow = config_.validationWindow;
-        binaryVotingDuration = config_.binaryVotingDuration;
-        roundVotingDuration = config_.roundVotingDuration;
-        validatorRewardEpoch = config_.validatorRewardEpoch;
-        validatorActiveThresholdBps = config_.validatorActiveThresholdBps;
         validatorProposalPointsThreshold = config_.validatorProposalPointsThreshold;
+        validatorRewardShareBps = config_.validatorRewardShareBps;
+        adminApprovalThreshold = config_.adminApprovalThreshold;
         communityStatus = CommunityTypes.CommunityStatus.Active;
 
-        for (uint256 i; i < config_.initialAdmins.length; ++i) {
-            _addAdmin(config_.initialAdmins[i]);
-        }
-        if (!admins[creator_]) revert InvalidCommunityConfigCode(1);
+        ICommunityFactory factory = ICommunityFactory(communityTreasury_.factory());
+        address verifier = factory.humanVerifier();
+        uint64 startTime = uint64(block.timestamp);
+        membership = CommunityMembershipModuleDeployer(factory.membershipModuleDeployer()).deploy(
+            address(this), communityTreasury_, IHumanVerifier(verifier), config_.entryStakeUSDC,
+            config_.membershipExitCooldown, config_.validatorProposalPointsThreshold,
+            config_.initialAdmins, config_.initialValidators
+        );
+        proposals = CommunityProposalModuleDeployer(factory.proposalModuleDeployer()).deploy(
+            address(this), communityTreasury_, membership, config_.proposalBondUSDC,
+            config_.validatorApprovalThreshold, config_.validationWindow,
+            config_.validatorRewardEpoch, config_.validatorActiveThresholdBps, startTime
+        );
+        voting = CommunityVotingModuleDeployer(factory.votingModuleDeployer()).deploy(
+            address(this), communityTreasury_, membership, proposals, config_.voteMinStakeUSDC,
+            config_.binaryVotingDuration, config_.roundVotingDuration,
+            config_.binaryRejectionFeeBps, config_.validatorRewardShareBps
+        );
+        (winnerSnapshot, milestones) = CommunityMilestoneModuleDeployer(factory.milestoneModuleDeployer()).deploy(
+            address(this), address(voting), config_.executionRecipient,
+            ICommunityMilestoneTreasury(address(communityTreasury_)),
+            config_.milestoneReviewDuration, config_.milestoneProofDuration
+        );
 
-        for (uint256 i; i < config_.initialValidators.length; ++i) {
-            _addValidator(config_.initialValidators[i]);
-        }
-
-        currentValidatorRewardEpochId = 1;
-        _openValidatorRewardEpoch(currentValidatorRewardEpochId, _communityTime());
+        membership.setOperationalModules(address(proposals), address(voting));
+        proposals.setVotingModule(address(voting));
+        voting.setMilestoneModules(
+            ICommunityWinnerSnapshot(address(winnerSnapshot)),
+            ICommunityMilestoneManager(address(milestones))
+        );
     }
 
-    /**
-     * @notice Reports whether an account currently holds the local admin role.
-     * @param account Address whose local role is queried.
-     * @return True when the address is an active admin.
-     */
-    function isAdminAccount(address account) external view override returns (bool) {
-        return admins[account];
-    }
+    /* ========== MODULE AND GOVERNANCE VIEWS ========== */
 
-    /**
-     * @notice Returns the Treasury paired with this Hub at construction.
-     * @return Treasury contract address that custody-holds this community's USDC.
-     */
-    function communityTreasury() external view override returns (address) {
-        return address(treasury);
-    }
+    /** @notice Returns the Community's sole USDC Treasury. @return Treasury contract address. */
+    function communityTreasury() external view override returns (address) { return address(treasury); }
+    /** @notice Returns the membership module. @return Module contract address. */
+    function membershipModule() external view override returns (address) { return address(membership); }
+    /** @notice Returns the proposal module. @return Module contract address. */
+    function proposalModule() external view override returns (address) { return address(proposals); }
+    /** @notice Returns the voting module. @return Module contract address. */
+    function votingModule() external view override returns (address) { return address(voting); }
+    /** @notice Returns the milestone manager. @return Module contract address. */
+    function milestoneManager() external view override returns (address) { return address(milestones); }
 
-    /**
-     * @notice Reports whether an account currently holds the local validator role.
-     * @param account Address whose local role is queried.
-     * @return True when the address is an active validator.
-     */
-    function isValidatorAccount(address account) external view returns (bool) {
-        return validators[account];
-    }
-
-    /**
-     * @notice Returns the community clock used for governance deadlines.
-     * @dev The clock stops while paused, so validation and voting windows cannot elapse on pause.
-     * @return Pause-adjusted community timestamp.
-     */
-    function communityTime() external view returns (uint64) {
+    /** @notice Reports whether `account` is a local Admin. @param account Address to inspect. */
+    function isAdminAccount(address account) external view override returns (bool) { return membership.isAdmin(account); }
+    /** @notice Reports whether `account` is a local validator. @param account Address to inspect. */
+    function isValidatorAccount(address account) external view returns (bool) { return membership.isValidator(account); }
+    /** @notice Reports whether an inactive account can be nominated validator. @param account Address to inspect. */
+    function isValidatorEligible(address account) external view returns (bool) { return membership.isValidatorEligible(account); }
+    /** @notice Returns the pause-adjusted timestamp used by every Community deadline. @return Current Community clock time. */
+    function communityTime() public view override(ICommunityAdminActionTarget) returns (uint64) {
         return _communityTime();
     }
-
+    /** @notice Returns one membership record. @param account Address to inspect. @return Member lifecycle and stake data. */
+    function getMember(address account) external view returns (CommunityTypes.MemberInfo memory) { return membership.getMember(account); }
+    /** @notice Returns one proposal record. @param proposalId Proposal identifier. @return Proposal lifecycle and vote data. */
+    function getProposal(uint256 proposalId) external view returns (CommunityTypes.Proposal memory) { return proposals.getProposal(proposalId); }
+    /** @notice Returns one slate-round record. @param roundId Round identifier. @return Round lifecycle and settlement data. */
+    function getRound(uint256 roundId) external view returns (CommunityTypes.CommunityRound memory) { return voting.getRound(roundId); }
     /**
-     * @notice Returns local membership state for an account.
-     * @param account Address whose membership record is queried.
-     * @return Complete member record, including stake, exit state, and proposal points.
-     */
-    function getMember(address account)
-        external
-        view
-        returns (CommunityTypes.MemberInfo memory)
-    {
-        return members[account];
-    }
-
-    /**
-     * @notice Returns the complete state of one community proposal.
-     * @param proposalId Existing proposal identifier.
-     * @return Complete proposal record.
-     */
-    function getProposal(uint256 proposalId)
-        external
-        view
-        proposalExists(proposalId)
-        returns (CommunityTypes.Proposal memory)
-    {
-        return proposals[proposalId];
-    }
-
-    /**
-     * @notice Returns the complete state of one slate round.
+     * @notice Returns proposal IDs in their deterministic slate-round order.
      * @param roundId Existing slate-round identifier.
-     * @return Complete round record including settlement result.
+     * @return Ordered proposal identifiers used for winner tie-breaking.
      */
-    function getRound(uint256 roundId)
-        external
-        view
-        returns (CommunityTypes.CommunityRound memory)
-    {
-        if (roundId == 0 || roundId > roundCount) revert CommunityRoundNotFound(roundId);
-        return rounds[roundId];
-    }
-
+    function getRoundProposalIds(uint256 roundId) external view returns (uint256[] memory) { return voting.getRoundProposalIds(roundId); }
     /**
-     * @notice Returns slate proposal IDs in their stored deterministic tie-break order.
-     * @param roundId Existing slate-round identifier.
-     * @return Ordered proposal identifiers included in the round.
-     */
-    function getRoundProposalIds(uint256 roundId) external view returns (uint256[] memory) {
-        if (roundId == 0 || roundId > roundCount) revert CommunityRoundNotFound(roundId);
-        return proposalIdsByRound[roundId];
-    }
-
-    /**
-     * @notice Returns the vote direction and USDC commitment recorded for one binary voter.
-     * @param proposalId Existing binary proposal identifier.
-     * @param voter Voter address to inspect.
+     * @notice Returns one member's binary vote direction and escrowed USDC.
+     * @param proposalId Binary proposal identifier.
+     * @param voter_ Voter address to inspect.
      * @return choice Recorded vote direction, or None when no vote exists.
-     * @return stake USDC stake recorded for the vote.
+     * @return stake USDC amount committed by `voter_`.
      */
-    function getBinaryVote(uint256 proposalId, address voter)
-        external
-        view
-        override
-        proposalExists(proposalId)
-        returns (CommunityTypes.VoteChoice choice, uint256 stake)
-    {
-        return (voteChoiceByProposal[proposalId][voter], voteStakeByProposal[proposalId][voter]);
+    function getBinaryVote(uint256 proposalId, address voter_) external view override returns (CommunityTypes.VoteChoice choice, uint256 stake) {
+        return voting.getBinaryVote(proposalId, voter_);
+    }
+    /**
+     * @notice Returns one member's selected proposal and escrowed USDC in a slate round.
+     * @param roundId Slate-round identifier.
+     * @param voter_ Voter address to inspect.
+     * @return proposalId Selected proposal, or zero when no vote exists.
+     * @return stake USDC amount committed by `voter_`.
+     */
+    function getSlateVote(uint256 roundId, address voter_) external view returns (uint256 proposalId, uint256 stake) {
+        return voting.getSlateVote(roundId, voter_);
+    }
+    /** @notice Returns validator activity data for an epoch. @param epochId Epoch identifier. @return Epoch record. */
+    function getValidatorRewardEpoch(uint256 epochId) external view returns (CommunityTypes.ValidatorRewardEpoch memory) {
+        return proposals.getValidatorRewardEpoch(epochId);
+    }
+    /**
+     * @notice Reports whether a validator completed the configured share of an epoch's review cases.
+     * @param epochId Validator reward epoch identifier.
+     * @param validator Validator address to inspect.
+     * @return True only after the epoch is finalized and the activity threshold is met.
+     */
+    function isValidatorActiveForEpoch(uint256 epochId, address validator) external view override returns (bool) {
+        return proposals.isValidatorActiveForEpoch(epochId, validator);
     }
 
-    /**
-     * @notice Creates a quorum-protected request for a Community control-plane action.
-     * @dev The proposer records the first approval. Requests expire after seven Community-clock days.
-     * @param action Security-sensitive operation to execute after Admin quorum.
-     * @param target Role recipient or role holder; must be zero for status and Treasury-cancellation actions.
-     * @param value Treasury withdrawal request ID for CancelWithdrawal; zero for every other action.
-     * @return requestId Newly assigned Admin action request identifier.
-     */
-    function createAdminActionRequest(
-        CommunityTypes.AdminActionType action,
-        address target,
-        uint256 value
-    ) external onlyAdmin onlyNotArchived returns (uint256 requestId) {
-        return CommunityAdminActions.create(action, target, value);
-    }
+    /* ========== ADMIN QUORUM ACTIONS ========== */
 
     /**
-     * @notice Adds the caller's approval to an open Admin action request.
-     * @param requestId Existing request identifier.
+     * @notice Creates an Admin-quorum request for a sensitive Community action.
+     * @param action Pause, unpause, archive, roster change, or withdrawal cancellation action.
+     * @param target Role recipient or role holder; zero for lifecycle and cancellation actions.
+     * @param value Withdrawal request ID for CancelWithdrawal; zero otherwise.
+     * @return requestId Identifier of the created request; creator supplies its first approval.
      */
+    function createAdminActionRequest(CommunityTypes.AdminActionType action, address target, uint256 value)
+        external onlyAdmin onlyNotArchived returns (uint256)
+    { return CommunityAdminActions.create(action, target, value); }
+
+    /** @notice Adds the calling Admin's approval to an open request. @param requestId Request identifier. */
     function approveAdminActionRequest(uint256 requestId) external onlyAdmin onlyNotArchived {
         CommunityAdminActions.approve(requestId);
     }
 
     /**
-     * @notice Executes an approved Admin action after the immutable local Admin quorum is met.
-     * @param requestId Existing request identifier.
+     * @notice Executes an approved request through a Hub self-call.
+     * @dev Reentrancy protection covers the only flow that can change lifecycle
+     *      state, roster state, or cancel a Treasury withdrawal.
+     * @param requestId Request identifier that has reached immutable Admin quorum.
      */
     function executeAdminActionRequest(uint256 requestId) external onlyAdmin onlyNotArchived nonReentrant {
         CommunityAdminActions.execute(requestId);
     }
 
-    /** @notice Lets a validator resign when no proposal is awaiting validator review. */
-    function renounceValidatorRole() external onlyValidator {
-        _requireValidatorSetUnlocked();
-        _removeValidator(msg.sender);
-    }
-
     /**
-     * @notice Reports whether an inactive member has accumulated the validator nomination qualification.
-     * @dev Existing role conflicts are enforced separately when an admin calls addValidator.
-     * @param account Address to inspect.
+     * @notice Applies one quorum-approved control-plane action.
+     * @dev Callable only by `address(this)` via CommunityAdminActions. Archive
+     *      is blocked while validation, voting, or execution-plan duties remain.
+     * @param action Approved action type.
+     * @param target Role target when the action changes the roster.
+     * @param value Treasury withdrawal request ID for cancellation.
      */
-    function isValidatorEligible(address account) external view returns (bool) {
-        return
-            !members[account].active &&
-            members[account].proposalPoints >= validatorProposalPointsThreshold;
-    }
-
-    /**
-     * @notice Pulls the configured entry stake into Treasury and activates the caller's membership.
-     * @dev Caller must approve Treasury for entryStakeUSDC before calling and cannot be an admin or validator.
-     */
-    function joinCommunity() external onlyActiveCommunity nonReentrant {
-        CommunityTypes.MemberInfo storage member = members[msg.sender];
-        if (member.active) revert AlreadyCommunityMember(msg.sender);
-        if (admins[msg.sender] || validators[msg.sender]) revert AdminValidatorRoleConflict(msg.sender);
-
-        treasury.depositMembershipStake(msg.sender, entryStakeUSDC);
-
-        member.active = true;
-        member.joinedAt = _communityTime();
-        member.exitRequestedAt = 0;
-        member.membershipStake = entryStakeUSDC;
-        emit MemberJoined(msg.sender, entryStakeUSDC);
-    }
-
-    /**
-     * @notice Starts the membership exit cooldown without releasing stake yet.
-     * @dev Archived communities waive the delay at finalization, but the request remains explicit.
-     */
-    function requestMembershipExit() external onlyUnpausedCommunity onlyActiveMember {
-        CommunityTypes.MemberInfo storage member = members[msg.sender];
-        if (member.exitRequestedAt != 0) revert ExitAlreadyRequested(msg.sender);
-
-        member.exitRequestedAt = _communityTime();
-        uint256 availableAt = communityStatus == CommunityTypes.CommunityStatus.Archived
-            ? member.exitRequestedAt
-            : uint256(member.exitRequestedAt) + membershipExitCooldown;
-        emit MembershipExitRequested(msg.sender, availableAt);
-    }
-
-    /**
-     * @notice Releases membership stake after cooldown and after every governance exit blocker clears.
-     * @dev Admins, validators, proposal authors, and voters with uncleared locks cannot exit.
-     */
-    function finalizeMembershipExit()
-        external
-        onlyUnpausedCommunity
-        onlyActiveMember
-        nonReentrant
-    {
-        CommunityTypes.MemberInfo storage member = members[msg.sender];
-        if (member.exitRequestedAt == 0) revert ExitNotRequested(msg.sender);
-
-        uint256 availableAt = uint256(member.exitRequestedAt) + membershipExitCooldown;
-        if (
-            communityStatus != CommunityTypes.CommunityStatus.Archived &&
-            _communityTime() < availableAt
-        ) revert ExitCooldownNotFinished(availableAt);
-        if (
-            admins[msg.sender] ||
-            validators[msg.sender] ||
-            activeMemberProposalCount[msg.sender] != 0 ||
-            unresolvedVoteLockCount[msg.sender] != 0
-        ) {
-            revert MembershipExitBlocked(msg.sender);
-        }
-
-        uint256 stake = member.membershipStake;
-        member.active = false;
-        member.joinedAt = 0;
-        member.exitRequestedAt = 0;
-        member.membershipStake = 0;
-
-        treasury.releaseMembershipStake(msg.sender, stake);
-        emit MembershipExited(msg.sender, stake);
-    }
-
-    /**
-     * @notice Creates an admin-owned binary YES/NO proposal ready to open for voting.
-     * @param title Short proposal title.
-     * @param description Proposal body or summary.
-     * @param metadataURI Offchain metadata URI.
-     * @return proposalId Newly assigned proposal identifier.
-     */
-    function createAdminProposal(
-        string calldata title,
-        string calldata description,
-        string calldata metadataURI
-    ) external onlyAdmin onlyActiveCommunity returns (uint256 proposalId) {
-        _requireProposalText(title, description);
-
-        proposalId = ++proposalCount;
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        proposal.creator = msg.sender;
-        proposal.origin = CommunityTypes.ProposalOrigin.Admin;
-        proposal.mode = CommunityTypes.ProposalMode.Binary;
-        proposal.status = CommunityTypes.ProposalStatus.ApprovedForVoting;
-        proposal.title = title;
-        proposal.description = description;
-        proposal.metadataURI = metadataURI;
-        proposal.createdAt = _communityTime();
-
-        emit ProposalCreated(proposalId, msg.sender, CommunityTypes.ProposalOrigin.Admin);
-    }
-
-    /**
-     * @notice Creates a member-owned binary proposal, starts validator review, and locks its bond.
-     * @param title Short proposal title.
-     * @param description Proposal body or summary.
-     * @param metadataURI Offchain metadata URI.
-     * @return proposalId Newly assigned proposal identifier.
-     */
-    function createMemberProposal(
-        string calldata title,
-        string calldata description,
-        string calldata metadataURI
-    ) external onlyActiveMember onlyActiveCommunity nonReentrant returns (uint256 proposalId) {
-        _requireNoPendingExit(msg.sender);
-        _requireProposalText(title, description);
-        _rollValidatorRewardEpoch();
-
-        proposalId = ++proposalCount;
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        proposal.creator = msg.sender;
-        proposal.origin = CommunityTypes.ProposalOrigin.Member;
-        proposal.mode = CommunityTypes.ProposalMode.Binary;
-        proposal.status = CommunityTypes.ProposalStatus.PendingValidation;
-        proposal.title = title;
-        proposal.description = description;
-        proposal.metadataURI = metadataURI;
-        proposal.createdAt = _communityTime();
-        proposal.validationDeadline = _communityTime() + uint64(validationWindow);
-        proposal.bondAmount = proposalBondUSDC;
-
-        validationEpochIdByProposal[proposalId] = currentValidatorRewardEpochId;
-        validatorRewardEpochs[currentValidatorRewardEpochId].availableValidationCases += 1;
-        activeMemberProposalCount[msg.sender] += 1;
-        unresolvedMemberProposalCount += 1;
-        pendingValidationProposalCount += 1;
-
-        treasury.depositProposalBond(proposalId, msg.sender, proposalBondUSDC);
-        emit ProposalCreated(proposalId, msg.sender, CommunityTypes.ProposalOrigin.Member);
-    }
-
-    /**
-     * @notice Creates an admin-owned proposal eligible for an admin slate round.
-     * @param title Short proposal title.
-     * @param description Proposal body or summary.
-     * @param metadataURI Offchain metadata URI.
-     * @return proposalId Newly created proposal identifier.
-     */
-    function createAdminSlateProposal(
-        string calldata title,
-        string calldata description,
-        string calldata metadataURI
-    ) external onlyAdmin onlyActiveCommunity returns (uint256 proposalId) {
-        _requireProposalText(title, description);
-        proposalId = ++proposalCount;
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        proposal.creator = msg.sender;
-        proposal.origin = CommunityTypes.ProposalOrigin.Admin;
-        proposal.mode = CommunityTypes.ProposalMode.Slate;
-        proposal.status = CommunityTypes.ProposalStatus.ApprovedForRound;
-        proposal.title = title;
-        proposal.description = description;
-        proposal.metadataURI = metadataURI;
-        proposal.createdAt = _communityTime();
-        emit ProposalCreated(proposalId, msg.sender, CommunityTypes.ProposalOrigin.Admin);
-    }
-
-    /**
-     * @notice Creates a member-owned slate proposal and locks its anti-spam bond.
-     * @dev Validators must approve it before an admin can include it in a member slate round.
-     * @param title Short proposal title.
-     * @param description Proposal body or summary.
-     * @param metadataURI Offchain metadata URI.
-     * @return proposalId Newly created proposal identifier.
-     */
-    function createMemberSlateProposal(
-        string calldata title,
-        string calldata description,
-        string calldata metadataURI
-    ) external onlyActiveMember onlyActiveCommunity nonReentrant returns (uint256 proposalId) {
-        _requireNoPendingExit(msg.sender);
-        _requireProposalText(title, description);
-        _rollValidatorRewardEpoch();
-        proposalId = ++proposalCount;
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        proposal.creator = msg.sender;
-        proposal.origin = CommunityTypes.ProposalOrigin.Member;
-        proposal.mode = CommunityTypes.ProposalMode.Slate;
-        proposal.status = CommunityTypes.ProposalStatus.PendingValidation;
-        proposal.title = title;
-        proposal.description = description;
-        proposal.metadataURI = metadataURI;
-        proposal.createdAt = _communityTime();
-        proposal.validationDeadline = _communityTime() + uint64(validationWindow);
-        proposal.bondAmount = proposalBondUSDC;
-        validationEpochIdByProposal[proposalId] = currentValidatorRewardEpochId;
-        validatorRewardEpochs[currentValidatorRewardEpochId].availableValidationCases += 1;
-        activeMemberProposalCount[msg.sender] += 1;
-        unresolvedMemberProposalCount += 1;
-        pendingValidationProposalCount += 1;
-        treasury.depositProposalBond(proposalId, msg.sender, proposalBondUSDC);
-        emit ProposalCreated(proposalId, msg.sender, CommunityTypes.ProposalOrigin.Member);
-    }
-
-    /**
-     * @notice Records one validator's approval or rejection of a pending member proposal.
-     * @dev Automatically finalizes once approval succeeds or becomes mathematically impossible.
-     * @param proposalId Pending member proposal under review.
-     * @param approved True to approve the proposal, false to reject it.
-     */
-    function castValidationDecision(uint256 proposalId, bool approved)
-        external
-        onlyValidator
-        onlyActiveCommunity
-        proposalExists(proposalId)
-        nonReentrant
-    {
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        if (proposal.status != CommunityTypes.ProposalStatus.PendingValidation) {
-            revert InvalidProposalState(proposalId);
-        }
-        if (_communityTime() >= proposal.validationDeadline) revert ValidationWindowClosed(proposalId);
-        if (validatorDecisionCast[proposalId][msg.sender]) {
-            revert ValidatorDecisionAlreadyCast(proposalId, msg.sender);
-        }
-
-        validatorDecisionCast[proposalId][msg.sender] = true;
-        validatorApprovedProposal[proposalId][msg.sender] = approved;
-        uint256 epochId = validationEpochIdByProposal[proposalId];
-        validatorValidationCount[epochId][msg.sender] += 1;
-        if (!validatorRecordedForEpoch[epochId][msg.sender]) {
-            validatorRecordedForEpoch[epochId][msg.sender] = true;
-            validatorsByRewardEpoch[epochId].push(msg.sender);
-        }
-
-        if (approved) {
-            proposal.approvalCount += 1;
-        } else {
-            proposal.rejectionCount += 1;
-        }
-        emit ValidatorDecisionCast(proposalId, msg.sender, approved);
-
-        if (proposal.approvalCount >= validatorApprovalThreshold) {
-            _finalizeMemberProposalValidation(proposalId, true);
-            return;
-        }
-
-        uint256 remainingValidators = validatorCount - proposal.approvalCount - proposal.rejectionCount;
-        if (proposal.approvalCount + remainingValidators < validatorApprovalThreshold) {
-            _finalizeMemberProposalValidation(proposalId, false);
-        }
-    }
-
-    /**
-     * @notice Finalizes an expired member proposal review using the approvals received by deadline.
-     * @param proposalId Pending member proposal whose validation window has expired.
-     */
-    function finalizeMemberProposalValidation(uint256 proposalId)
-        external
-        onlyActiveCommunity
-        proposalExists(proposalId)
-        nonReentrant
-    {
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        if (proposal.status != CommunityTypes.ProposalStatus.PendingValidation) {
-            revert InvalidProposalState(proposalId);
-        }
-        if (_communityTime() < proposal.validationDeadline) {
-            revert ValidationStillOpen(proposalId, proposal.validationDeadline);
-        }
-
-        _finalizeMemberProposalValidation(
-            proposalId,
-            proposal.approvalCount >= validatorApprovalThreshold
-        );
-    }
-
-    /**
-     * @notice Opens the configured binary voting window for an approved proposal.
-     * @param proposalId Admin proposal or validator-approved member proposal to open.
-     */
-    function openBinaryVoting(uint256 proposalId)
-        external
-        onlyAdmin
-        onlyActiveCommunity
-        proposalExists(proposalId)
-    {
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        if (
-            proposal.mode != CommunityTypes.ProposalMode.Binary ||
-            proposal.status != CommunityTypes.ProposalStatus.ApprovedForVoting
-        ) {
-            revert InvalidProposalState(proposalId);
-        }
-
-        uint64 timestamp = _communityTime();
-        proposal.status = CommunityTypes.ProposalStatus.InVoting;
-        proposal.votingStartedAt = timestamp;
-        proposal.votingDeadline = timestamp + uint64(binaryVotingDuration);
-        activeBinaryProposalCount += 1;
-        emit BinaryVotingOpened(proposalId, proposal.votingDeadline);
-    }
-
-    /**
-     * @notice Commits a member's USDC stake to one YES or NO choice in an open binary vote.
-     * @param proposalId Open binary proposal identifier.
-     * @param choice YES or NO vote direction; None is invalid.
-     * @param amount USDC stake in token-native units, bounded by configured minimum and hard cap.
-     */
-    function castBinaryVote(
-        uint256 proposalId,
-        CommunityTypes.VoteChoice choice,
-        uint256 amount
-    )
-        external
-        onlyActiveMember
-        onlyActiveCommunity
-        proposalExists(proposalId)
-        nonReentrant
-    {
-        _requireNoPendingExit(msg.sender);
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        if (
-            proposal.mode != CommunityTypes.ProposalMode.Binary ||
-            proposal.status != CommunityTypes.ProposalStatus.InVoting
-        ) revert VotingNotOpen(proposalId);
-        if (_communityTime() >= proposal.votingDeadline) revert VotingWindowClosed(proposalId);
-        if (choice == CommunityTypes.VoteChoice.None) revert InvalidVoteChoice();
-        if (proposal.creator == msg.sender) {
-            revert ProposalAuthorCannotVote(proposalId, msg.sender);
-        }
-        if (voteChoiceByProposal[proposalId][msg.sender] != CommunityTypes.VoteChoice.None) {
-            revert BinaryVoteAlreadyCast(proposalId, msg.sender);
-        }
-        if (amount < voteMinStakeUSDC) revert VoteStakeTooLow(amount, voteMinStakeUSDC);
-        if (amount > MAX_VOTE_STAKE_USDC) {
-            revert VoteAmountCapExceeded(amount, MAX_VOTE_STAKE_USDC);
-        }
-
-        treasury.depositVoteStake(proposalId, msg.sender, amount);
-        voteChoiceByProposal[proposalId][msg.sender] = choice;
-        voteStakeByProposal[proposalId][msg.sender] = amount;
-        unresolvedVoteLockCount[msg.sender] += 1;
-
-        if (choice == CommunityTypes.VoteChoice.Yes) {
-            proposal.yesVotes += amount;
-        } else {
-            proposal.noVotes += amount;
-        }
-        emit BinaryVoteCast(proposalId, msg.sender, choice, amount);
-    }
-
-    /**
-     * @notice Settles an ended binary proposal and executes its Treasury accounting flow.
-     * @dev YES must strictly exceed NO; a tie follows the NO/refund route.
-     * @param proposalId Ended binary proposal identifier.
-     */
-    function settleBinaryProposal(uint256 proposalId)
-        external
-        onlyActiveCommunity
-        proposalExists(proposalId)
-        nonReentrant
-    {
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        if (
-            proposal.mode != CommunityTypes.ProposalMode.Binary ||
-            proposal.status != CommunityTypes.ProposalStatus.InVoting
-        ) {
-            revert InvalidProposalState(proposalId);
-        }
-        if (_communityTime() < proposal.votingDeadline) {
-            revert VotingStillOpen(proposalId, proposal.votingDeadline);
-        }
-
-        bool accepted = proposal.yesVotes > proposal.noVotes;
-        if (accepted) {
-            _rollValidatorRewardEpoch();
-            // Admin proposals do not enter validator review, so epoch zero disables validator rewards.
-            // Member-proposal rewards belong to the epoch that measured the validators' work.
-            uint256 rewardEpochId = proposal.origin == CommunityTypes.ProposalOrigin.Member
-                ? validationEpochIdByProposal[proposalId]
-                : 0;
-            treasury.settleBinaryYesWin(
-                proposalId,
-                proposal.yesVotes,
-                proposal.noVotes,
-                rewardEpochId
-            );
-        } else {
-            treasury.settleBinaryNoWin(
-                proposalId,
-                proposal.yesVotes,
-                proposal.noVotes,
-                binaryRejectionFeeBps
-            );
-        }
-
-        proposal.accepted = accepted;
-        proposal.settled = true;
-        proposal.status = CommunityTypes.ProposalStatus.Settled;
-        activeBinaryProposalCount -= 1;
-
-        if (proposal.origin == CommunityTypes.ProposalOrigin.Member) {
-            treasury.returnProposalBond(proposalId, proposal.creator);
-            activeMemberProposalCount[proposal.creator] -= 1;
-            unresolvedMemberProposalCount -= 1;
-
-            if (accepted) {
-                _awardProposalPoint(proposalId, proposal.creator);
-            }
-        }
-        emit BinaryProposalSettled(proposalId, accepted);
-    }
-
-    /**
-     * @notice Opens a slate round containing only approved admin slate proposals.
-     * @param proposalIds Ordered proposal IDs used for the deterministic tie-break rule.
-     * @return roundId Newly created round identifier.
-     */
-    function createAdminSlateRound(uint256[] calldata proposalIds)
-        external
-        onlyAdmin
-        onlyActiveCommunity
-        returns (uint256 roundId)
-    {
-        return _createSlateRound(CommunityTypes.ProposalOrigin.Admin, proposalIds);
-    }
-
-    /**
-     * @notice Opens a slate round containing only validator-approved member slate proposals.
-     * @param proposalIds Ordered proposal IDs used for the deterministic tie-break rule.
-     * @return roundId Newly created round identifier.
-     */
-    function createMemberSlateRound(uint256[] calldata proposalIds)
-        external
-        onlyAdmin
-        onlyActiveCommunity
-        returns (uint256 roundId)
-    {
-        return _createSlateRound(CommunityTypes.ProposalOrigin.Member, proposalIds);
-    }
-
-    /**
-     * @notice Commits one member's USDC stake to exactly one proposal in an open slate round.
-     * @dev The stake is non-refundable and the full round escrow is routed to local community buckets
-     * when the round settles. A member cannot vote while their membership exit is pending or select
-     * their own proposal.
-     * @param roundId Slate round identifier.
-     * @param proposalId Included slate proposal selected by the voter.
-     * @param amount USDC stake in token-native units.
-     */
-    function castSlateRoundVote(uint256 roundId, uint256 proposalId, uint256 amount)
-        external
-        onlyActiveMember
-        onlyActiveCommunity
-        nonReentrant
-    {
-        if (roundId == 0 || roundId > roundCount) revert CommunityRoundNotFound(roundId);
-        CommunityTypes.CommunityRound storage round = rounds[roundId];
-        if (round.settled || _communityTime() >= round.endTime) revert VotingWindowClosed(roundId);
-        if (!proposalIncludedInRound[roundId][proposalId]) revert InvalidRoundProposal(proposalId);
-        if (proposals[proposalId].creator == msg.sender) {
-            revert ProposalAuthorCannotVote(proposalId, msg.sender);
-        }
-        if (selectedProposalByRound[roundId][msg.sender] != 0) {
-            revert RoundVoteAlreadyCast(roundId, msg.sender);
-        }
-        _requireNoPendingExit(msg.sender);
-        if (amount < voteMinStakeUSDC) revert VoteStakeTooLow(amount, voteMinStakeUSDC);
-        if (amount > MAX_VOTE_STAKE_USDC) revert VoteAmountCapExceeded(amount, MAX_VOTE_STAKE_USDC);
-
-        treasury.depositRoundVoteStake(roundId, msg.sender, amount);
-        selectedProposalByRound[roundId][msg.sender] = proposalId;
-        round.totalVotes += amount;
-        proposals[proposalId].roundVotes += amount;
-        unresolvedVoteLockCount[msg.sender] += 1;
-
-        emit SlateRoundVoteCast(roundId, proposalId, msg.sender, amount);
-    }
-
-    /**
-     * @notice Settles a completed slate round and routes every committed vote locally.
-     * @dev A strict-greater comparison preserves the earliest proposal in round order on a tie.
-     * @param roundId Slate round identifier.
-     */
-    function settleSlateRound(uint256 roundId) external onlyActiveCommunity nonReentrant {
-        if (roundId == 0 || roundId > roundCount) revert CommunityRoundNotFound(roundId);
-        CommunityTypes.CommunityRound storage round = rounds[roundId];
-        if (round.settled) revert ProposalAlreadySettled(roundId);
-        if (_communityTime() < round.endTime) revert VotingStillOpen(roundId, round.endTime);
-
-        uint256[] storage proposalIds = proposalIdsByRound[roundId];
-        uint256 winningProposalId = proposalIds[0];
-        uint256 winningVotes = proposals[winningProposalId].roundVotes;
-        for (uint256 i = 1; i < proposalIds.length; ++i) {
-            uint256 candidateId = proposalIds[i];
-            uint256 candidateVotes = proposals[candidateId].roundVotes;
-            if (candidateVotes > winningVotes) {
-                winningProposalId = candidateId;
-                winningVotes = candidateVotes;
-            }
-        }
-
-        treasury.settleSlateRound(
-            roundId,
-            round.totalVotes,
-            round.origin == CommunityTypes.ProposalOrigin.Member
-                ? validationEpochIdByProposal[winningProposalId]
-                : 0
-        );
-        round.winningProposalId = winningProposalId;
-        round.winningVotes = winningVotes;
-        round.settled = true;
-        activeSlateRoundCount -= 1;
-
-        for (uint256 i; i < proposalIds.length; ++i) {
-            CommunityTypes.Proposal storage proposal = proposals[proposalIds[i]];
-            bool won = proposalIds[i] == winningProposalId;
-            proposal.status = won
-                ? CommunityTypes.ProposalStatus.WonRound
-                : CommunityTypes.ProposalStatus.LostRound;
-            proposal.settled = true;
-
-            if (proposal.origin == CommunityTypes.ProposalOrigin.Member) {
-                treasury.returnProposalBond(proposalIds[i], proposal.creator);
-                activeMemberProposalCount[proposal.creator] -= 1;
-                unresolvedMemberProposalCount -= 1;
-                if (won) {
-                    _awardProposalPoint(proposalIds[i], proposal.creator);
-                }
-            }
-        }
-
-        emit SlateRoundSettled(roundId, winningProposalId, winningVotes, round.totalVotes);
-    }
-
-    /**
-     * @notice Clears the caller's slate-round vote lock after the round settles.
-     * @param roundId Settled slate round identifier.
-     */
-    function clearSettledRoundVoteLock(uint256 roundId) external {
-        if (roundId == 0 || roundId > roundCount) revert CommunityRoundNotFound(roundId);
-        if (!rounds[roundId].settled) revert ProposalNotSettled(roundId);
-        if (selectedProposalByRound[roundId][msg.sender] == 0) {
-            revert VoteLockNotFound(roundId, msg.sender);
-        }
-        if (roundVoteLockCleared[roundId][msg.sender]) {
-            revert VoteLockAlreadyCleared(roundId, msg.sender);
-        }
-
-        roundVoteLockCleared[roundId][msg.sender] = true;
-        unresolvedVoteLockCount[msg.sender] -= 1;
-    }
-
-    /**
-     * @notice Clears the caller's exit lock created by a settled binary vote.
-     * @param proposalId Settled binary proposal on which the caller voted.
-     */
-    function clearSettledVoteLock(uint256 proposalId)
-        external
-        proposalExists(proposalId)
-    {
-        if (!proposals[proposalId].settled) revert ProposalNotSettled(proposalId);
-        if (voteChoiceByProposal[proposalId][msg.sender] == CommunityTypes.VoteChoice.None) {
-            revert VoteLockNotFound(proposalId, msg.sender);
-        }
-        if (voteLockCleared[proposalId][msg.sender]) {
-            revert VoteLockAlreadyCleared(proposalId, msg.sender);
-        }
-
-        voteLockCleared[proposalId][msg.sender] = true;
-        unresolvedVoteLockCount[msg.sender] -= 1;
-    }
-
-    /**
-     * @notice Returns validator activity and reward accounting for an existing epoch.
-     * @param epochId Validator epoch identifier.
-     * @return Complete epoch record.
-     */
-    function getValidatorRewardEpoch(uint256 epochId)
-        external
-        view
-        returns (CommunityTypes.ValidatorRewardEpoch memory)
-    {
-        CommunityTypes.ValidatorRewardEpoch memory epoch = validatorRewardEpochs[epochId];
-        if (epoch.startTime == 0) revert ValidatorRewardEpochNotFound(epochId);
-        return epoch;
-    }
-
-    /**
-     * @notice Reports whether a validator completed enough available cases to receive an epoch reward.
-     * @param epochId Finalized validator reward epoch.
-     * @param validator Validator account to inspect.
-     * @return True when the validator meets the configured participation threshold.
-     */
-    function isValidatorActiveForEpoch(uint256 epochId, address validator)
-        external
-        view
-        override
-        returns (bool)
-    {
-        CommunityTypes.ValidatorRewardEpoch storage epoch = validatorRewardEpochs[epochId];
-        if (!epoch.finalized || epoch.availableValidationCases == 0) return false;
-
-        return validatorValidationCount[epochId][validator] >= _requiredValidationCases(epoch.availableValidationCases);
-    }
-
-    /**
-     * @notice Finalizes a completed validator epoch and makes equal rewards claimable in Treasury.
-     * @param epochId Expired validator reward epoch to finalize.
-     */
-    function finalizeValidatorRewardEpoch(uint256 epochId)
-        external
-        onlyActiveCommunity
-        nonReentrant
-    {
-        CommunityTypes.ValidatorRewardEpoch storage epoch = validatorRewardEpochs[epochId];
-        if (epoch.startTime == 0) revert ValidatorRewardEpochNotFound(epochId);
-        if (epoch.finalized) revert ValidatorRewardEpochAlreadyFinalized(epochId);
-
-        uint256 availableAt = uint256(epoch.endTime) + validationWindow;
-        if (_communityTime() < availableAt) revert ValidationStillOpen(epochId, availableAt);
-
-        uint256 activeValidatorCount;
-        if (epoch.availableValidationCases != 0) {
-            uint256 requiredCases = _requiredValidationCases(epoch.availableValidationCases);
-            address[] storage epochValidators = validatorsByRewardEpoch[epochId];
-            for (uint256 i; i < epochValidators.length; ++i) {
-                if (validatorValidationCount[epochId][epochValidators[i]] >= requiredCases) {
-                    activeValidatorCount += 1;
-                }
-            }
-        }
-
-        epoch.activeValidatorCount = activeValidatorCount;
-        epoch.finalized = true;
-        treasury.finalizeValidatorRewardEpoch(epochId, activeValidatorCount);
-        emit ValidatorRewardEpochFinalized(epochId, activeValidatorCount);
-    }
-
-    /** @notice Opens a new validator epoch when the current epoch has expired. */
-    function rollValidatorRewardEpoch() external onlyActiveCommunity {
-        _rollValidatorRewardEpoch();
-    }
-
-    /**
-     * @notice Calculates the pause-adjusted community timestamp used by all governance deadlines.
-     * @return Current community-clock timestamp, frozen while paused and after archival.
-     */
-    function _communityTime() internal view returns (uint64) {
-        if (communityStatus == CommunityTypes.CommunityStatus.Archived) {
-            return archivedAt;
-        }
-        if (communityStatus == CommunityTypes.CommunityStatus.Paused) {
-            return uint64(uint256(pausedAt) - totalPausedDuration);
-        }
-        return uint64(block.timestamp - totalPausedDuration);
-    }
-
-    /**
-     * @notice Validates immutable deployment configuration before any community state is initialized.
-     * @param config_ Proposed immutable community configuration.
-     * @param communityTreasury_ Paired Treasury expected to custody all community USDC.
-     * @param creator_ Creator that must appear in the initial admin set.
-     */
-    function _validateConfig(
-        CommunityTypes.CommunityConfig memory config_,
-        ICommunityTreasury communityTreasury_,
-        address creator_
-    ) private pure {
-        if (address(communityTreasury_) == address(0)) revert CommunityZeroAddress(1);
-        if (creator_ == address(0)) revert CommunityZeroAddress(2);
-        if (config_.usdc == address(0)) revert CommunityZeroAddress(3);
-        if (config_.globalBertReserve == address(0)) revert CommunityZeroAddress(4);
-        if (config_.initialAdmins.length == 0) revert InvalidCommunityConfigCode(2);
-        if (config_.initialValidators.length == 0) revert InvalidCommunityConfigCode(3);
-        if (config_.initialValidators.length > MAX_ACTIVE_VALIDATORS) {
-            revert InvalidCommunityConfigCode(4);
-        }
-        if (
-            config_.entryStakeUSDC == 0 ||
-            config_.proposalBondUSDC == 0 ||
-            config_.voteMinStakeUSDC == 0 ||
-            config_.voteMinStakeUSDC > MAX_VOTE_STAKE_USDC
-        ) {
-            revert InvalidCommunityConfigCode(5);
-        }
-        if (
-            config_.membershipExitCooldown == 0 ||
-            config_.validationWindow == 0 ||
-            config_.binaryVotingDuration == 0 ||
-            config_.roundVotingDuration == 0 ||
-            config_.validatorRewardEpoch == 0
-        ) {
-            revert InvalidCommunityConfigCode(6);
-        }
-        if (config_.adminApprovalThreshold == 0 || config_.adminApprovalThreshold > config_.initialAdmins.length) {
-            revert InvalidCommunityConfigCode(7);
-        }
-        if (
-            config_.validatorApprovalThreshold == 0 ||
-            config_.validatorApprovalThreshold > config_.initialValidators.length
-        ) {
-            revert InvalidCommunityConfigCode(8);
-        }
-        if (config_.binaryRejectionFeeBps > MAX_REJECTION_FEE_BPS) {
-            revert RejectionFeeTooHigh(config_.binaryRejectionFeeBps, MAX_REJECTION_FEE_BPS);
-        }
-        if (
-            config_.validatorRewardShareBps > BPS_DENOMINATOR ||
-            config_.validatorActiveThresholdBps == 0 ||
-            config_.validatorActiveThresholdBps > BPS_DENOMINATOR
-        ) {
-            revert InvalidCommunityConfigCode(9);
-        }
-        if (
-            config_.validatorProposalPointsThreshold == 0 ||
-            config_.validatorProposalPointsThreshold > MAX_VALIDATOR_PROPOSAL_POINTS_THRESHOLD
-        ) {
-            revert InvalidCommunityConfigCode(10);
-        }
-    }
-
-    /**
-     * @notice Applies a quorum-approved control-plane action forwarded by the linked library.
-     * @dev The library calls this Hub back through address(this), so external callers cannot bypass quorum.
-     * Every mutable invariant is rechecked at execution time rather than trusted from request creation.
-     * @param action Approved protected action.
-     * @param target Role recipient or role holder for roster actions.
-     * @param value Treasury withdrawal request identifier for cancellation.
-     */
-    function executeAdminAction(
-        CommunityTypes.AdminActionType action,
-        address target,
-        uint256 value
-    ) external onlySelf {
+    function executeAdminAction(CommunityTypes.AdminActionType action, address target, uint256 value) external onlySelf {
         if (action == CommunityTypes.AdminActionType.Pause) {
             if (communityStatus != CommunityTypes.CommunityStatus.Active) revert CommunityNotActive();
             pausedAt = uint64(block.timestamp);
@@ -1232,287 +395,213 @@ contract CommunityHub is ICommunityHub, ReentrancyGuard {
             return;
         }
         if (action == CommunityTypes.AdminActionType.CancelWithdrawal) {
-            if (communityStatus == CommunityTypes.CommunityStatus.Archived) revert CommunityIsArchived();
             treasury.cancelWithdrawalRequestByGovernance(value);
             return;
         }
-        if (communityStatus == CommunityTypes.CommunityStatus.Paused) revert CommunityIsPaused();
-        if (communityStatus == CommunityTypes.CommunityStatus.Archived) revert CommunityIsArchived();
-
+        if (communityStatus != CommunityTypes.CommunityStatus.Active) revert CommunityNotActive();
         if (action == CommunityTypes.AdminActionType.Archive) {
-            if (
-                pendingValidationProposalCount != 0 ||
-                activeBinaryProposalCount != 0 ||
-                activeSlateRoundCount != 0 ||
-                unresolvedMemberProposalCount != 0
-            ) {
+            uint256 unresolved = proposals.pendingValidationProposalCount() + milestones.unresolvedPlanCount();
+            if (unresolved != 0 || voting.activeBinaryProposalCount() != 0 || voting.activeSlateRoundCount() != 0) {
                 revert CommunityArchiveBlocked(
-                    pendingValidationProposalCount,
-                    activeBinaryProposalCount,
-                    activeSlateRoundCount,
-                    unresolvedMemberProposalCount
+                    proposals.pendingValidationProposalCount(), voting.activeBinaryProposalCount(),
+                    voting.activeSlateRoundCount(), unresolved
                 );
             }
-
             archivedAt = _communityTime();
-            pausedAt = 0;
             communityStatus = CommunityTypes.CommunityStatus.Archived;
             emit CommunityStatusChanged(communityStatus);
             emit CommunityArchived(archivedAt);
             return;
         }
-        if (action == CommunityTypes.AdminActionType.AddAdmin) {
-            _addAdmin(target);
-            return;
-        }
-        if (action == CommunityTypes.AdminActionType.RemoveAdmin) {
-            _removeAdmin(target);
-            return;
-        }
+        if (action == CommunityTypes.AdminActionType.AddAdmin) { membership.addAdmin(target); return; }
+        if (action == CommunityTypes.AdminActionType.RemoveAdmin) { membership.removeAdmin(target); return; }
+        if (proposals.pendingValidationProposalCount() != 0) revert ValidatorSetLocked();
         if (action == CommunityTypes.AdminActionType.AddValidator) {
-            _requireValidatorSetUnlocked();
-            if (admins[target]) revert AdminValidatorRoleConflict(target);
-            _requireValidatorEligibility(target);
-            _addValidator(target);
+            if (!membership.isValidatorEligible(target)) {
+                revert ValidatorNotEligible(target, membership.getMember(target).proposalPoints, validatorProposalPointsThreshold);
+            }
+            membership.addValidator(target);
             return;
         }
-        if (action == CommunityTypes.AdminActionType.RemoveValidator) {
-            _requireValidatorSetUnlocked();
-            _removeValidator(target);
-            return;
-        }
-
+        if (action == CommunityTypes.AdminActionType.RemoveValidator) { membership.removeValidator(target); return; }
         revert InvalidAdminActionParameters();
     }
 
     /**
-     * @notice Adds a local admin while enforcing exclusive Community states.
-     * @param account Address to add as an admin.
+     * @notice Lets a validator resign when no Member proposal is awaiting review.
+     * @dev Prevents a validator from escaping an in-flight review set.
      */
-    function _addAdmin(address account) private {
-        if (account == address(0)) revert CommunityZeroAddress(5);
-        if (admins[account]) revert RoleAlreadyAssigned(account);
-        if (validators[account] || members[account].active) {
-            revert AdminValidatorRoleConflict(account);
+    function renounceValidatorRole() external onlyValidator onlyNotArchived {
+        if (proposals.pendingValidationProposalCount() != 0) revert ValidatorSetLocked();
+        membership.removeValidator(msg.sender);
+    }
+
+    /* ========== MEMBERSHIP ========== */
+
+    /** @notice Joins the Community after Treasury pulls the immutable entry stake. */
+    function joinCommunity() external onlyActiveCommunity nonReentrant { membership.join(msg.sender, _communityTime()); }
+    /** @notice Starts the caller's membership-exit cooldown. */
+    function requestMembershipExit() external onlyActiveCommunity onlyMember { membership.requestExit(msg.sender, _communityTime()); }
+    /**
+     * @notice Releases a requested membership exit once cooldown and obligations clear.
+     * @dev A request made before archive may finalize after archive; this avoids
+     *      trapping stake while keeping archive itself free of arbitrary exits.
+     */
+    function finalizeMembershipExit() external onlyMember nonReentrant {
+        membership.finalizeExit(msg.sender, _communityTime(), communityStatus == CommunityTypes.CommunityStatus.Archived);
+    }
+
+    /* ========== PROPOSAL CREATION AND VALIDATION ========== */
+
+    /**
+     * @notice Creates an Admin-owned binary proposal, immediately eligible for voting.
+     * @param title Short proposal title.
+     * @param description Human-readable proposal body.
+     * @param metadataURI Off-chain immutable metadata reference.
+     * @return New proposal identifier.
+     */
+    function createAdminProposal(string calldata title, string calldata description, string calldata metadataURI)
+        external onlyAdmin onlyActiveCommunity returns (uint256)
+    { return proposals.createAdminBinary(msg.sender, title, description, metadataURI, _communityTime()); }
+
+    /**
+     * @notice Creates a Member-owned binary proposal and starts validator review.
+     * @param title Short proposal title.
+     * @param description Human-readable proposal body.
+     * @param metadataURI Off-chain immutable metadata reference.
+     * @return New proposal identifier whose bond remains locked through review/settlement.
+     */
+    function createMemberProposal(string calldata title, string calldata description, string calldata metadataURI)
+        external onlyMember onlyActiveCommunity nonReentrant returns (uint256)
+    { return proposals.createMemberBinary(msg.sender, title, description, metadataURI, _communityTime()); }
+
+    /** @notice Creates an Admin-owned proposal for a slate round. @param title Proposal title. @param description Proposal body. @param metadataURI Off-chain metadata. @return New proposal identifier. */
+    function createAdminSlateProposal(string calldata title, string calldata description, string calldata metadataURI)
+        external onlyAdmin onlyActiveCommunity returns (uint256)
+    { return proposals.createAdminSlate(msg.sender, title, description, metadataURI, _communityTime()); }
+
+    /** @notice Creates a Member-owned slate proposal and starts validator review. @param title Proposal title. @param description Proposal body. @param metadataURI Off-chain metadata. @return New proposal identifier. */
+    function createMemberSlateProposal(string calldata title, string calldata description, string calldata metadataURI)
+        external onlyMember onlyActiveCommunity nonReentrant returns (uint256)
+    { return proposals.createMemberSlate(msg.sender, title, description, metadataURI, _communityTime()); }
+
+    /** @notice Records one validator decision. @param proposalId Pending Member proposal. @param approved True to approve, false to reject. */
+    function castValidationDecision(uint256 proposalId, bool approved) external onlyValidator onlyActiveCommunity {
+        proposals.castValidationDecision(msg.sender, proposalId, approved, _communityTime());
+    }
+    /** @notice Finalizes a validation window after expiry. @param proposalId Pending Member proposal. */
+    function finalizeMemberProposalValidation(uint256 proposalId) external onlyActiveCommunity {
+        proposals.finalizeExpiredValidation(proposalId, _communityTime());
+    }
+    /** @notice Finalizes a closed validator reward epoch. @param epochId Epoch to finalize. */
+    function finalizeValidatorRewardEpoch(uint256 epochId) external onlyActiveCommunity {
+        proposals.finalizeValidatorRewardEpoch(epochId, _communityTime());
+    }
+    /** @notice Opens the next validator reward epoch when the current epoch has elapsed. */
+    function rollValidatorRewardEpoch() external onlyActiveCommunity { proposals.rollValidatorRewardEpoch(_communityTime()); }
+
+    /* ========== BINARY AND SLATE VOTING ========== */
+
+    /** @notice Opens voting on an approved binary proposal. @param proposalId Approved binary proposal identifier. */
+    function openBinaryVoting(uint256 proposalId) external onlyAdmin onlyActiveCommunity { voting.openBinaryVoting(msg.sender, proposalId, _communityTime()); }
+    /** @notice Commits USDC to a binary YES or NO vote. @param proposalId Open binary proposal. @param choice YES or NO. @param amount USDC commitment. */
+    function castBinaryVote(uint256 proposalId, CommunityTypes.VoteChoice choice, uint256 amount) external onlyMember onlyActiveCommunity {
+        voting.castBinaryVote(msg.sender, proposalId, choice, amount, _communityTime());
+    }
+    /** @notice Settles an expired binary vote and starts a plan when YES wins. @param proposalId Binary proposal identifier. */
+    function settleBinaryProposal(uint256 proposalId) external onlyActiveCommunity { voting.settleBinaryProposal(proposalId, _communityTime()); }
+    /** @notice Creates an Admin-origin slate round. @param proposalIds Approved Admin slate proposal IDs. @return New round identifier. */
+    function createAdminSlateRound(uint256[] calldata proposalIds) external onlyAdmin onlyActiveCommunity returns (uint256) {
+        return voting.createAdminSlateRound(msg.sender, proposalIds, _communityTime());
+    }
+    /** @notice Creates a Member-origin slate round. @param proposalIds validator-approved Member slate proposal IDs. @return New round identifier. */
+    function createMemberSlateRound(uint256[] calldata proposalIds) external onlyAdmin onlyActiveCommunity returns (uint256) {
+        return voting.createMemberSlateRound(msg.sender, proposalIds, _communityTime());
+    }
+    /** @notice Commits USDC to one proposal in an open slate round. @param roundId Open round. @param proposalId Selected round proposal. @param amount USDC commitment. */
+    function castSlateRoundVote(uint256 roundId, uint256 proposalId, uint256 amount) external onlyMember onlyActiveCommunity {
+        voting.castSlateRoundVote(msg.sender, roundId, proposalId, amount, _communityTime());
+    }
+    /** @notice Settles an expired slate round and starts a plan for its winner. @param roundId Slate-round identifier. */
+    function settleSlateRound(uint256 roundId) external onlyActiveCommunity { voting.settleSlateRound(roundId, _communityTime()); }
+    /** @notice Clears a settled binary vote lock once any reviewer duty is complete. @param proposalId Settled binary proposal. */
+    function clearSettledVoteLock(uint256 proposalId) external { voting.clearSettledBinaryVoteLock(msg.sender, proposalId); }
+    /** @notice Clears a settled slate vote lock once any reviewer duty is complete. @param roundId Settled slate round. */
+    function clearSettledRoundVoteLock(uint256 roundId) external { voting.clearSettledRoundVoteLock(msg.sender, roundId); }
+
+    /* ========== EXECUTION PLANS AND MILESTONES ========== */
+
+    /** @notice Submits evidence for the current execution milestone. @param planId Winning proposal/plan identifier. @param evidenceHash Hash of the off-chain evidence bundle. */
+    function submitMilestoneProof(uint256 planId, bytes32 evidenceHash) external onlyActiveCommunity {
+        milestones.submitMilestoneProof(msg.sender, planId, evidenceHash, _communityTime());
+    }
+    /** @notice Casts a winning-supporter review decision. @param planId Plan identifier. @param approved True for approval, false for rejection. */
+    function castMilestoneReview(uint256 planId, bool approved) external onlyActiveCommunity {
+        milestones.castMilestoneReview(msg.sender, planId, approved, _communityTime());
+    }
+    /** @notice Finalizes an elapsed review window. @param planId Plan identifier. */
+    function finalizeMilestoneReview(uint256 planId) external onlyActiveCommunity {
+        milestones.finalizeMilestoneReview(planId, _communityTime());
+    }
+    /** @notice Reopens a rejected first proof after correction cooldown. @param planId Plan identifier. */
+    function reopenAfterCorrection(uint256 planId) external onlyActiveCommunity {
+        milestones.reopenAfterCorrection(msg.sender, planId, _communityTime());
+    }
+    /** @notice Fails a plan whose executor missed its proof deadline. @param planId Plan identifier. */
+    function failExpiredPlan(uint256 planId) external onlyActiveCommunity {
+        milestones.failExpiredPlan(planId, _communityTime());
+    }
+    /** @notice Claims a pro-rata failed-plan refund; remains available after archive. @param planId Failed plan identifier. */
+    function claimFailedPlanRefund(uint256 planId) external {
+        milestones.claimFailedPlanRefund(msg.sender, planId);
+    }
+
+    /* ========== INTERNAL CLOCK AND VALIDATION ========== */
+
+    /**
+     * @notice Calculates the pause-adjusted Community clock.
+     * @dev Every module receives this value rather than `block.timestamp`; a
+     *      pause therefore freezes voting, validation, proof, and review time.
+     * @return Community timestamp, frozen at `archivedAt` after archive.
+     */
+    function _communityTime() private view returns (uint64) {
+        if (communityStatus == CommunityTypes.CommunityStatus.Archived) return archivedAt;
+        if (communityStatus == CommunityTypes.CommunityStatus.Paused) return uint64(uint256(pausedAt) - totalPausedDuration);
+        return uint64(block.timestamp - totalPausedDuration);
+    }
+
+    /**
+     * @notice Validates immutable configuration before any module is deployed.
+     * @dev Bounds ensure every successful vote can create an executable plan,
+     *      a reviewer window is meaningful, and local quorums are achievable.
+     * @param config_ Candidate immutable Community configuration.
+     * @param treasury_ Factory-reserved Treasury paired with this Hub.
+     * @param creator_ Factory-recorded Community creator.
+     */
+    function _validateConfig(CommunityTypes.CommunityConfig memory config_, ICommunityTreasury treasury_, address creator_) private pure {
+        if (address(treasury_) == address(0)) revert ZeroAddress("communityTreasury");
+        if (creator_ == address(0)) revert ZeroAddress("creator");
+        if (config_.usdc == address(0) || config_.globalBertReserve == address(0)) revert InvalidCommunityConfig("asset configuration");
+        if (config_.initialAdmins.length == 0 || config_.initialValidators.length == 0 || config_.initialValidators.length > 50) {
+            revert InvalidCommunityConfig("initial roles");
         }
-
-        admins[account] = true;
-        adminCount += 1;
-        emit AdminAdded(account);
-    }
-
-    /**
-     * @notice Removes a local admin while preserving the minimum one-admin invariant.
-     * @param account Existing admin address to remove.
-     */
-    function _removeAdmin(address account) private {
-        if (!admins[account]) revert RoleNotAssigned(account);
-        if (adminCount == 1) revert CannotRemoveLastAdmin();
-
-        admins[account] = false;
-        adminCount -= 1;
-        emit AdminRemoved(account);
-    }
-
-    /**
-     * @notice Adds a local validator while enforcing exclusive Community states and the validator-set cap.
-     * @param account Address to add as a validator.
-     */
-    function _addValidator(address account) private {
-        if (account == address(0)) revert CommunityZeroAddress(6);
-        if (validators[account]) revert RoleAlreadyAssigned(account);
-        if (admins[account] || members[account].active) {
-            revert AdminValidatorRoleConflict(account);
+        if (
+            config_.entryStakeUSDC == 0 || config_.proposalBondUSDC == 0 || config_.voteMinStakeUSDC == 0
+                || config_.membershipExitCooldown == 0 || config_.validationWindow == 0
+                || config_.binaryVotingDuration == 0 || config_.roundVotingDuration == 0 || config_.validatorRewardEpoch == 0
+        ) revert InvalidCommunityConfig("durations or stakes");
+        if (config_.adminApprovalThreshold == 0 || config_.adminApprovalThreshold > config_.initialAdmins.length) {
+            revert InvalidCommunityConfig("adminApprovalThreshold");
         }
-        if (validatorCount == MAX_ACTIVE_VALIDATORS) {
-            revert InvalidCommunityConfigCode(11);
+        if (config_.validatorApprovalThreshold == 0 || config_.validatorApprovalThreshold > config_.initialValidators.length) {
+            revert InvalidCommunityConfig("validatorApprovalThreshold");
         }
-
-        validators[account] = true;
-        validatorCount += 1;
-        emit ValidatorAdded(account);
-    }
-
-    /**
-     * @notice Removes a local validator from the active validation set.
-     * @param account Existing validator address to remove.
-     */
-    function _removeValidator(address account) private {
-        if (!validators[account]) revert RoleNotAssigned(account);
-
-        validators[account] = false;
-        validatorCount -= 1;
-        emit ValidatorRemoved(account);
-    }
-
-    /**
-     * @notice Finalizes a member proposal review, returning or slashing its bond as appropriate.
-     * @param proposalId Pending member proposal identifier.
-     * @param approved Whether validator review approved the proposal.
-     */
-    function _finalizeMemberProposalValidation(uint256 proposalId, bool approved) private {
-        CommunityTypes.Proposal storage proposal = proposals[proposalId];
-        pendingValidationProposalCount -= 1;
-
-        if (approved) {
-            proposal.status = proposal.mode == CommunityTypes.ProposalMode.Binary
-                ? CommunityTypes.ProposalStatus.ApprovedForVoting
-                : CommunityTypes.ProposalStatus.ApprovedForRound;
-        } else {
-            proposal.status = CommunityTypes.ProposalStatus.RejectedByValidators;
-            activeMemberProposalCount[proposal.creator] -= 1;
-            unresolvedMemberProposalCount -= 1;
-            treasury.slashProposalBond(proposalId);
+        if (config_.validatorRewardShareBps >= 10_000 || config_.validatorActiveThresholdBps == 0 || config_.validatorActiveThresholdBps > 10_000) {
+            revert InvalidCommunityConfig("validator configuration");
         }
-        emit ProposalValidationFinalized(proposalId, approved);
-    }
-
-    /** @notice Opens the next validator epoch if the active epoch has expired. */
-    function _rollValidatorRewardEpoch() private {
-        CommunityTypes.ValidatorRewardEpoch storage currentEpoch =
-            validatorRewardEpochs[currentValidatorRewardEpochId];
-        if (_communityTime() < currentEpoch.endTime) return;
-
-        currentValidatorRewardEpochId += 1;
-        _openValidatorRewardEpoch(currentValidatorRewardEpochId, _communityTime());
-    }
-
-    /**
-     * @notice Creates an empty validator activity epoch with the configured duration.
-     * @param epochId New monotonic validator epoch identifier.
-     * @param startTime Community-clock timestamp at which the epoch begins.
-     */
-    function _openValidatorRewardEpoch(uint256 epochId, uint64 startTime) private {
-        uint64 endTime = startTime + uint64(validatorRewardEpoch);
-        validatorRewardEpochs[epochId] = CommunityTypes.ValidatorRewardEpoch({
-            startTime: startTime,
-            endTime: endTime,
-            availableValidationCases: 0,
-            rewardAmount: 0,
-            activeValidatorCount: 0,
-            finalized: false
-        });
-        emit ValidatorRewardEpochRolled(epochId, startTime, endTime);
-    }
-
-    /**
-     * @notice Calculates the minimum number of completed cases needed for validator reward eligibility.
-     * @dev Rounds up so a nonzero participation threshold cannot be bypassed with fractional cases.
-     * @param availableCases Total review cases offered in the epoch.
-     * @return Required number of completed cases.
-     */
-    function _requiredValidationCases(uint256 availableCases) private view returns (uint256) {
-        return (availableCases * validatorActiveThresholdBps + BPS_DENOMINATOR - 1) / BPS_DENOMINATOR;
-    }
-
-    /** @notice Reverts while pending proposals make validator-set changes unsafe. */
-    function _requireValidatorSetUnlocked() private view {
-        if (pendingValidationProposalCount != 0) revert ValidatorSetLocked();
-    }
-
-    /**
-     * @notice Reverts if a member already requested exit and therefore cannot start new obligations.
-     * @param member Member account to inspect.
-     */
-    function _requireNoPendingExit(address member) private view {
-        if (members[member].exitRequestedAt != 0) revert MembershipExitBlocked(member);
-    }
-
-    /**
-     * @notice Reverts unless an inactive former member has earned the local validator nomination threshold.
-     * @param account Former member considered for validator appointment.
-     */
-    function _requireValidatorEligibility(address account) private view {
-        CommunityTypes.MemberInfo storage member = members[account];
-        if (member.active || member.proposalPoints < validatorProposalPointsThreshold) {
-            revert ValidatorNotEligible(
-                account,
-                member.proposalPoints,
-                validatorProposalPointsThreshold
-            );
+        if (config_.executionRecipient == address(0)) revert ZeroAddress("executionRecipient");
+        if (config_.milestoneReviewDuration < 1 days || config_.milestoneReviewDuration > 14 days || config_.milestoneProofDuration == 0) {
+            revert InvalidCommunityConfig("milestone durations");
         }
-    }
-
-    /**
-     * @notice Awards one local member-proposal point and records threshold attainment.
-     * @param proposalId Settled winning member proposal.
-     * @param member Winning proposal author.
-     */
-    function _awardProposalPoint(uint256 proposalId, address member) private {
-        CommunityTypes.MemberInfo storage memberInfo = members[member];
-        memberInfo.proposalPoints += 1;
-        emit ProposalPointAwarded(proposalId, member, memberInfo.proposalPoints);
-        if (memberInfo.proposalPoints == validatorProposalPointsThreshold) {
-            emit ValidatorEligibilityReached(member, memberInfo.proposalPoints);
-        }
-    }
-
-    /**
-     * @notice Reverts unless a proposal supplies nonempty title and description fields.
-     * @param title Proposal title to validate.
-     * @param description Proposal description to validate.
-     */
-    function _requireProposalText(string calldata title, string calldata description) private pure {
-        if (bytes(title).length == 0) revert ZeroLength("title");
-        if (bytes(description).length == 0) revert ZeroLength("description");
-    }
-
-    /**
-     * @notice Creates a homogeneous, immediately open slate round from approved proposals.
-     * @dev Proposal IDs are retained in caller-provided order, which intentionally defines the
-     * deterministic first-max tie-break rule used during settlement.
-     * @param origin Proposal lane that all included proposals must belong to.
-     * @param proposalIds Ordered slate proposals to include.
-     * @return roundId Newly created round identifier.
-     */
-    /**
-     * @notice Creates an immediately open slate round from homogeneous approved proposals.
-     * @dev Caller order is stored and later used as the first-max deterministic tie-break order.
-     * @param origin Required proposal origin for every supplied proposal ID.
-     * @param proposalIds Ordered approved slate proposals to include.
-     * @return roundId Newly assigned slate-round identifier.
-     */
-    function _createSlateRound(
-        CommunityTypes.ProposalOrigin origin,
-        uint256[] calldata proposalIds
-    ) private returns (uint256 roundId) {
-        if (proposalIds.length == 0 || proposalIds.length > MAX_SLATE_PROPOSALS_PER_ROUND) {
-            revert InvalidCommunityConfigCode(12);
-        }
-
-        roundId = ++roundCount;
-        uint64 startTime = _communityTime();
-        CommunityTypes.CommunityRound storage round = rounds[roundId];
-        round.origin = origin;
-        round.startTime = startTime;
-        round.endTime = startTime + uint64(roundVotingDuration);
-        activeSlateRoundCount += 1;
-
-        for (uint256 i; i < proposalIds.length; ++i) {
-            uint256 proposalId = proposalIds[i];
-            if (proposalId == 0 || proposalId > proposalCount) {
-                revert CommunityProposalNotFound(proposalId);
-            }
-            if (proposalIncludedInRound[roundId][proposalId]) {
-                revert InvalidRoundProposal(proposalId);
-            }
-
-            CommunityTypes.Proposal storage proposal = proposals[proposalId];
-            if (
-                proposal.origin != origin ||
-                proposal.mode != CommunityTypes.ProposalMode.Slate ||
-                proposal.status != CommunityTypes.ProposalStatus.ApprovedForRound ||
-                proposal.assignedRoundId != 0
-            ) {
-                revert InvalidRoundProposal(proposalId);
-            }
-
-            proposal.assignedRoundId = roundId;
-            proposal.status = CommunityTypes.ProposalStatus.InRoundVoting;
-            proposalIncludedInRound[roundId][proposalId] = true;
-            proposalIdsByRound[roundId].push(proposalId);
-        }
-
-        emit SlateRoundCreated(roundId, origin, round.endTime);
     }
 }

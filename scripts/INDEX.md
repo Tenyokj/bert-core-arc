@@ -12,9 +12,18 @@
 9. `scripts/deploy/configure-legacy-funding-proposal.ts` - lets a legacy proposal author set its BERT V2.2 minimum net target
 10. `scripts/deploy/set-v2-ideas-per-round.ts` - updates V2 round size within the guarded 5..50 range
 11. `scripts/deploy/verify-deploy.ts` - post-deploy checks (roles, pause status, params)
-12. `scripts/deploy/deploy-v3.ts` - deploy BERT V3 Community Layer infrastructure
-13. `scripts/deploy/configure-v3-funding-pool.ts` - connect an upgraded FundingPool to V3 Factory
-14. `scripts/deploy/verify-v3.ts` - verify V3 infrastructure and FundingPool integration
+12. `legacy/V3_0/scripts/deploy/deploy-v3.ts` - archived BERT V3.0 Community Layer deployer
+13. `scripts/deploy/deploy-v3-1.ts` - deploy isolated BERT V3.1 Community Layer infrastructure
+14. `scripts/deploy/initialize-v3-factory-allowlist.ts` - seeds the additive Factory allowlist from the live V3.0 Factory after FundingPool upgrade
+15. `scripts/deploy/configure-v3-1-funding-pool.ts` - additively allowlists the V3.1 Factory in V2 FundingPool
+16. `legacy/V3_0/scripts/deploy/configure-v3-funding-pool.ts` - archived V3.0 FundingPool integration script
+17. `legacy/V3_0/scripts/deploy/verify-v3.ts` - archived V3.0 verification script
+
+**Local E2E**
+1. `scripts/local/mint-v3-test-usdc.ts` - mint MockUSDC to local Hardhat test wallets only
+2. `scripts/local/verify-v3-test-wallets.ts` - record local-only PoP attestations for Hardhat test wallets
+3. `scripts/local/advance-time.ts` - advance the local Hardhat clock for deadline tests only
+4. `docs/LOCAL-V3.1-E2E.md` - full V3.1 frontend and contract E2E runbook
 
 **Docs**
 1. `scripts/deploy/docs_deploy/DEPLOY.md` - deployment guide

@@ -93,7 +93,7 @@ The V2 model is not a pooled tournament where a voter who backed a losing idea s
 4. `GrantManagerUpgradeable` coordinates claim flow and milestone-based releases.
 5. `RolesRegistryUpgradeable` and `RolesAwareUpgradeable` enforce protocol permissions.
 6. `PoPVerifierUpgradeable` stores trusted backend-signed verification attestations used by voting access control.
-7. [BERT V3 Community Layer](contracts/BERT/V3/README.md) adds isolated stake-gated governance communities with local Treasuries and V2 reserve integration.
+7. [BERT V3 Community Layer](contracts/BERT/V3/README.md) is the current modular Community implementation. The previous testnet implementation is archived under `legacy/V3_0`.
 
 ## V3 Architecture At A Glance
 
@@ -104,16 +104,25 @@ flowchart TB
     backend[Verification backend\nDemo PoP on Arc Testnet\nWorld ID on planned mainnet]
 
     subgraph arc[Arc Testnet: EVM execution and USDC settlement]
-        factory[CommunityFactory proxy]
-        hub[CommunityHub\nroles, proposals, validation, votes, quorum actions]
-        treasury[CommunityTreasury\nUSDC custody, settlement, refunds, rewards]
+        factory[CommunityFactory]
+        hub[CommunityHub\nidentity, configuration, protected actions]
+        membership[CommunityMembershipModule]
+        proposals[CommunityProposalModule]
+        voting[CommunityVotingModule]
+        milestones[CommunityMilestoneManager]
+        treasury[CommunityTreasury\nUSDC custody and isolated accounting]
         reserve[FundingPoolUpgradeable\nV2 global protocol reserve]
         v2[V2 protocol modules\nIdeaRegistry, VotingSystem, GrantManager]
         pop[PoPVerifierUpgradeable\ntrusted signed attestation gate]
 
-        factory -->|creates one pair per Community| hub
-        factory -->|creates one pair per Community| treasury
-        hub <-->|validated settlement instructions| treasury
+        factory -->|creates and binds modules per Community| hub
+        factory --> treasury
+        hub --> membership
+        hub --> proposals
+        hub --> voting
+        hub --> milestones
+        voting <-->|winner reserve| treasury
+        milestones <-->|tranches and refunds| treasury
         treasury -->|defined protocol reserve inflows| reserve
         reserve --> v2
         pop -->|protects configured actions| v2
@@ -121,7 +130,7 @@ flowchart TB
 
     subgraph graph[The Graph: live Arc indexers]
         v2graph[V2 Subgraph]
-        v3graph[V3 Subgraph\nFactory and Hub event templates]
+        v3graph[Current V3 Subgraph\nplanned versioned entities]
     end
 
     user --> dapp
@@ -138,9 +147,9 @@ flowchart TB
 
 ### V3 Execution Boundary
 
-Each Community has its own immutable `CommunityHub` and `CommunityTreasury`; the Factory is the shared entry point. The Hub owns local governance state, while the Treasury is the sole USDC custodian. A Hub cannot transfer Community funds directly: it must first satisfy the relevant proposal, settlement, or Admin-quorum state transition and then instruct its paired Treasury.
+Each Community has its own immutable `CommunityHub`, modules, and `CommunityTreasury`; the Factory is the shared entry point. The Hub owns identity, immutable configuration, module addresses, and protected Admin actions. Membership, proposal, voting, and milestone logic have separate ownership boundaries. The Treasury is the sole USDC custodian and separates generic execution capital, vote escrow, milestone reserves, and supporter refund reserves.
 
-V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. The dApp uses the live V2 and V3 Subgraphs for searchable, event-derived state; smart contracts remain the source of truth.
+V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. V3.0 testnet contracts remain independently addressable under `legacy/V3_0`; the current V3 stack will receive a separate Factory, frontend ABI surface, and Subgraph before deployment.
 
 ## Security
 
@@ -184,7 +193,11 @@ If `USDC_ADDRESS` is not set, the deploy script falls back to `MockUSDC` for loc
 5. [Arc deployment guide](scripts/deploy/docs_deploy/DEPLOY.md)
 6. [Upgrades](docs/UPGRADES.md)
 7. [BERT V3 Community Layer](contracts/BERT/V3/README.md)
-8. [BERT V3 file index](docs/V3-FILE-INDEX.md)
+8. [Archived V3.0 file index](legacy/V3_0/docs/V3-FILE-INDEX.md)
+9. [Contributor testing guide](docs/TESTING.md)
+10. [Local V3.1 E2E runbook](docs/LOCAL-V3.1-E2E.md)
+11. [V3.1 security review notes](docs/SECURITY-REVIEW-V3.1.md)
+12. [V3.1 Arc Testnet release runbook](docs/V3.1-ARC-TESTNET-RELEASE.md)
 
 **Disclaimer**
 This repository contains the core smart contracts of the protocol. The codebase may evolve rapidly, so older guides may not match the current layout. Refer to the latest docs for accurate integration guidance.

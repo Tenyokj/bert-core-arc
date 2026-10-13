@@ -10,6 +10,8 @@
 
 BERT is programmable stablecoin-native funding infrastructure for transparent grant allocation, treasury coordination, and milestone-based capital release.
 
+Explore indexed testnet activity in [BERT Console V0.1.0 Beta](https://bertdao-console.vercel.app) ([source](https://github.com/Tenyokj/bert-console-arc)). The console is read-only; contract state and transaction receipts remain authoritative.
+
 The protocol keeps proposal intake, voting rounds, treasury accounting, and staged grant distribution onchain. Economic flows are USDC-native: proposal deposits, vote commitments, treasury balances, reserve accounting, and grant payouts all settle in USDC-compatible units.
 
 The live voting model can additionally enforce verified-human participation through a dedicated verifier contract. When enabled, voting remains capital-weighted in USDC, but only wallets that pass the configured proof-of-personhood flow may participate, and each wallet is capped per idea vote.

@@ -16,9 +16,16 @@ access.
 | Documentation | Developers and technical writers who can make contract behavior reproducible | Correct a claim against source and test it with the current deployment record. |
 | Community and SMM | People who can translate verified protocol work into accurate public education | Coordinate a factual content proposal before publishing; never promise returns, audits, mainnet dates or rewards. |
 
-Use the public [Telegram channel](https://t.me/bertdao) to introduce yourself
-and link an existing issue, draft, portfolio or reproducible test result. Do
-not share secrets, seed phrases, private keys or unreported exploit details.
+Use a focused GitHub issue in the affected repository to share a reproducible
+test result or proposed task. Community organizers can request a pilot via
+[bertdaoarc@gmail.com](mailto:bertdaoarc@gmail.com); the
+[Telegram channel](https://t.me/bertdao) carries public updates. Do not share
+secrets, seed phrases, private keys or unreported exploit details.
+
+If you are new to BERT, start with the focused
+[contributor issue drafts](docs/STARTER-ISSUES.md) rather than the full protocol
+matrix. Community organizers can first review the
+[Arc Testnet pilot](docs/COMMUNITY-PILOT.md) without connecting a wallet.
 
 ## Before You Start
 

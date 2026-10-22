@@ -188,6 +188,10 @@ If `USDC_ADDRESS` is not set, the deploy script falls back to `MockUSDC` for loc
 
 ## Docs
 
+New to BERT? Community organizers can start with the
+[Arc Testnet pilot](docs/COMMUNITY-PILOT.md) without a wallet. Contributors can
+pick a focused task from the [starter issue drafts](docs/STARTER-ISSUES.md).
+
 1. [Architecture](docs/ARCHITECTURE.md)
 2. [Security](docs/SECURITY.md)
 3. [Contracts](docs/CONTRACTS.md)

@@ -9,7 +9,7 @@ access.
 
 | Contribution area | Current need | Good first contribution |
 | --- | --- | --- |
-| Protocol QA | Testers for V2.3 and V3.1 flows, negative cases and UX/chain mismatches | Execute a matrix case from [`docs/TESTING.md`](docs/TESTING.md) and submit reproducible evidence. |
+| Protocol QA | Testers for V2.3 and V3.2 flows (plus legacy V3.1 compatibility), negative cases and UX/chain mismatches | Execute a matrix case from [`docs/TESTING.md`](docs/TESTING.md) and submit reproducible evidence. |
 | Solidity | Developers who can improve tests, invariants, tooling and reviewed protocol changes | Add a focused regression test or improve a documented developer tool. |
 | Security | Smart-contract reviewers and auditors | Reproduce a realistic finding locally; use private disclosure for exploitable issues. |
 | Frontend | Developers who can improve wallet UX, live reads, ABI synchronization and accessibility | Contribute in [`bert-front-arc`](https://github.com/Tenyokj/bert-front-arc), then document any Core dependency. |
@@ -30,7 +30,7 @@ matrix. Community organizers can first review the
 ## Before You Start
 
 1. Read [`docs/TESTING.md`](docs/TESTING.md), [`SECURITY.md`](SECURITY.md), and
-   the relevant V2 or V3.1 documentation.
+   the relevant V2.3 or current V3 documentation.
 2. For a substantial feature, architecture change, deployment change or UX
    flow, open an issue or discuss the proposal before writing a large patch.
 3. Fork the repository and create a focused branch. Protected branches accept
@@ -50,7 +50,7 @@ npx hardhat --coverage
 slither . --filter-paths "node_modules|test|legacy"
 ```
 
-The V3.1 local lab is documented in
+The V3.2 local lab is documented in
 [`docs/LOCAL-V3.1-E2E.md`](docs/LOCAL-V3.1-E2E.md). It uses an isolated
 Hardhat chain, MockUSDC and public development accounts only. Do not lower
 Solidity timing constraints merely to make a demo faster; use the provided
@@ -59,7 +59,7 @@ time-travel helper.
 ## Smart-Contract Requirements
 
 - Preserve storage layout and initializer safety for upgradeable V2 contracts.
-- Treat V3.1 as a new Community Factory deployment; do not reinterpret,
+- Treat V3.2 as a separate Community Factory deployment; do not reinterpret,
   overwrite or silently migrate historical V3.0 Communities.
 - Keep USDC accounting purpose-specific. A successful ERC-20 transfer alone
   does not prove correct protocol accounting.

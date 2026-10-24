@@ -1,4 +1,4 @@
-![Bert V2.3 and V3.1](https://img.shields.io/badge/Bert-V2.3%20%2B%20V3.1-0F766E)
+![Bert V2.3 and V3.2](https://img.shields.io/badge/Bert-V2.3%20%2B%20V3.2-0F766E)
 ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green)
 ![Hardhat](https://img.shields.io/badge/Hardhat-3.x-yellow)
 ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-orange)
@@ -46,9 +46,9 @@ BERT turns grant allocation into programmable treasury flow:
 
 Each V2 round snapshots its milestone mode when it starts. Legacy reviewer-governed rounds retain 30% / 40% / 30%; upgrading the implementation does not rewrite an existing round. See [current release and payout modes](docs/CURRENT-RELEASE.md).
 
-Known deployed V3.1 gap: a distinct Member execution recipient can review if it supported the winner. A [local source patch](docs/V3.1-SELF-REVIEW-FIX.md) now rejects self-review while preserving refunds; it is not deployed and does not patch existing immutable Communities. See the [security review follow-up](docs/SECURITY-REVIEW-V3.1.md).
+Historical V3.1 gap: a distinct Member execution recipient can review if it supported the winner. The fix is deployed in V3.2 (Manager 2.0.0), preserving financial refund rights. Existing immutable V3.1 Communities retain the old behavior. See the [security review follow-up](docs/SECURITY-REVIEW-V3.1.md).
 
-The unreleased **Community Layer V3.2** ([release scope](docs/V3.2-RELEASE.md)) uses Manager 2.0.0 and requires [Admin quorum for every execution tranche](docs/V3.2-TRANCHE-QUORUM.md), with seven-active-day payment expiry and unpaid-budget refunds. These source rules are not yet the behavior of original deployed Communities.
+The **Community Layer V3.2, deployed on Arc Testnet on 24 October 2026,** ([release scope](docs/V3.2-RELEASE.md)) uses Manager 2.0.0 and requires [Admin quorum for every execution tranche](docs/V3.2-TRANCHE-QUORUM.md), with seven-active-day payment expiry and unpaid-budget refunds. These rules apply to new V3.2 Communities, not existing immutable V3.0/V3.1 instances. See the [deployment record](docs/V3.2-ARC-TESTNET-RELEASE.md).
 
 ## Why Arc
 
@@ -59,7 +59,7 @@ Arc is not presented here as “just another EVM” or a “cheap chain”. The 
 For the current Arc testnet references used in this repo:
 
 1. Arc Testnet chain ID is `5042002`.
-2. Public RPC is `https://rpc.testnet.arc.network`.
+2. Public RPC is `https://arc-testnet.drpc.org`.
 3. Testnet USDC ERC-20 interface address is `0x3600000000000000000000000000000000000000`.
 
 Sources:
@@ -138,7 +138,7 @@ flowchart TB
 
     subgraph graph[The Graph: live Arc indexers]
         v2graph[V2 Subgraph]
-        v3graph[V3.1 Subgraph\nversioned Community events]
+        v3graph[V3.2 Subgraph\nversioned Community events]
     end
 
     user --> dapp
@@ -157,7 +157,7 @@ flowchart TB
 
 Each Community has its own immutable `CommunityHub`, modules, and `CommunityTreasury`; the Factory is the shared entry point. The Hub owns identity, immutable configuration, module addresses, and protected Admin actions. Membership, proposal, voting, and milestone logic have separate ownership boundaries. The Treasury is the sole USDC custodian and separates generic execution capital, vote escrow, milestone reserves, and supporter refund reserves.
 
-V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. V3.0 testnet contracts remain independently addressable under `legacy/V3_0`. V3.1 was deployed on Arc Testnet on October 12, 2026 with its own Factory, frontend ABI surface, and Subgraph; it does not upgrade existing V3.0 Communities. See the [release record](docs/V3.1-ARC-TESTNET-RELEASE.md).
+V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. V3.0 testnet contracts remain independently addressable under `legacy/V3_0`. V3.2 was deployed alongside the original V3.1 Factory on October 24, 2026. New Communities use the V3.2 Factory; old Communities retain their contracts. The V3 subgraph v3.2.0 indexes both modular Factories. See the [current release record](docs/V3.2-ARC-TESTNET-RELEASE.md) and [historical V3.1 record](docs/V3.1-ARC-TESTNET-RELEASE.md).
 
 ## Security
 
@@ -207,7 +207,7 @@ pick a focused task from the [starter issue drafts](docs/STARTER-ISSUES.md).
 7. [BERT V3 Community Layer](contracts/BERT/V3/README.md)
 8. [Archived V3.0 file index](legacy/V3_0/docs/V3-FILE-INDEX.md)
 9. [Contributor testing guide](docs/TESTING.md)
-10. [Local V3.1 E2E runbook](docs/LOCAL-V3.1-E2E.md)
+10. [Local V3.2 E2E runbook](docs/LOCAL-V3.1-E2E.md)
 11. [V3.1 security review notes](docs/SECURITY-REVIEW-V3.1.md)
 12. [V3.1 Arc Testnet release runbook](docs/V3.1-ARC-TESTNET-RELEASE.md)
 13. [Contributing guide](CONTRIBUTING.md)

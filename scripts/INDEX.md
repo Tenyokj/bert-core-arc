@@ -23,7 +23,7 @@
 1. `scripts/local/mint-v3-test-usdc.ts` - mint MockUSDC to local Hardhat test wallets only
 2. `scripts/local/verify-v3-test-wallets.ts` - record local-only PoP attestations for Hardhat test wallets
 3. `scripts/local/advance-time.ts` - advance the local Hardhat clock for deadline tests only
-4. `docs/LOCAL-V3.1-E2E.md` - full V3.1 frontend and contract E2E runbook
+4. `docs/LOCAL-V3.1-E2E.md` - full V3.2 frontend and contract E2E runbook
 
 **Docs**
 1. `scripts/deploy/docs_deploy/DEPLOY.md` - deployment guide

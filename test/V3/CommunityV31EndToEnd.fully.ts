@@ -8,9 +8,9 @@ import { deployTransparentUpgradeable } from "../helpers.js";
  * tranche releases, and failed-plan pull refunds.
  */
 describe("V3.1 Community end-to-end lifecycle", function () {
-  async function deployCommunity() {
+  async function deployCommunity(executionRecipientIsMember = false, multiAdmin = false) {
     const { ethers, networkHelpers } = await hre.network.connect();
-    const [creator, validator, author, supporterOne, supporterTwo, supporterThree, noVoter, exitingMember] =
+    const [creator, validator, author, supporterOne, supporterTwo, supporterThree, noVoter, exitingMember, adminTwo, adminThree, relay] =
       await ethers.getSigners();
 
     const token = await (await ethers.getContractFactory("MockUSDC", creator)).deploy();
@@ -48,14 +48,14 @@ describe("V3.1 Community end-to-end lifecycle", function () {
       metadataURI: "ipfs://bert/v3.1/e2e",
       usdc: await token.getAddress(),
       globalBertReserve: await reserve.getAddress(),
-      initialAdmins: [creator.address],
+      initialAdmins: multiAdmin ? [creator.address, adminTwo.address, adminThree.address] : [creator.address],
       initialValidators: [validator.address],
       entryStakeUSDC: 10n,
       proposalBondUSDC: 5n,
       voteMinStakeUSDC: 1n,
       membershipExitCooldown: 60n,
       validatorApprovalThreshold: 1n,
-      adminApprovalThreshold: 1n,
+      adminApprovalThreshold: multiAdmin ? 2n : 1n,
       binaryRejectionFeeBps: 1_000n,
       validatorRewardShareBps: 1_000n,
       validationWindow: 60n * 60n,
@@ -64,7 +64,7 @@ describe("V3.1 Community end-to-end lifecycle", function () {
       validatorRewardEpoch: 60n * 60n,
       validatorActiveThresholdBps: 5_000n,
       validatorProposalPointsThreshold: 1n,
-      executionRecipient: creator.address,
+      executionRecipient: executionRecipientIsMember ? supporterOne.address : creator.address,
       milestoneReviewDuration: 24n * 60n * 60n,
       milestoneProofDuration: 24n * 60n * 60n,
     };
@@ -105,10 +105,20 @@ describe("V3.1 Community end-to-end lifecycle", function () {
       await networkHelpers.mine();
     }
 
+    async function payTranche(planId: bigint) {
+      const admins = multiAdmin ? [creator, adminTwo] : [creator];
+      for (const admin of admins) await hub.connect(admin).approveExecutionTranche(planId);
+      const addresses = admins.map((admin) => admin.address).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      await hub.connect(noVoter).executeExecutionTranche(planId, addresses);
+    }
+
     return {
       ethers,
       networkHelpers,
       creator,
+      adminTwo,
+      adminThree,
+      relay,
       validator,
       author,
       supporterOne,
@@ -127,12 +137,100 @@ describe("V3.1 Community end-to-end lifecycle", function () {
       membership,
       passVotingWindow,
       passReviewWindow,
+      payTranche,
     };
   }
 
+  for (const lane of ["Admin Binary", "Member Binary", "Admin Slate", "Member Slate"]) {
+    it(`blocks executor self-review in ${lane} without changing validator rewards or 20/40/40 payouts`, async function () {
+      const { hub, validator, author, supporterOne, supporterTwo, supporterThree, noVoter, milestones, treasury,
+        passVotingWindow, passReviewWindow, payTranche } = await deployCommunity(true, true);
+      const memberOrigin = lane.startsWith("Member");
+      const slate = lane.endsWith("Slate");
+      if (slate) {
+        if (memberOrigin) {
+          await hub.connect(author).createMemberSlateProposal("Winner", "Member winner", "ipfs://winner");
+          await hub.connect(author).createMemberSlateProposal("Alternative", "Member alternative", "ipfs://alternative");
+          await hub.connect(validator).castValidationDecision(1n, true);
+          await hub.connect(validator).castValidationDecision(2n, true);
+          await hub.createMemberSlateRound([1n, 2n]);
+        } else {
+          await hub.createAdminSlateProposal("Winner", "Admin winner", "ipfs://winner");
+          await hub.createAdminSlateProposal("Alternative", "Admin alternative", "ipfs://alternative");
+          await hub.createAdminSlateRound([1n, 2n]);
+        }
+      } else {
+        if (memberOrigin) {
+          await hub.connect(author).createMemberProposal("Winner", "Member winner", "ipfs://winner");
+          await hub.connect(validator).castValidationDecision(1n, true);
+        } else await hub.createAdminProposal("Winner", "Admin winner", "ipfs://winner");
+        await hub.openBinaryVoting(1n);
+      }
+      const reviewers = [supporterTwo, supporterThree, noVoter];
+      for (const supporter of [supporterOne, ...reviewers]) {
+        const amount = supporter === supporterOne ? 900n : 100n;
+        if (slate) await hub.connect(supporter).castSlateRoundVote(1n, 1n, amount);
+        else await hub.connect(supporter).castBinaryVote(1n, 1, amount);
+      }
+      await passVotingWindow();
+      if (slate) await hub.settleSlateRound(1n);
+      else await hub.settleBinaryProposal(1n);
+      await payTranche(1n);
+      const budget = memberOrigin ? 1_080n : 1_200n;
+      expect(await milestones.totalSupportWeightByPlan(1n)).to.equal(1_200n);
+      expect((await milestones.getPlan(1n)).eligibleSupportWeight).to.equal(300n);
+      expect(await milestones.eligibleReviewerCountByPlan(1n)).to.equal(3n);
+      expect(await treasury.validatorRewardBalance()).to.equal(memberOrigin ? 120n : 0n);
+
+      for (const milestone of [1n, 2n]) {
+        await hub.connect(supporterOne).submitMilestoneProof(1n, "0x" + "ab".repeat(32));
+        for (const approved of [true, false]) {
+          await expect(hub.connect(supporterOne).castMilestoneReview(1n, approved))
+            .to.be.revertedWith("execution recipient cannot review");
+        }
+        for (const reviewer of reviewers) await hub.connect(reviewer).castMilestoneReview(1n, true);
+        await passReviewWindow();
+        await hub.finalizeMilestoneReview(1n);
+        await payTranche(1n);
+        expect((await milestones.getPlan(1n)).releasedAmount)
+          .to.equal(milestone === 1n ? (budget * 6n) / 10n : budget);
+      }
+      expect((await milestones.getPlan(1n)).status).to.equal(5n);
+      expect(await treasury.totalMilestoneReserved()).to.equal(0n);
+      expect(await treasury.validatorRewardBalance()).to.equal(memberOrigin ? 120n : 0n);
+    });
+  }
+
+  it("preserves a Member execution recipient's failed-plan refund and exit lock until its claim", async function () {
+    const { hub, supporterOne, supporterTwo, supporterThree, noVoter, token, treasury, milestones, voting,
+      networkHelpers, passVotingWindow, payTranche } = await deployCommunity(true);
+    await hub.createAdminProposal("Refund rights", "Executor is also a financial supporter", "ipfs://refund-rights");
+    await hub.openBinaryVoting(1n);
+    for (const supporter of [supporterOne, supporterTwo, supporterThree, noVoter]) {
+      await hub.connect(supporter).castBinaryVote(1n, 1, supporter === supporterOne ? 50n : 17n);
+    }
+    await passVotingWindow();
+    await hub.settleBinaryProposal(1n);
+    await payTranche(1n);
+    expect((await milestones.getPlan(1n)).eligibleSupportWeight).to.equal(51n);
+    expect(await milestones.totalSupportWeightByPlan(1n)).to.equal(101n);
+    await expect(hub.connect(supporterOne).clearSettledVoteLock(1n))
+      .to.be.revertedWithCustomError(voting, "MembershipExitBlocked").withArgs(supporterOne.address);
+    await networkHelpers.time.increase(24n * 60n * 60n + 2n);
+    await hub.failExpiredPlan(1n);
+    expect(await milestones.canReleaseReviewerLock(1n, supporterOne.address)).to.equal(false);
+    const recipientBefore = await token.balanceOf(supporterOne.address);
+    await hub.connect(supporterOne).claimFailedPlanRefund(1n);
+    expect(await token.balanceOf(supporterOne.address)).to.equal(recipientBefore + 40n);
+    await hub.connect(supporterOne).clearSettledVoteLock(1n);
+    for (const supporter of [supporterTwo, supporterThree, noVoter]) await hub.connect(supporter).claimFailedPlanRefund(1n);
+    expect(await treasury.totalMilestoneRefundLiability()).to.equal(0n);
+    expect(await milestones.refundPaidByPlan(1n)).to.equal(81n);
+  });
+
   it("settles a validated Member proposal through both supporter-approved milestones", async function () {
     const ctx = await deployCommunity();
-    const { hub, validator, author, supporterOne, supporterTwo, supporterThree, creator, token, milestones, treasury, networkHelpers, passVotingWindow, passReviewWindow } = ctx;
+    const { hub, validator, author, supporterOne, supporterTwo, supporterThree, creator, token, milestones, treasury, networkHelpers, passVotingWindow, passReviewWindow, payTranche } = ctx;
 
     await hub.connect(author).createMemberProposal("Member build", "Deliver an audited implementation", "ipfs://member-build");
     expect((await hub.getProposal(1n)).creator).to.equal(author.address);
@@ -146,6 +244,7 @@ describe("V3.1 Community end-to-end lifecycle", function () {
     expect((await hub.getBinaryVote(1n, supporterOne.address)).stake).to.equal(100n);
     await passVotingWindow();
     await hub.settleBinaryProposal(1n);
+    await payTranche(1n);
 
     // The 10% validator share is reserved separately: 270 executes, 30 stays in the epoch bucket.
     let plan = await milestones.getPlan(1n);
@@ -160,6 +259,7 @@ describe("V3.1 Community end-to-end lifecycle", function () {
     }
     await passReviewWindow();
     await hub.finalizeMilestoneReview(1n);
+    await payTranche(1n);
 
     plan = await milestones.getPlan(1n);
     expect(plan.currentMilestone).to.equal(2n);
@@ -172,6 +272,7 @@ describe("V3.1 Community end-to-end lifecycle", function () {
     }
     await passReviewWindow();
     await hub.finalizeMilestoneReview(1n);
+    await payTranche(1n);
 
     plan = await milestones.getPlan(1n);
     expect(plan.status).to.equal(5n); // Completed
@@ -205,7 +306,7 @@ describe("V3.1 Community end-to-end lifecycle", function () {
 
   it("returns a failed plan's unreleased budget only to its winning supporters", async function () {
     const ctx = await deployCommunity();
-    const { hub, supporterOne, supporterTwo, supporterThree, creator, token, milestones, treasury, networkHelpers, passVotingWindow } = ctx;
+    const { hub, supporterOne, supporterTwo, supporterThree, creator, token, milestones, treasury, networkHelpers, passVotingWindow, payTranche } = ctx;
 
     await hub.createAdminProposal("Admin build", "Fund the team", "ipfs://admin-build");
     await hub.openBinaryVoting(1n);
@@ -214,6 +315,7 @@ describe("V3.1 Community end-to-end lifecycle", function () {
     }
     await passVotingWindow();
     await hub.settleBinaryProposal(1n);
+    await payTranche(1n);
 
     const creatorAfterInitialTranche = await token.balanceOf(creator.address);
     expect(creatorAfterInitialTranche).to.equal(60n);
@@ -323,6 +425,143 @@ describe("V3.1 Community end-to-end lifecycle", function () {
 
     // Losing slate voters never acquire a reviewer duty and may clear their vote lock immediately.
     await hub.connect(supporterThree).clearSettledRoundVoteLock(1n);
+  });
+
+  async function fundedQuorumPlan(memberOrigin = false) {
+    const ctx = await deployCommunity(false, true);
+    const { hub, author, validator, supporterOne, supporterTwo, supporterThree, passVotingWindow } = ctx;
+    if (memberOrigin) {
+      await hub.connect(author).createMemberProposal("Quorum build", "A protected payment plan", "ipfs://quorum");
+      await hub.connect(validator).castValidationDecision(1n, true);
+    } else await hub.createAdminProposal("Quorum build", "A protected payment plan", "ipfs://quorum");
+    await hub.openBinaryVoting(1n);
+    for (const supporter of [supporterOne, supporterTwo, supporterThree]) await hub.connect(supporter).castBinaryVote(1n, 1, 100n);
+    await passVotingWindow();
+    await hub.settleBinaryProposal(1n);
+    return ctx;
+  }
+
+  it("requires separate current Admin quorum for all three tranches and permits a non-Admin payment relay", async function () {
+    const { hub, milestones, treasury, token, creator, adminTwo, noVoter, supporterOne, supporterTwo, supporterThree, relay,
+      passReviewWindow, payTranche } = await fundedQuorumPlan();
+    const sorted = [creator.address, adminTwo.address].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    expect((await milestones.getPlan(1n)).releasedAmount).to.equal(0n);
+    expect(await token.balanceOf(creator.address)).to.equal(0n);
+    expect(await treasury.totalMilestoneReserved()).to.equal(300n);
+    await expect(hub.connect(noVoter).approveExecutionTranche(1n)).to.be.revertedWithCustomError(hub, "NotCommunityAdmin");
+    await expect(hub.connect(noVoter).executeExecutionTranche(1n, sorted)).to.be.revertedWith("invalid tranche approver");
+    await hub.approveExecutionTranche(1n);
+    await expect(hub.approveExecutionTranche(1n)).to.be.revertedWith("tranche already approved");
+    await expect(hub.executeExecutionTranche(1n, [creator.address])).to.be.revertedWith("tranche quorum not met");
+    await hub.connect(adminTwo).approveExecutionTranche(1n);
+    await expect(hub.executeExecutionTranche(1n, [creator.address, creator.address])).to.be.revertedWith("invalid tranche approver");
+    await expect(hub.executeExecutionTranche(1n, [...sorted].reverse())).to.be.revertedWith("invalid tranche approver");
+    expect((await hub.getMember(relay.address)).active).to.equal(false);
+    await hub.connect(relay).executeExecutionTranche(1n, sorted);
+    expect(await token.balanceOf(creator.address)).to.equal(60n);
+    await expect(hub.executeExecutionTranche(1n, sorted)).to.be.revertedWith("tranche unavailable");
+
+    for (const stage of [1n, 2n]) {
+      await hub.submitMilestoneProof(1n, "0x" + "aa".repeat(32));
+      for (const supporter of [supporterOne, supporterTwo, supporterThree]) await hub.connect(supporter).castMilestoneReview(1n, true);
+      await passReviewWindow();
+      await hub.finalizeMilestoneReview(1n);
+      const plan = await milestones.getPlan(1n);
+      expect(plan.status).to.equal(7n);
+      expect(plan.releasedAmount).to.equal(stage === 1n ? 60n : 180n);
+      expect(plan.proofDeadline).to.equal(0n);
+      expect(await milestones.unresolvedPlanCount()).to.equal(1n);
+      expect(await milestones.hasExecutionTrancheApproval(1n, stage, creator.address)).to.equal(false);
+      await expect(hub.executeExecutionTranche(1n, sorted)).to.be.revertedWith("invalid tranche approver");
+      await expect(hub.submitMilestoneProof(1n, "0x" + "bb".repeat(32))).to.be.revertedWith("proof unavailable");
+      await payTranche(1n);
+    }
+    expect((await milestones.getPlan(1n)).status).to.equal(5n);
+    expect(await milestones.unresolvedPlanCount()).to.equal(0n);
+    expect(await token.balanceOf(creator.address)).to.equal(300n);
+    expect(await treasury.totalMilestoneReserved()).to.equal(0n);
+  });
+
+  for (const expiryStage of [0, 1, 2]) {
+    it(`refunds the entire unpaid Member execution budget at tranche ${expiryStage} expiry without consuming validator rewards`, async function () {
+      const { hub, milestones, treasury, token, creator, adminTwo, noVoter, supporterOne, supporterTwo, supporterThree,
+        networkHelpers, passReviewWindow, payTranche } = await fundedQuorumPlan(true);
+      if (expiryStage > 0) await payTranche(1n);
+      for (let stage = 1; stage <= expiryStage; stage += 1) {
+        await hub.submitMilestoneProof(1n, "0x" + "cc".repeat(32));
+        for (const supporter of [supporterOne, supporterTwo, supporterThree]) await hub.connect(supporter).castMilestoneReview(1n, true);
+        await passReviewWindow();
+        await hub.finalizeMilestoneReview(1n);
+        if (stage < expiryStage) await payTranche(1n);
+      }
+      const plan = await milestones.getPlan(1n);
+      const pending = await milestones.getExecutionTranche(1n, expiryStage);
+      const unpaid = 270n - plan.releasedAmount;
+      expect(unpaid).to.equal(expiryStage === 0 ? 270n : expiryStage === 1 ? 216n : 108n);
+      await hub.approveExecutionTranche(1n);
+      await hub.connect(adminTwo).approveExecutionTranche(1n);
+      await expect(hub.connect(noVoter).expireExecutionTranche(1n)).to.be.revertedWith("tranche not expired");
+      await networkHelpers.time.increaseTo(pending.expiresAt);
+      const sorted = [creator.address, adminTwo.address].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      await expect(hub.executeExecutionTranche(1n, sorted)).to.be.revertedWith("tranche expired");
+      await expect(hub.approveExecutionTranche(1n)).to.be.revertedWith("tranche expired");
+      await hub.connect(noVoter).expireExecutionTranche(1n);
+      expect((await milestones.getPlan(1n)).refundableAmount).to.equal(unpaid);
+      expect(await treasury.validatorRewardBalance()).to.equal(30n);
+      for (const supporter of [supporterOne, supporterTwo, supporterThree]) {
+        const before = await token.balanceOf(supporter.address);
+        await hub.connect(supporter).claimFailedPlanRefund(1n);
+        expect(await token.balanceOf(supporter.address)).to.equal(before + unpaid / 3n);
+        await hub.connect(supporter).clearSettledVoteLock(1n);
+      }
+      expect(await treasury.totalMilestoneRefundLiability()).to.equal(0n);
+      expect(await treasury.totalMilestoneReserved()).to.equal(0n);
+      await expect(hub.executeExecutionTranche(1n, sorted)).to.be.revertedWith("tranche unavailable");
+    });
+  }
+
+  it("invalidates removed and reappointed Admin approvals without restarting the tranche window", async function () {
+    const { hub, milestones, creator, adminTwo, adminThree, noVoter } = await fundedQuorumPlan();
+    const pending = await milestones.getExecutionTranche(1n, 0);
+    await hub.approveExecutionTranche(1n);
+    await hub.connect(adminTwo).approveExecutionTranche(1n);
+    const sorted = [creator.address, adminTwo.address].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    await hub.createAdminActionRequest(4, adminTwo.address, 0n);
+    await hub.connect(adminThree).approveAdminActionRequest(1n);
+    await hub.executeAdminActionRequest(1n);
+    expect(await milestones.hasExecutionTrancheApproval(1n, 0, adminTwo.address)).to.equal(false);
+    await expect(hub.connect(noVoter).executeExecutionTranche(1n, sorted)).to.be.revertedWith("invalid tranche approver");
+    await hub.createAdminActionRequest(3, adminTwo.address, 0n);
+    await hub.connect(adminThree).approveAdminActionRequest(2n);
+    await hub.executeAdminActionRequest(2n);
+    expect(await hub.adminRoleNonce(adminTwo.address)).to.equal(3n);
+    expect(await milestones.hasExecutionTrancheApproval(1n, 0, adminTwo.address)).to.equal(false);
+    await expect(hub.executeExecutionTranche(1n, sorted)).to.be.revertedWith("invalid tranche approver");
+    await hub.connect(adminTwo).approveExecutionTranche(1n);
+    expect((await milestones.getExecutionTrancheApprovers(1n, 0)).length).to.equal(2);
+    expect((await milestones.getExecutionTranche(1n, 0)).expiresAt).to.equal(pending.expiresAt);
+    await hub.connect(noVoter).executeExecutionTranche(1n, sorted);
+  });
+
+  it("freezes payment expiry while paused and starts the proof deadline only after actual payment", async function () {
+    const { hub, milestones, creator, adminTwo, noVoter, ethers, networkHelpers, payTranche } = await fundedQuorumPlan();
+    const request = await milestones.getExecutionTranche(1n, 0);
+    await hub.createAdminActionRequest(0, ethers.ZeroAddress, 0n);
+    await hub.connect(adminTwo).approveAdminActionRequest(1n);
+    await hub.executeAdminActionRequest(1n);
+    const frozen = await hub.communityTime();
+    await networkHelpers.time.increase(10 * 24 * 60 * 60);
+    expect(await hub.communityTime()).to.equal(frozen);
+    await expect(hub.approveExecutionTranche(1n)).to.be.revertedWithCustomError(hub, "CommunityIsPaused");
+    await expect(hub.connect(noVoter).expireExecutionTranche(1n)).to.be.revertedWithCustomError(hub, "CommunityIsPaused");
+    await hub.createAdminActionRequest(1, ethers.ZeroAddress, 0n);
+    await hub.connect(adminTwo).approveAdminActionRequest(2n);
+    await hub.executeAdminActionRequest(2n);
+    await networkHelpers.time.increase(5 * 24 * 60 * 60);
+    await payTranche(1n);
+    const plan = await milestones.getPlan(1n);
+    expect(plan.proofDeadline).to.equal(await hub.communityTime() + 24n * 60n * 60n);
+    expect(plan.proofDeadline).to.be.greaterThan(request.readyAt + 5n * 24n * 60n * 60n);
   });
 
   it("archives an idle Community through quorum and releases a pre-requested member exit", async function () {

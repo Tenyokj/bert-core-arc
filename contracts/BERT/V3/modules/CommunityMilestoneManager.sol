@@ -90,14 +90,16 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 import {ICommunityMilestoneTreasury} from "../interfaces/ICommunityMilestoneTreasury.sol";
 import {ICommunityMilestoneVoting} from "../interfaces/ICommunityMilestoneVoting.sol";
+import {ICommunityTrancheGovernance} from "../interfaces/ICommunityTrancheGovernance.sol";
 import {CommunityTypes} from "../libraries/CommunityTypes.sol";
 
 /**
  * @title CommunityMilestoneManager
  * @notice V3.1 winner-supporter review flow for a Community execution budget.
- * @dev `planId == proposalId`. Voting snapshots eligible weights before this
- *      contract starts a plan, preventing later membership changes from changing quorum.
- * @custom:version 1.0.1
+ * @dev `planId == proposalId`. The sealed winner snapshot preserves financial
+ *      support for refunds. Review weight and count exclude the immutable
+ *      execution recipient, without confiscating that wallet's contribution.
+ * @custom:version 2.0.0
  */
 contract CommunityMilestoneManager is ReentrancyGuard {
     // =============================================================
@@ -110,6 +112,8 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     uint64 public constant NO_QUORUM_GRACE = 2 days;
     /// @notice Number of post-initial-tranche milestones in every execution plan.
     uint8 public constant MILESTONE_COUNT = 2;
+    /// @notice Active Community-clock window to approve and pay each fixed tranche.
+    uint64 public constant TRANCHE_APPROVAL_WINDOW = 7 days;
 
     // =============================================================
     //                    IMMUTABLE MODULE WIRING
@@ -124,7 +128,7 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     address public immutable executionRecipient;
     /// @notice Treasury ledger that reserves tranches and pays reviewer refunds.
     ICommunityMilestoneTreasury public immutable treasury;
-    /// @notice Sealed winner snapshots used to determine reviewer eligibility and weight.
+    /// @notice Full financial winner snapshots; this Manager applies reviewer exclusions.
     ICommunityMilestoneVoting public immutable voting;
     /// @notice Duration of the ordinary milestone-review window in Community clock time.
     uint64 public immutable reviewDuration;
@@ -137,6 +141,13 @@ contract CommunityMilestoneManager is ReentrancyGuard {
 
     /// @notice Per-proposal plan state, reserve accounting, and execution deadlines.
     mapping(uint256 planId => CommunityTypes.ExecutionPlan plan) private plans;
+    /// @notice Total sealed winning-support weight used only for pro-rata refunds.
+    /// @dev Includes the execution recipient if it funded the winner. The plan's
+    ///      eligibleSupportWeight instead excludes that wallet for review quorum.
+    mapping(uint256 planId => uint256 weight) public totalSupportWeightByPlan;
+    /// @notice Fixed count used for the proportional minimum-approver threshold.
+    /// @dev Excludes the execution recipient even if it appears in the snapshot.
+    mapping(uint256 planId => uint256 count) public eligibleReviewerCountByPlan;
     /// @notice Review state for each plan milestone and proof attempt.
     mapping(uint256 planId => mapping(uint8 milestone => CommunityTypes.MilestoneReview review)) private reviews;
     /// @notice Latest review choice cast by a reviewer for a plan milestone.
@@ -155,16 +166,24 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     mapping(uint256 planId => uint256 count) public refundClaimCountByPlan;
     /// @notice Number of plans that still block an eligible winning supporter's exit.
     uint256 public unresolvedPlanCount;
+    /// @notice Pending payment stage: zero for initial 20%, one/two for reviewed 40% tranches.
+    mapping(uint256 planId => uint8 tranche) public pendingTrancheByPlan;
+    /// @dev Per-plan, per-stage immutable terms. A stage opens exactly once.
+    mapping(uint256 planId => mapping(uint8 tranche => CommunityTypes.ExecutionTranche terms)) private tranches;
+    /// @dev Admin role nonce captured by an approval; zero means never approved this stage.
+    mapping(uint256 planId => mapping(uint8 tranche => mapping(address admin => uint256 nonce))) private trancheApprovalNonce;
+    /// @dev Distinct recorded approvers for discovery only; execution checks a threshold-sized witness.
+    mapping(uint256 planId => mapping(uint8 tranche => address[] admins)) private trancheApprovers;
 
     // =============================================================
     //                            EVENTS
     // =============================================================
 
-    /// @notice Emitted when voting reserves a winner budget and releases its initial tranche.
+    /// @notice Emitted when voting reserves a winner budget; quorum-enabled plans release nothing yet.
     /// @param planId Execution-plan ID, equal to the winning proposal ID.
     /// @param proposalId Proposal selected by its governance lane.
     /// @param budget Total Community treasury budget reserved for execution.
-    /// @param initialTranche Twenty percent released to the execution recipient.
+    /// @param initialTranche Actually released at start; zero in quorum-enabled Managers.
     event ExecutionPlanStarted(uint256 indexed planId, uint256 indexed proposalId, uint256 budget, uint256 initialTranche);
     /// @notice Emitted when the execution recipient submits proof for the active milestone.
     /// @param planId Execution-plan ID receiving a proof submission.
@@ -182,7 +201,7 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     /// @notice Emitted after a milestone passes quorum, approval, and unique-reviewer checks.
     /// @param planId Execution-plan ID whose milestone passed.
     /// @param milestone One-based milestone number that passed.
-    /// @param releasedAmount Amount released to the fixed execution recipient.
+    /// @param releasedAmount Actually released by review finalization; zero until the separate tranche payment.
     event MilestoneApproved(uint256 indexed planId, uint8 indexed milestone, uint256 releasedAmount);
     /// @notice Emitted after the first rejected proof opens a correction path.
     /// @param planId Execution-plan ID entering correction cooldown.
@@ -206,6 +225,21 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     /// @param supporter Winning supporter receiving the refund.
     /// @param amount Pro-rata refund amount, including final-claimer rounding dust.
     event ExecutionRefundClaimed(uint256 indexed planId, address indexed supporter, uint256 amount);
+
+    /// @notice Opens an immutable payment authorization; no capital is released yet.
+    /// @param planId Winning execution plan. @param tranche Zero, one or two.
+    /// @param amount Fixed USDC amount. @param readyAt Active-time opening timestamp. @param expiresAt Active-time payment deadline.
+    /// @param approvalThreshold Distinct current Admin approvals required.
+    event ExecutionTrancheReady(uint256 indexed planId, uint8 indexed tranche, uint256 amount, uint64 readyAt, uint64 expiresAt, uint256 approvalThreshold);
+    /// @notice Records a current Admin's explicit approval of one tranche.
+    /// @param planId Execution plan. @param tranche Payment stage. @param admin Approving wallet. @param roleNonce Admin role incarnation.
+    event ExecutionTrancheApproved(uint256 indexed planId, uint8 indexed tranche, address indexed admin, uint256 roleNonce);
+    /// @notice Records an actual Treasury transfer after quorum validation.
+    /// @param planId Execution plan. @param tranche Payment stage. @param recipient Immutable payee. @param amount Amount transferred.
+    event ExecutionTranchePaid(uint256 indexed planId, uint8 indexed tranche, address indexed recipient, uint256 amount);
+    /// @notice Marks an unpaid payment authorization expired before the plan is failed.
+    /// @param planId Execution plan. @param tranche Expired payment stage.
+    event ExecutionTrancheExpired(uint256 indexed planId, uint8 indexed tranche);
 
     // =============================================================
     //                        ACCESS CONTROL
@@ -233,7 +267,7 @@ contract CommunityMilestoneManager is ReentrancyGuard {
      * @param votingModule_ CommunityVotingModule that settles winners and starts plans.
      * @param executionRecipient_ Immutable treasury recipient responsible for delivery.
      * @param treasury_ Treasury module holding Community reserves and refunds.
-     * @param voting_ Winner snapshot module supplying immutable reviewer weights.
+     * @param voting_ Winner snapshot supplying immutable financial support weights.
      * @param reviewDuration_ Review duration constrained to one through fourteen days.
      * @param proofDuration_ Deadline allowed for each proof submission.
      */
@@ -272,6 +306,83 @@ contract CommunityMilestoneManager is ReentrancyGuard {
         return plans[planId];
     }
 
+    /** @notice Returns immutable payment terms and actual payment state. @param planId Plan ID. @param tranche Stage zero through two. @return terms Payment amount, opening/deadline, threshold and paid flag. */
+    function getExecutionTranche(uint256 planId, uint8 tranche) external view returns (CommunityTypes.ExecutionTranche memory terms) {
+        return tranches[planId][tranche];
+    }
+
+    /** @notice Returns recorded approvers for UI discovery, including any subsequently removed Admins. @param planId Plan ID. @param tranche Payment stage. @return admins Recorded distinct wallets; revalidate each before execution. */
+    function getExecutionTrancheApprovers(uint256 planId, uint8 tranche) external view returns (address[] memory admins) {
+        return trancheApprovers[planId][tranche];
+    }
+
+    /** @notice Checks whether an approval belongs to the wallet's current Admin incarnation. @param planId Plan ID. @param tranche Payment stage. @param admin Wallet to inspect. @return valid False for non-approvers, removed or reappointed Admins. */
+    function hasExecutionTrancheApproval(uint256 planId, uint8 tranche, address admin) public view returns (bool valid) {
+        uint256 nonce = trancheApprovalNonce[planId][tranche][admin];
+        if (nonce == 0) return false;
+        ICommunityTrancheGovernance governance = ICommunityTrancheGovernance(hub);
+        return governance.isAdminAccount(admin) && governance.adminRoleNonce(admin) == nonce;
+    }
+
+    /** @notice Records an explicit approval; does not transfer money or restart the deadline. @param admin Original Admin caller supplied by Hub. @param planId Plan whose pending tranche is approved. @param communityTime Current pause-adjusted time. */
+    function approveExecutionTranche(address admin, uint256 planId, uint64 communityTime) external onlyHub {
+        _requirePendingTranche(planId, communityTime);
+        ICommunityTrancheGovernance governance = ICommunityTrancheGovernance(hub);
+        require(governance.isAdminAccount(admin), "not tranche admin");
+        uint256 nonce = governance.adminRoleNonce(admin);
+        require(nonce != 0, "invalid admin nonce");
+        uint8 tranche = pendingTrancheByPlan[planId];
+        uint256 previous = trancheApprovalNonce[planId][tranche][admin];
+        require(previous != nonce, "tranche already approved");
+        if (previous == 0) trancheApprovers[planId][tranche].push(admin);
+        trancheApprovalNonce[planId][tranche][admin] = nonce;
+        emit ExecutionTrancheApproved(planId, tranche, admin, nonce);
+    }
+
+    /**
+     * @notice Pays exactly one fixed tranche after current Admin quorum is proven.
+     * @dev Witness size equals the immutable threshold and addresses must be strictly
+     *      ascending, so execution does not scan historical Admins or accept duplicates.
+     *      Any caller may relay through Hub; recipient and amount cannot be supplied.
+     * @param planId Pending execution plan.
+     * @param approvingAdmins Sorted distinct current Admins whose approvals are recorded.
+     * @param communityTime Active Community time; must precede the fixed deadline.
+     */
+    function executeExecutionTranche(uint256 planId, address[] calldata approvingAdmins, uint64 communityTime) external onlyHub nonReentrant {
+        CommunityTypes.ExecutionTranche storage tranche = _requirePendingTranche(planId, communityTime);
+        require(approvingAdmins.length == tranche.approvalThreshold, "tranche quorum not met");
+        address previous = address(0);
+        uint8 stage = pendingTrancheByPlan[planId];
+        for (uint256 i; i < approvingAdmins.length; ++i) {
+            address admin = approvingAdmins[i];
+            require(admin > previous && hasExecutionTrancheApproval(planId, stage, admin), "invalid tranche approver");
+            previous = admin;
+        }
+        CommunityTypes.ExecutionPlan storage plan = plans[planId];
+        tranche.paid = true;
+        plan.releasedAmount += tranche.amount;
+        if (stage == MILESTONE_COUNT) {
+            plan.status = CommunityTypes.ExecutionPlanStatus.Completed;
+            unresolvedPlanCount -= 1;
+        } else {
+            plan.currentMilestone = stage + 1;
+            plan.proofDeadline = communityTime + proofDuration;
+            plan.status = CommunityTypes.ExecutionPlanStatus.AwaitingProof;
+        }
+        if (tranche.amount != 0) treasury.releaseExecutionTranche(planId, executionRecipient, tranche.amount);
+        emit ExecutionTranchePaid(planId, stage, executionRecipient, tranche.amount);
+        if (stage == MILESTONE_COUNT) emit ExecutionPlanCompleted(planId);
+    }
+
+    /** @notice Fails an unpaid authorization at its deadline, refunding all capital not actually transferred. @param planId Pending plan. @param communityTime Current active time; pause freezes expiry. */
+    function expireExecutionTranche(uint256 planId, uint64 communityTime) external onlyHub nonReentrant {
+        require(plans[planId].status == CommunityTypes.ExecutionPlanStatus.AwaitingTranche, "tranche unavailable");
+        uint8 tranche = pendingTrancheByPlan[planId];
+        require(communityTime >= tranches[planId][tranche].expiresAt, "tranche not expired");
+        emit ExecutionTrancheExpired(planId, tranche);
+        _failPlan(planId);
+    }
+
     /**
      * @notice Returns the latest proof-review state for one plan milestone.
      * @param planId Execution-plan ID to inspect.
@@ -291,37 +402,42 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     // =============================================================
 
     /**
-     * @notice Reserves a winning proposal budget and releases its initial twenty percent.
+     * @notice Reserves a winning proposal budget and opens initial twenty-percent authorization.
      * @dev Called only after the voting module sealed the winner snapshot. The
-     *      remaining budget stays reserved in the treasury until milestone
-     *      approval or failed-plan refund claims resolve it.
+     *      whole budget stays protected until each Admin-authorized transfer
+     *      or failed-plan refund. The proof clock starts only on actual payment.
      * @param proposalId Winning proposal ID, reused as the execution-plan ID.
      * @param budget Full Community treasury amount approved for this proposal.
-     * @param eligibleSupportWeight Immutable aggregate weight eligible to review.
+     * @param totalSupportWeight Full sealed winner weight, including any executor contribution.
      * @param communityTime Pausable Community clock time used to start the proof deadline.
      */
-    function startExecutionPlan(uint256 proposalId, uint256 budget, uint256 eligibleSupportWeight, uint64 communityTime)
+    function startExecutionPlan(uint256 proposalId, uint256 budget, uint256 totalSupportWeight, uint64 communityTime)
         external
         onlyVotingModule
         nonReentrant
     {
-        require(proposalId != 0 && budget != 0 && eligibleSupportWeight != 0, "invalid plan");
+        require(proposalId != 0 && budget != 0 && totalSupportWeight != 0, "invalid plan");
         require(plans[proposalId].status == CommunityTypes.ExecutionPlanStatus.None, "plan exists");
+        uint256 executorWeight = voting.milestoneVoterWeight(proposalId, executionRecipient);
+        uint256 supporterCount = voting.milestoneVoterCount(proposalId);
+        require(executorWeight <= totalSupportWeight && supporterCount != 0, "invalid snapshot");
+        totalSupportWeightByPlan[proposalId] = totalSupportWeight;
+        eligibleReviewerCountByPlan[proposalId] = supporterCount - (executorWeight == 0 ? 0 : 1);
         uint256 initialTranche = (budget * 2_000) / CommunityTypes.MILESTONE_BPS_DENOMINATOR;
         plans[proposalId] = CommunityTypes.ExecutionPlan({
             proposalId: proposalId,
             totalBudget: budget,
-            eligibleSupportWeight: eligibleSupportWeight,
-            releasedAmount: initialTranche,
+            eligibleSupportWeight: totalSupportWeight - executorWeight,
+            releasedAmount: 0,
             refundableAmount: 0,
-            proofDeadline: communityTime + proofDuration,
+            proofDeadline: 0,
             currentMilestone: 1,
-            status: CommunityTypes.ExecutionPlanStatus.AwaitingProof
+            status: CommunityTypes.ExecutionPlanStatus.AwaitingTranche
         });
         unresolvedPlanCount += 1;
+        emit ExecutionPlanStarted(proposalId, proposalId, budget, 0);
+        _openTranche(proposalId, 0, initialTranche, communityTime);
         treasury.reserveExecutionPlan(proposalId, budget);
-        treasury.releaseExecutionTranche(proposalId, executionRecipient, initialTranche);
-        emit ExecutionPlanStarted(proposalId, proposalId, budget, initialTranche);
     }
 
     /**
@@ -352,14 +468,16 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     /**
      * @notice Records an eligible winning supporter's review for the active proof attempt.
      * @dev A reviewer may vote once per proof attempt. Only snapshot supporters
-     *      of the winning proposal have nonzero weight; author/executor exclusion
-     *      is enforced by the voting module before snapshot recording.
+     *      of the winning proposal have nonzero weight. The voting module rejects
+     *      author votes. This function independently rejects the execution recipient,
+     *      regardless of its membership, Admin status or recorded financial support.
      * @param reviewer Original Community member forwarded by CommunityHub.
      * @param planId Execution-plan ID under review.
      * @param approved Whether the reviewer accepts the submitted evidence.
      * @param communityTime Current pausable Community clock time.
      */
     function castMilestoneReview(address reviewer, uint256 planId, bool approved, uint64 communityTime) external onlyHub {
+        require(reviewer != executionRecipient, "execution recipient cannot review");
         CommunityTypes.ExecutionPlan storage plan = plans[planId];
         require(
             plan.status == CommunityTypes.ExecutionPlanStatus.Reviewing
@@ -385,9 +503,9 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     }
 
     /**
-     * @notice Resolves an expired review as approved, correction-required, grace, or failed.
+     * @notice Resolves an expired review into tranche authorization, correction, grace or failure.
      * @dev A review requires: (1) the milestone quorum over the sealed winning
-     *      support weight, (2) a two-thirds weighted approval among participating
+     *      support weight, (2) 6,667 bps weighted approval among participating
      *      reviewers, and (3) the minimum count of distinct approving wallets.
      *      An under-quorum initial review receives one grace window; a rejected
      *      first proof receives one correction opportunity; all terminal failures
@@ -409,7 +527,7 @@ contract CommunityMilestoneManager is ReentrancyGuard {
             plan.eligibleSupportWeight * CommunityTypes.MILESTONE_QUORUM_BPS,
             CommunityTypes.MILESTONE_BPS_DENOMINATOR
         );
-        if (participatingWeight < quorum) {
+        if (plan.eligibleSupportWeight == 0 || participatingWeight < quorum) {
             if (plan.status == CommunityTypes.ExecutionPlanStatus.Reviewing) {
                 plan.status = CommunityTypes.ExecutionPlanStatus.GraceReview;
                 review.closesAt = communityTime + NO_QUORUM_GRACE;
@@ -417,7 +535,7 @@ contract CommunityMilestoneManager is ReentrancyGuard {
             } else _failPlan(planId);
             return;
         }
-        uint256 minApprovers = (voting.milestoneVoterCount(planId) * CommunityTypes.MILESTONE_MIN_APPROVER_SHARE_BPS
+        uint256 minApprovers = (eligibleReviewerCountByPlan[planId] * CommunityTypes.MILESTONE_MIN_APPROVER_SHARE_BPS
             + CommunityTypes.MILESTONE_BPS_DENOMINATOR - 1) / CommunityTypes.MILESTONE_BPS_DENOMINATOR;
         if (minApprovers < CommunityTypes.MILESTONE_MIN_UNIQUE_APPROVERS) minApprovers = CommunityTypes.MILESTONE_MIN_UNIQUE_APPROVERS;
         bool passed = review.approvingWeight * CommunityTypes.MILESTONE_BPS_DENOMINATOR
@@ -434,18 +552,9 @@ contract CommunityMilestoneManager is ReentrancyGuard {
             ? (plan.totalBudget * 4_000) / CommunityTypes.MILESTONE_BPS_DENOMINATOR
             : plan.totalBudget - plan.releasedAmount;
         uint8 settledMilestone = plan.currentMilestone;
-        plan.releasedAmount += tranche;
-        if (settledMilestone == MILESTONE_COUNT) {
-            plan.status = CommunityTypes.ExecutionPlanStatus.Completed;
-            unresolvedPlanCount -= 1;
-        } else {
-            plan.currentMilestone = 2;
-            plan.proofDeadline = communityTime + proofDuration;
-            plan.status = CommunityTypes.ExecutionPlanStatus.AwaitingProof;
-        }
-        treasury.releaseExecutionTranche(planId, executionRecipient, tranche);
-        emit MilestoneApproved(planId, settledMilestone, tranche);
-        if (settledMilestone == MILESTONE_COUNT) emit ExecutionPlanCompleted(planId);
+        plan.proofDeadline = 0;
+        emit MilestoneApproved(planId, settledMilestone, 0);
+        _openTranche(planId, settledMilestone, tranche, communityTime);
     }
 
     /**
@@ -486,7 +595,8 @@ contract CommunityMilestoneManager is ReentrancyGuard {
 
     /**
      * @notice Pays a failed plan's unreleased budget back to a winning supporter.
-     * @dev Refunds are proportional to immutable winner support weight. The final
+     * @dev Refunds are proportional to full immutable winner support weight,
+     *      including any execution-recipient contribution excluded from review. The final
      *      claimer receives any integer-division dust, ensuring the full reserve
      *      is distributable without leaving stranded treasury accounting.
      * @param supporter Original Community member forwarded by CommunityHub.
@@ -502,7 +612,7 @@ contract CommunityMilestoneManager is ReentrancyGuard {
         uint256 supporterCount = voting.milestoneVoterCount(planId);
         uint256 amount = nextClaimCount == supporterCount
             ? plan.refundableAmount - refundPaidByPlan[planId]
-            : (plan.refundableAmount * weight) / plan.eligibleSupportWeight;
+            : (plan.refundableAmount * weight) / totalSupportWeightByPlan[planId];
         refundClaimCountByPlan[planId] = nextClaimCount;
         refundPaidByPlan[planId] += amount;
         treasury.claimExecutionPlanRefund(planId, supporter, amount);
@@ -541,8 +651,8 @@ contract CommunityMilestoneManager is ReentrancyGuard {
         plan.refundableAmount = unreleased;
         plan.status = CommunityTypes.ExecutionPlanStatus.Failed;
         unresolvedPlanCount -= 1;
-        treasury.seedExecutionPlanRefund(planId, unreleased);
         emit ExecutionPlanFailed(planId, unreleased);
+        treasury.seedExecutionPlanRefund(planId, unreleased);
     }
 
     /**
@@ -553,5 +663,23 @@ contract CommunityMilestoneManager is ReentrancyGuard {
      */
     function _ceilDiv(uint256 numerator, uint256 denominator) private pure returns (uint256) {
         return numerator == 0 ? 0 : ((numerator - 1) / denominator) + 1;
+    }
+    /** @dev Opens each stage exactly once; approvals never extend its deadline. */
+    function _openTranche(uint256 planId, uint8 stage, uint256 amount, uint64 communityTime) private {
+        require(tranches[planId][stage].expiresAt == 0, "tranche already opened");
+        uint256 threshold = ICommunityTrancheGovernance(hub).adminApprovalThreshold();
+        require(threshold != 0, "invalid tranche threshold");
+        uint64 deadline = communityTime + TRANCHE_APPROVAL_WINDOW;
+        tranches[planId][stage] = CommunityTypes.ExecutionTranche(amount, communityTime, deadline, threshold, false);
+        pendingTrancheByPlan[planId] = stage;
+        plans[planId].status = CommunityTypes.ExecutionPlanStatus.AwaitingTranche;
+        emit ExecutionTrancheReady(planId, stage, amount, communityTime, deadline, threshold);
+    }
+
+    /** @dev Returns a pending authorization only while both approval and payment remain permitted. */
+    function _requirePendingTranche(uint256 planId, uint64 communityTime) private view returns (CommunityTypes.ExecutionTranche storage tranche) {
+        require(plans[planId].status == CommunityTypes.ExecutionPlanStatus.AwaitingTranche, "tranche unavailable");
+        tranche = tranches[planId][pendingTrancheByPlan[planId]];
+        require(!tranche.paid && communityTime < tranche.expiresAt, "tranche expired");
     }
 }

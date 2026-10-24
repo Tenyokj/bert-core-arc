@@ -89,7 +89,7 @@ Meaning:
 - whether voting is restricted to wallets that pass the configured verified-human policy
 
 When enabled:
-- lowers sybil exposure
+- enforces the configured attestation gate; Sybil resistance depends on the provider
 - adds integration dependency on an external verifier
 - increases participation quality at the cost of some UX friction
 
@@ -106,7 +106,8 @@ Meaning:
 Operational note:
 - this should remain provider-agnostic at the protocol layer
 - the verifier can be backed by proof-of-personhood, privacy-preserving identity checks, or stronger compliance flows
-- in the current PoP deployment model, the verifier stores attestations signed by a trusted backend signer after offchain human verification succeeds
+- the verifier stores attestations signed by a trusted backend signer; Arc Testnet currently uses explicitly labelled Demo credentials, not real personhood verification
+- production World ID is a planned policy subject to complete proof verification and deployment readiness
 - operators must keep the trusted signer and backend environment aligned
 
 ### `maxVoteAmount`
@@ -182,7 +183,13 @@ Bounds and behavior:
 - maximum: `1,000` basis points, or `10%`
 - each round snapshots the value when opened, so later changes cannot alter an in-progress round
 - losing pledges and a winner that never claims are refunded in full
-- the fee becomes protocol reserve only after `claimGrant` succeeds
+- V2.3 vests the fee progressively with paid 20/40/40 tranches; legacy rounds finalize it at `claimGrant`
+
+### `backerMilestonesEnabled`
+Owned by `VotingSystemUpgradeable`. Selects the mode for subsequently started
+rounds. A round snapshots this setting and its verifier when opened. Existing
+rounds cannot switch between legacy 30/40/30 and V2.3 20/40/40 when this flag changes.
+See [CURRENT-RELEASE.md](CURRENT-RELEASE.md) for the read-only deployment snapshot.
 
 ### Grant and Review Deadlines
 Owned by:
@@ -192,17 +199,19 @@ Current policy:
 - claim a settled winning grant within `14 days`
 - submit stage-one proof within `45 days` after the initial payout
 - submit stage-two proof within `60 days` after the stage-one payout
-- reviewers have `14 days` to resolve an active proof request
+- winning backers have `14 days` for a V2.3 proof review; legacy reviewers use the same initial window
+- V2.3 no-quorum has one additional `7 day` grace window
 - a rejected proof has a `48 hour` resubmission cooldown
 
-If a deadline is missed, the permissionless expiry path protects pledge capital according to the round state: a never-claimed winner restores its full gross pledge; an incomplete live grant exposes its remaining net pledge to pro-rata refund by winning pledgers.
+If a deadline is missed, the permissionless expiry path protects pledge capital according to the round state: a never-claimed winner restores its full gross pledge; a failed V2.3 live grant restores unpaid net capital plus unvested fee, while legacy expiry exposes only remaining net capital.
 
 ### Milestone Thresholds and Cooldowns
 Some milestone review logic is embedded as protocol behavior rather than a general open parameter surface.
 
 Operators should still understand:
 - approval thresholds
-- reviewer participation caps
+- legacy reviewer participation caps; these are not V2.3 backer limits
+- V2.3 40% winning-weight quorum, exact two-thirds participating-weight approval, and three eligible approving backers
 - rejection cooldown behavior
 
 These values affect:

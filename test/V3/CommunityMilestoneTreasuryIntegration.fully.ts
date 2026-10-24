@@ -6,6 +6,7 @@ describe("V3.1 milestone custody with the restored CommunityTreasury", function 
     const [factory, executionRecipient, supporter] = await ethers.getSigners();
     const token = await (await ethers.getContractFactory("MockUSDC", factory)).deploy();
     const hub = await (await ethers.getContractFactory("MockV3CommunityHub", factory)).deploy();
+    await hub.setAdmin(factory.address, true);
     const treasury = await (
       await ethers.getContractFactory("CommunityTreasury", factory)
     ).deploy(await token.getAddress(), factory.address, factory.address);
@@ -42,6 +43,11 @@ describe("V3.1 milestone custody with the restored CommunityTreasury", function 
     const latest = await ethers.provider.getBlock("latest");
     const start = manager.interface.encodeFunctionData("startExecutionPlan", [1n, 100n, 100n, BigInt(latest!.timestamp)]);
     await votingModule.callTarget(await manager.getAddress(), start);
+    expect(await token.balanceOf(executionRecipient.address)).to.equal(0n);
+    const approve = manager.interface.encodeFunctionData("approveExecutionTranche", [factory.address, 1n, BigInt(latest!.timestamp)]);
+    await hub.callTarget(await manager.getAddress(), approve);
+    const execute = manager.interface.encodeFunctionData("executeExecutionTranche", [1n, [factory.address], BigInt(latest!.timestamp)]);
+    await hub.callTarget(await manager.getAddress(), execute);
     expect(await treasury.executionBalance()).to.equal(0n);
     expect(await treasury.totalMilestoneReserved()).to.equal(80n);
     expect(await token.balanceOf(executionRecipient.address)).to.equal(20n);

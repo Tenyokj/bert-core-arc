@@ -13,9 +13,9 @@
 10. `scripts/deploy/set-v2-ideas-per-round.ts` - updates V2 round size within the guarded 5..50 range
 11. `scripts/deploy/verify-deploy.ts` - post-deploy checks (roles, pause status, params)
 12. `legacy/V3_0/scripts/deploy/deploy-v3.ts` - archived BERT V3.0 Community Layer deployer
-13. `scripts/deploy/deploy-v3-1.ts` - deploy isolated BERT V3.1 Community Layer infrastructure
+13. `scripts/deploy/deploy-v3-2.ts` - deploy isolated BERT V3.2 Community Layer infrastructure
 14. `scripts/deploy/initialize-v3-factory-allowlist.ts` - seeds the additive Factory allowlist from the live V3.0 Factory after FundingPool upgrade
-15. `scripts/deploy/configure-v3-1-funding-pool.ts` - additively allowlists the V3.1 Factory in V2 FundingPool
+15. `scripts/deploy/configure-v3-2-funding-pool.ts` - additively allowlists the V3.2 Factory in V2 FundingPool
 16. `legacy/V3_0/scripts/deploy/configure-v3-funding-pool.ts` - archived V3.0 FundingPool integration script
 17. `legacy/V3_0/scripts/deploy/verify-v3.ts` - archived V3.0 verification script
 

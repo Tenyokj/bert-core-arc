@@ -2,6 +2,10 @@
 
 This document explains how BERT V2 accounts for capital, how the funding pool is structured, and why author bonds, pledges, fee escrow, reserve, and payouts must be understood as separate buckets.
 
+Current V2.3 uses 20/40/40 net grants with progressive fee vesting. Legacy rounds
+retain their snapshotted reviewer policy; [CURRENT-RELEASE.md](CURRENT-RELEASE.md)
+explains the distinction. V3.1 Community Treasuries remain separate custodians.
+
 ## Contents
 1. Treasury Philosophy
 2. Main Accounting Buckets
@@ -46,7 +50,7 @@ Represents:
 
 Sources can include:
 - rejected or slashed author bonds
-- successful-round fees finalized only after the author claims
+- successful-round fee shares vested with V2.3 author tranches (legacy rounds finalize the whole fee at initial claim)
 - explicitly reserved value
 
 ### `donorBalances`
@@ -103,7 +107,7 @@ Effect:
 ### Milestone Release
 Path:
 - author submits proof
-- reviewers approve
+- eligible winning backers approve V2.3 proof; protocol reviewers apply only to legacy rounds
 - grant manager releases next tranche
 
 Effect:
@@ -116,13 +120,14 @@ Path:
 Effect:
 - the exact losing pledge is returned in full
 - a never-claimed winner restores its gross pledge, including fee escrow, for full refund
-- an expired live grant returns its unspent net capital pro rata to winning pledgers
+- a failed V2.3 live grant returns its unspent net capital plus unvested fee pro rata to winning pledgers; legacy expiry returns the remaining net grant because its fee already finalized
 
 ## Reserve Model
 
 The reserve exists so the protocol can hold value separately from active per-round distribution logic.
 
 Reserve can grow through:
+- fee shares vested with successful V2.3 tranches
 - rejected author stake slashing
 - explicit reserve-oriented accounting behavior
 
@@ -162,7 +167,7 @@ This matters because:
 BERT’s treasury model assumes:
 - accounting and actual token balance should stay reconcilable
 - payout flags prevent duplicate release
-- fee escrow remains distinguishable from reserve until author claim
+- unvested fee escrow remains distinguishable from reserve until its matching tranche releases
 - reserve remains distinguishable from refundable pledge liabilities and active grant balances
 
 Operator attention is required after:

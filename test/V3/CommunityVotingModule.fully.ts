@@ -75,9 +75,11 @@ describe("V3.1 CommunityVotingModule", function () {
 
     const plan = await manager.getPlan(1n);
     expect(plan.totalBudget).to.equal(40n);
-    expect(plan.releasedAmount).to.equal(8n);
+    expect(plan.releasedAmount).to.equal(0n);
+    expect(plan.status).to.equal(7n);
     expect(plan.eligibleSupportWeight).to.equal(40n);
-    expect(await token.balanceOf(executor.address)).to.equal(8n);
+    expect(await token.balanceOf(executor.address)).to.equal(0n);
+    expect(await treasury.totalMilestoneReserved()).to.equal(40n);
     expect(await reserve.received()).to.equal(10n);
     expect(await snapshot.milestoneVoterWeight(1n, supporter.address)).to.equal(40n);
     expect(await snapshot.milestoneVoterWeight(1n, opponent.address)).to.equal(0n);
@@ -168,6 +170,7 @@ describe("V3.1 CommunityVotingModule", function () {
     const plan = await manager.getPlan(1n);
     expect(plan.totalBudget).to.equal(50n);
     expect(plan.eligibleSupportWeight).to.equal(30n);
-    expect(await token.balanceOf(executor.address)).to.equal(10n);
+    expect(await token.balanceOf(executor.address)).to.equal(0n);
+    expect(await treasury.totalMilestoneReserved()).to.equal(50n);
   });
 });

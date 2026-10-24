@@ -12,7 +12,9 @@ This document maps the major BERT protocol contracts, their responsibilities, th
 
 ## Version Scope
 
-Current documented core flow:
+Historical contract-version milestones below are not one shared version for all
+contracts. The current public protocol layers are V2.3 and V3.1; see
+[CURRENT-RELEASE.md](CURRENT-RELEASE.md) for exact payout modes.
 - `v1.0.0`: proposal registry, rounds, voting, treasury accounting, winner selection, one-step grant claim
 - `v1.1.0`: author stake on idea creation, staged grant release `30 / 40 / 30`, milestone proof review, rejection cooldown, reserve-aware rejected stake flow
 - `v1.2.0`: conditional stake-backed grant selection, proposal-level net funding targets, refundable losing pledges, fee escrow, deadline-driven grant refunds, and a bounded `5..50` round size
@@ -76,7 +78,7 @@ Owns this state:
 - human-voting policy and per-vote cap
 
 Can mutate:
-- admin or authorized operator starts and ends rounds
+- anyone may start or settle rounds when the configured preconditions and deadlines are satisfied
 - voters record stake-backed pledges through the public vote path
 
 Depends on:
@@ -148,8 +150,8 @@ Owns this state:
 Can mutate:
 - winning author can claim initial grant
 - winning author can submit milestone proof
-- reviewers can approve or reject proof
-- admin can adjust payout policy parameters
+- eligible winning backers can vote on V2.3 proof; protocol reviewers handle legacy-round requests only
+- admin can change permitted dependencies and pause state; tranche percentages and review thresholds are contract constants, not ordinary setter parameters
 
 Depends on:
 - `VotingSystemUpgradeable`
@@ -184,7 +186,7 @@ State ownership:
 Critical invariants:
 - only the Factory-bound Hub and one-time configured modules may use their narrow Treasury capabilities
 - the immutable Administration execution wallet receives approved tranches only; it has no generic Treasury withdrawal right
-- only supporters of the winning proposal may review its execution plan; the author/execution wallet cannot self-review
+- only winning supporters may review; patched Manager 1.0.2 additionally excludes the execution recipient from review weight/count without removing financial refund rights. Original deployed Managers retain the known gap (see CURRENT-RELEASE.md)
 - failed-plan refunds cover only unreleased plan capital and only the sealed winning-supporter snapshot
 - a FundingPool reserve receiver accepts a Treasury only when its Factory remains explicitly approved
 

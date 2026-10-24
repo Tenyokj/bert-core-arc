@@ -121,7 +121,7 @@ import "../utils/CommunityErrors.sol";
  *      normally an administration/team multisig. It cannot be redirected
  *      after members have voted funds into a proposal.
  *
- * @custom:version 2.0.1
+ * @custom:version 2.1.0
  */
 contract CommunityHub is ICommunityHub, ICommunityHubV31, ICommunityAdminActionTarget, ReentrancyGuard {
 
@@ -288,6 +288,8 @@ contract CommunityHub is ICommunityHub, ICommunityHubV31, ICommunityAdminActionT
 
     /** @notice Reports whether `account` is a local Admin. @param account Address to inspect. */
     function isAdminAccount(address account) external view override returns (bool) { return membership.isAdmin(account); }
+    /** @notice Returns the role-incarnation nonce used to invalidate stale tranche approvals. @param account Admin wallet to inspect. @return Current membership role nonce. */
+    function adminRoleNonce(address account) external view returns (uint256) { return membership.adminRoleNonce(account); }
     /** @notice Reports whether `account` is a local validator. @param account Address to inspect. */
     function isValidatorAccount(address account) external view returns (bool) { return membership.isValidator(account); }
     /** @notice Reports whether an inactive account can be nominated validator. @param account Address to inspect. */
@@ -530,6 +532,19 @@ contract CommunityHub is ICommunityHub, ICommunityHubV31, ICommunityAdminActionT
     function clearSettledRoundVoteLock(uint256 roundId) external { voting.clearSettledRoundVoteLock(msg.sender, roundId); }
 
     /* ========== EXECUTION PLANS AND MILESTONES ========== */
+
+    /** @notice Approves the fixed pending tranche using the caller's current Admin role. @param planId Execution-plan ID. */
+    function approveExecutionTranche(uint256 planId) external onlyAdmin onlyActiveCommunity {
+        milestones.approveExecutionTranche(msg.sender, planId, _communityTime());
+    }
+    /** @notice Executes a quorum-approved tranche; anyone may relay the immutable payment. @param planId Execution-plan ID. @param approvingAdmins Strictly ascending list of current approving Admins, exactly matching the threshold. */
+    function executeExecutionTranche(uint256 planId, address[] calldata approvingAdmins) external onlyActiveCommunity {
+        milestones.executeExecutionTranche(planId, approvingAdmins, _communityTime());
+    }
+    /** @notice Fails a plan whose pending tranche was not paid before its seven-day deadline. @param planId Execution-plan ID. */
+    function expireExecutionTranche(uint256 planId) external onlyActiveCommunity {
+        milestones.expireExecutionTranche(planId, _communityTime());
+    }
 
     /** @notice Submits evidence for the current execution milestone. @param planId Winning proposal/plan identifier. @param evidenceHash Hash of the off-chain evidence bundle. */
     function submitMilestoneProof(uint256 planId, bytes32 evidenceHash) external onlyActiveCommunity {

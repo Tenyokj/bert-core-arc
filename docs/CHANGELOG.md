@@ -1,6 +1,47 @@
 # Changelog
 
+## Unreleased - Community Layer V3.2
+
+Implemented the approved seven-active-day authorization window for 20/40/40.
+Current-role nonce checks reject removed/reappointed Admin approvals; payments
+are permissionlessly relayable only to the immutable recipient at the fixed amount.
+Expiry refunds the entire unpaid execution budget, preserving validator rewards.
+Added AwaitingTranche status, explicit payment events, UI and subgraph support.
+Manager 2.0.0; Hub 2.1.0; Membership/related deployers 1.1.0. Not deployed.
+See V3.2-TRANCHE-QUORUM.md; the earlier self-review-only patch below is historical.
+
+## Unreleased - execution-recipient self-review patch
+
+Manager 1.0.2 explicitly rejects the execution recipient as a milestone reviewer.
+Its financial support remains refundable; review quorum and proportional approver
+count exclude it. Added four-lane and refund/rounding/correction/grace regression
+tests. Milestone module deployer 1.0.1 embeds the patched Manager. No onchain
+deployment, payout-schedule change, validator reward change or added execution-
+tranche Admin quorum is included. See V3.1-SELF-REVIEW-FIX.md.
+
 This changelog tracks protocol-level evolution, not just developer notes. Each entry should describe what changed, why it changed, and what operators or integrators should care about.
+
+## 2026-10-24 / Documentation consistency review
+
+Clarified V2.3 20/40/40 versus executable legacy 30/40/30, progressive fee vesting,
+lazy progression and V3.1's exact 6,667-bps approval threshold. Historical release
+entries below keep their original economics. No payout values or contract
+permissions changed. See [CURRENT-RELEASE.md](CURRENT-RELEASE.md).
+
+## 2026-10-12 / Community Layer V3.1
+
+Released a separate Factory and per-Community modules, supporter-reviewed
+20/40/40 execution plans, and additive FundingPool Factory authorization retaining
+V3.0 compatibility. The V3.1 subgraph and frontend integrate the new deployment.
+Contract versions remain independent. [Release record](V3.1-ARC-TESTNET-RELEASE.md).
+
+## 2026-10-07 / BERT V2.3
+
+Added immutable milestone-plan commitments, a per-round backer-governance snapshot,
+20/40/40 grants, winning-cohort weighted reviews, progressive fee vesting,
+correction/grace/refund paths and lazy winning-participation credit. Legacy round
+economics remain supported rather than retroactively changed. See the
+[V2.3 specification](V2.3-BACKER-MILESTONES-SPEC.md).
 
 ## v1.2.0 / BERT V2.2
 

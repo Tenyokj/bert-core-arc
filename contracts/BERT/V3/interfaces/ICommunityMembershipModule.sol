@@ -5,6 +5,7 @@ import {CommunityTypes} from "../libraries/CommunityTypes.sol";
 
 interface ICommunityMembershipModule {
     function isAdmin(address account) external view returns (bool);
+    function adminRoleNonce(address account) external view returns (uint256);
     function isValidator(address account) external view returns (bool);
     function isActiveMember(address account) external view returns (bool);
     function hasPendingExit(address account) external view returns (bool);

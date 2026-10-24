@@ -3,7 +3,58 @@
 **Status:** internal Arc Testnet release review. This document is not an audit
 and does not claim that V3.1 is safe for mainnet use.
 
-## Scope
+## 2026-10-24 follow-up: execution-recipient conflict of interest
+
+**Open policy/security finding; not fixed by documentation.** V3.1 disallows
+proposal-author votes and Admin/Validator membership, but does not independently
+exclude the immutable execution recipient from joining as a regular Member.
+A distinct non-Admin execution wallet can support another author's proposal,
+enter its winner snapshot, submit proof and cast a counted approval of its own
+execution. It cannot bypass quorum or the minimum approving-wallet count alone.
+
+**Source remediation prepared later the same day:** Manager `1.0.2` rejects the
+recipient as a reviewer and separates review weight/count from financial refund
+rights. The original characterization case has been replaced by rejection tests
+across all four lanes, plus refund/threshold edge cases. See
+[V3.1-SELF-REVIEW-FIX.md](V3.1-SELF-REVIEW-FIX.md). This source patch has not been
+deployed; the finding remains open for existing immutable Communities. Additional
+Admin quorum on execution tranches is not part of this change.
+
+The original real Hub/Factory/Treasury characterization reproduced this accepted
+behavior before the patch. Until a separately reviewed deployment, use a
+non-participating Administration execution wallet
+for pilots. Existing immutable Communities are not silently patched by changing
+docs, frontend or deploying a new Factory. Assess affected Communities before
+claiming an executor self-review prohibition or advancing toward mainnet.
+
+## 2026-10-24 V3.2 source follow-up: execution-tranche Admin quorum
+
+The separately approved [tranche-quorum change](V3.2-TRANCHE-QUORUM.md) is now
+implemented locally in Manager 2.0.0. Initial settlement and passed proof reviews
+only open fixed payment authorizations; every transfer requires current Admin
+quorum within seven active Community days. Expiry refunds all unpaid plan capital
+without touching validator rewards. Existing immutable Communities remain unpatched.
+
+Approvals bind to Membership's per-Admin role nonce. Removal/reappointment cannot
+revive an old approval. Execution checks exactly a threshold-sized sorted witness,
+not a historical approval count or an unbounded roster scan. This does not replace
+supporter proof review or introduce an automatic payment bypass after timeout.
+
+The complete regression suite reached 232 passing, including transfer rollback,
+zero-rounded amounts, role changes, expiry boundaries and pause/delayed proof clocks.
+An initial fresh Slither analysis completed (94 contracts, 102 detectors, 233
+findings; non-zero findings exit status). The Manager's calls-in-loop are static
+reads against its fixed Hub, bounded by the quorum size. Explicit initialization
+and checks-effects-interactions ordering were tightened after triage. The final
+rerun completed successfully on the final source: **229 findings across 94
+contracts / 102 detectors**, with a non-zero findings exit status. In the modified
+Manager only the Low `calls-loop` finding remains; the initialization and
+reentrancy-ordering warnings no longer appear there. The bounded static authority
+reads are retained by design, subject to external confirmation and realistic quorum
+configuration. Findings elsewhere are not declared fixed by this patch. These
+results are not a clean external audit.
+
+## Original release scope
 
 - `contracts/BERT/V3/community/*`
 - `contracts/BERT/V3/modules/*`

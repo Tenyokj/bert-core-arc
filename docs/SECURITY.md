@@ -73,7 +73,7 @@ legacy Factory pointer is not an authorization migration strategy.
 ### Reviewer and Curator Trust
 Curators and reviewers are not arbitrary users; they are earned-role or admin-granted actors. Even so, they remain a trust boundary because:
 - curators can mark ideas as low quality
-- reviewers can influence milestone release timing and success
+- reviewers can influence legacy milestone release; eligible winning backers control V2.3 reviews
 
 ## Primary Attack Surfaces
 
@@ -188,7 +188,7 @@ Voting is capital-backed. Risks include:
 When a round ends, the protocol updates:
 - winning and losing idea status
 - reputation changes
-- winning vote registration
+- eligibility for a later individual `claimWinningParticipation` progression claim
 
 It also settles escrow policy: losing pledges become refundable, a no-winner round refunds all pledges, and a viable winner's fee stays pending until author claim. Any inconsistency between these outcome and accounting paths is security-relevant.
 
@@ -213,12 +213,14 @@ Rejected ideas can have their author bond moved into reserve. Incorrect status c
 ## Milestone Review Risks
 
 ### Reviewer Collusion Risk
-Milestone release depends on reviewer approvals. A captured reviewer set could:
+V2.3 milestone release depends on eligible winning-backer votes; legacy rounds
+retain protocol reviewers. A captured or inactive eligible cohort could:
 - approve weak proof too early
 - delay legitimate execution through coordinated rejection
 
 ### Duplicate Review Risk
-The protocol must ensure a single reviewer cannot count multiple times in the same active milestone request.
+The protocol must ensure one counted position per eligible V2.3 backer: a change
+of vote replaces its old weight. Legacy reviewers must not count twice in one request.
 
 ### Cooldown Bypass Risk
 Rejected milestone requests record `lastRejectedAt`. If cooldown logic is bypassed or broken:
@@ -292,7 +294,7 @@ Recommended controls:
 - monitor role change events in `RolesRegistryUpgradeable`
 - monitor large treasury inflows and outflows
 - monitor unclaimed-grant, expired-grant, and pledge-refund events
-- rehearse every upgrade on localhost and Sepolia before live execution
+- rehearse every upgrade on localhost and the target staging/testnet deployment before live execution
 
 ## Incident Response Checklist
 

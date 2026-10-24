@@ -94,7 +94,7 @@ import {CommunityMilestoneManager} from "../CommunityMilestoneManager.sol";
 /**
  * @title CommunityMilestoneModuleDeployer
  * @notice Stateless deployment helper for the V3.1 milestone manager.
- * @custom:version 1.0.0
+ * @custom:version 1.1.0
  */
 contract CommunityMilestoneModuleDeployer {
     function deploy(

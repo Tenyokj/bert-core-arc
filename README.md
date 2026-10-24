@@ -170,8 +170,11 @@ V3 does not replace V2. Defined Community protocol inflows route into the existi
 
 ## Development
 
+Use Node.js 22.13.0 or newer. The dependency review, remaining toolchain
+advisories and verification results are recorded in [Dependency Security](docs/DEPENDENCY-SECURITY.md).
+
 ```bash
-npm install
+npm ci
 npx hardhat compile
 npx hardhat test
 ```

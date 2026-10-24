@@ -116,7 +116,11 @@ describe("V3.1 CommunityHub production wiring", function () {
 
     const plan = await milestones.getPlan(1n);
     expect(plan.totalBudget).to.equal(10n);
-    expect(plan.releasedAmount).to.equal(2n);
+    expect(plan.releasedAmount).to.equal(0n);
+    expect(plan.status).to.equal(7n);
+    expect(await token.balanceOf(creator.address)).to.equal(0n);
+    await hub.approveExecutionTranche(1n);
+    await hub.connect(voter).executeExecutionTranche(1n, [creator.address]);
     expect(await token.balanceOf(creator.address)).to.equal(2n);
   });
 });

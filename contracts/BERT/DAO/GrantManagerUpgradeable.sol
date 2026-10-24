@@ -93,7 +93,10 @@ import "../utils/Errors.sol";
  * @title GrantManager
  * @notice Central coordinator for grant rounds, voting, and fund distribution
  * @dev Orchestrates the complete DAO grant lifecycle from creation to funding
- * @dev Pausable, Upgradeable
+ * @dev Pausable, Upgradeable. The VotingSystem's per-round snapshot selects
+ *      V2.3 backer-governed 20/40/40 or legacy reviewer-governed 30/40/30.
+ *      Payout constants do not occupy storage slots; legacy values remain
+ *      executable policy for legacy rounds, not unused storage placeholders.
  * 
  * @custom:version 1.3.0
  */
@@ -121,15 +124,17 @@ contract GrantManagerUpgradeable is
 
     /* ========== PAYOUT CONSTANTS ========== */
 
-    /// @notice First tranche released immediately after the winning author claims the grant
-    /// @dev Expressed as a percentage of the author's reserved share
+    /// @notice Initial net-grant percentage for legacy reviewer-governed rounds only.
+    /// @dev Selected only when isBackerMilestoneRound(roundId) is false.
+    ///      This constant occupies no storage slot; do not change legacy round economics.
     uint256 public constant INITIAL_PAYOUT_PERCENT = 30;
 
-    /// @notice V2.3 initial payout for backer-governed grants.
+    /// @notice Initial net-grant percentage for V2.3 backer-governed rounds only.
+    /// @dev Selected when isBackerMilestoneRound(roundId) is true; later stages use 40/40.
     uint256 public constant BACKER_INITIAL_PAYOUT_PERCENT = 20;
 
-    /// @notice Second tranche released after the in-process milestone is approved
-    /// @dev Expressed as a percentage of the author's reserved share
+    /// @notice In-process net-grant percentage shared by legacy and V2.3 rounds.
+    /// @dev The final tranche is the remaining grant after the selected initial tranche and this 40%.
     uint256 public constant IN_PROCESS_PAYOUT_PERCENT = 40;
 
     /// @notice Minimum waiting period before a rejected milestone can be submitted again
@@ -145,7 +150,7 @@ contract GrantManagerUpgradeable is
     /// @notice Completion proof must be submitted within 60 days of the stage-one payout.
     uint256 public constant COMPLETION_SUBMISSION_WINDOW = 60 days;
 
-    /// @notice Reviewers have two weeks to resolve a submitted milestone proof.
+    /// @notice Initial proof review window for legacy reviewers or V2.3 winning backers.
     uint256 public constant MILESTONE_REVIEW_WINDOW = 14 days;
 
     /// @notice Additional time after a V2.3 non-quorum result before cancellation.
@@ -162,16 +167,18 @@ contract GrantManagerUpgradeable is
     /// @notice Milestone identifier for the "project is fully delivered" proof stage
     uint8 public constant COMPLETION_STAGE = 2;
 
-    /// @notice Minimum number of approvals required to unlock the 40% in-process payout
+    /// @notice Legacy reviewer approvals required for the 40% in-process payout.
+    /// @dev Not the V2.3 weighted backer review rule; see _finalizeBackerMilestone.
     uint8 public constant IN_PROCESS_APPROVAL_THRESHOLD = 3;
 
-    /// @notice Maximum number of reviewer votes collected for the in-process stage
+    /// @notice Legacy in-process reviewer-vote cap; not a V2.3 backer-count limit.
     uint8 public constant IN_PROCESS_MAX_REVIEWERS = 5;
 
-    /// @notice Minimum number of approvals required to unlock the final 30% payout
+    /// @notice Legacy reviewer approvals required for the final legacy 30% payout.
+    /// @dev V2.3 completion instead uses weighted backer review and the remaining 40%.
     uint8 public constant COMPLETION_APPROVAL_THRESHOLD = 2;
 
-    /// @notice Maximum number of reviewer votes collected for the completion stage
+    /// @notice Legacy completion reviewer-vote cap; not a V2.3 backer-count limit.
     uint8 public constant COMPLETION_MAX_REVIEWERS = 3;
 
     /* ========== STRUCTS ========== */
@@ -186,9 +193,9 @@ contract GrantManagerUpgradeable is
      * @param author Author entitled to receive the grant tranches
      * @param totalGrant Total author-side grant reserved after protocol share is carved out
      * @param released Cumulative amount already transferred to the author
-     * @param initialClaimed True once the initial 30% payout has been executed
+     * @param initialClaimed True once the selected initial payout (V2.3 20%, legacy 30%) has executed
      * @param inProcessPaid True once the 40% in-process milestone payout has been executed
-     * @param completionPaid True once the final 30% completion payout has been executed
+     * @param completionPaid True once the remaining completion payout (V2.3 40%, legacy 30%) has executed
      */
     struct GrantPayout {
         uint256 ideaId;
@@ -1190,7 +1197,9 @@ contract GrantManagerUpgradeable is
 
     /**
      * @notice Returns the author payout amount for a given milestone stage
-     * @dev Stage 2 is computed as the remainder to avoid rounding drift across the 30/40/30 split
+     * @dev Uses the round's snapshotted mode: V2.3 20/40/40 or legacy 30/40/30.
+     *      Stage 2 is the remainder so integer rounding cannot strand grant dust.
+     * @param roundId Existing round whose immutable milestone mode selects the initial tranche
      * @param totalGrant Total author grant reserved for the round
      * @param stage Milestone stage identifier
      * @return uint256 Amount to release for the given stage
@@ -1209,6 +1218,7 @@ contract GrantManagerUpgradeable is
         return 0;
     }
 
+    /// @dev Selects executable round policy, not a storage-layout compatibility value.
     function _initialPayoutPercent(bool isBackerGoverned) internal pure returns (uint256) {
         return isBackerGoverned ? BACKER_INITIAL_PAYOUT_PERCENT : INITIAL_PAYOUT_PERCENT;
     }

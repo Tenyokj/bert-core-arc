@@ -8,9 +8,9 @@ It reads the winner from `VotingSystemUpgradeable`, validates the winning author
 
 **Key Features**
 - Validates claim eligibility for a viable round winner
-- Finalizes the pending successful-round fee only when the author starts the grant
-- Releases the net winning pledge in a `30 / 40 / 30` schedule
-- Handles milestone proof submission, reviewer approvals, rejections, and cooldown
+- Vests the snapshotted V2.3 successful-round fee progressively with author tranches
+- Releases a V2.3 net winning grant in `20 / 40 / 40`; legacy rounds retain `30 / 40 / 30`
+- Handles V2.3 winning-backer proof votes, finalization, correction, no-quorum grace and cancellation; retains separate reviewer paths for legacy rounds
 - Expires unclaimed winners and incomplete live grants into their defined refund paths
 - Exposes claimability, payout, and milestone-request views
 
@@ -20,9 +20,22 @@ It reads the winner from `VotingSystemUpgradeable`, validates the winning author
 - stage-two submission window: 60 days after stage-one payout
 - active review window: 14 days
 - rejected-proof cooldown: 48 hours
+- V2.3 no-quorum grace: seven days, once
+
+**Round Policy Selection**
+`VotingSystem.isBackerMilestoneRound(roundId)` selects the immutable policy stored
+when that round started. `INITIAL_PAYOUT_PERCENT = 30` and the legacy reviewer
+thresholds remain executable only for legacy rounds. Constants occupy no ordinary
+storage slots. They are not retained as storage padding; changing them would
+change legacy economics. V2.3 selects `BACKER_INITIAL_PAYOUT_PERCENT = 20`.
+
+V2.3 review requires 40% winning-weight participation, exact two-thirds approval
+of participating weight, and three eligible approving winning backers. The author
+cannot vote. A failed plan restores the unpaid net grant plus unvested fee to
+winning-cohort pull refunds. See [current release](../../../docs/CURRENT-RELEASE.md).
 
 **Payout Boundary**
-The payout base is the winner's net pledge after the round fee. `authorSharePercent` remains only as a deprecated retained storage slot for proxy-layout compatibility; it is not used by the V2.0 stake-backed payout calculation.
+The payout base is the winner's net pledge after the round fee. `authorSharePercent` remains only as a deprecated retained storage slot for proxy-layout compatibility; it is not used by the current conditional-pledge payout calculation. Unlike constants, this variable really is part of proxy storage.
 
 **Dependencies**
 - `VotingSystemUpgradeable` for round results

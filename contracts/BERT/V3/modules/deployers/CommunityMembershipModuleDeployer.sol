@@ -94,7 +94,7 @@ import {CommunityMembershipModule} from "../CommunityMembershipModule.sol";
 /**
  * @title CommunityMembershipModuleDeployer
  * @notice Stateless deployment helper for the V3.1 membership module.
- * @custom:version 1.0.0
+ * @custom:version 1.1.0
  */
 contract CommunityMembershipModuleDeployer {
     function deploy(

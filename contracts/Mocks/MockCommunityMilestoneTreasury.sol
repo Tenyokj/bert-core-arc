@@ -6,6 +6,8 @@ import {ICommunityMilestoneTreasury} from "../BERT/V3/interfaces/ICommunityMiles
 /** @notice Test-only accounting double for isolated milestone-manager tests. */
 contract MockCommunityMilestoneTreasury is ICommunityMilestoneTreasury {
     uint256 public executionBalance;
+    bool public rejectRelease;
+    function setRejectRelease(bool value) external { rejectRelease = value; }
     mapping(uint256 planId => uint256 amount) public reservedByPlan;
     mapping(uint256 planId => uint256 amount) public refundsByPlan;
     mapping(address recipient => uint256 amount) public paidTo;
@@ -21,6 +23,7 @@ contract MockCommunityMilestoneTreasury is ICommunityMilestoneTreasury {
     }
 
     function releaseExecutionTranche(uint256 planId, address recipient, uint256 amount) external {
+        require(!rejectRelease, "release rejected");
         require(amount <= reservedByPlan[planId], "insufficient reserve");
         reservedByPlan[planId] -= amount;
         paidTo[recipient] += amount;

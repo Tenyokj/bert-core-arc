@@ -103,7 +103,7 @@ import "../utils/CommunityErrors.sol";
  *      stake-backed member. Exit is blocked until every proposal and vote duty
  *      recorded against that member has been resolved.
  *
- * @custom:version 1.0.0
+ * @custom:version 1.1.0
  */
 contract CommunityMembershipModule is ICommunityMembershipModule {
     /* ========== CONSTANTS ========== */
@@ -130,6 +130,8 @@ contract CommunityMembershipModule is ICommunityMembershipModule {
 
     /// @dev Local Admin role by account. Admins never overlap with members or validators.
     mapping(address account => bool) private admins;
+    /// @notice Incarnation of an Admin role; removal/reappointment invalidates old tranche approvals.
+    mapping(address account => uint256 nonce) public override adminRoleNonce;
     /// @dev Local validator role by account. Validators never overlap with members or Admins.
     mapping(address account => bool) private validators;
     /// @dev Membership record including refundable stake, exit state, and historical proposal points.
@@ -348,6 +350,7 @@ contract CommunityMembershipModule is ICommunityMembershipModule {
         if (!admins[account]) revert RoleNotAssigned(account);
         if (adminCount == 1) revert CannotRemoveLastAdmin();
         admins[account] = false;
+        adminRoleNonce[account] += 1;
         adminCount -= 1;
         emit AdminRemoved(account);
     }
@@ -406,6 +409,7 @@ contract CommunityMembershipModule is ICommunityMembershipModule {
         if (admins[account]) revert RoleAlreadyAssigned(account);
         if (validators[account] || members[account].active) revert AdminValidatorRoleConflict(account);
         admins[account] = true;
+        adminRoleNonce[account] += 1;
         adminCount += 1;
         emit AdminAdded(account);
     }

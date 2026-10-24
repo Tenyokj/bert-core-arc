@@ -90,7 +90,7 @@ import {ICommunityMilestoneVoting} from "../interfaces/ICommunityMilestoneVoting
 
 /**
  * @title CommunityWinnerSnapshot
- * @notice Immutable supporter-weight snapshots consumed by V3.1 milestone reviews.
+ * @notice Immutable financial supporter snapshots used for V3.1 review and refunds.
  * @dev The voting module records a stake when it is cast, then seals only the
  *      winning proposal's snapshot at settlement. A sealed snapshot never
  *      reads live membership or live vote state, so exits cannot alter quorum.
@@ -125,15 +125,15 @@ contract CommunityWinnerSnapshot is ICommunityMilestoneVoting {
     //                            EVENTS
     // =============================================================
 
-    /// @notice Emitted after the voting module records one eligible winning supporter.
+    /// @notice Emitted after the voting module records one financial winning supporter.
     /// @param planId Winning proposal ID that will become the execution-plan ID.
-    /// @param supporter Wallet whose original winning vote grants review weight.
-    /// @param weight Immutable review weight captured from that winning vote.
+    /// @param supporter Wallet whose winning vote grants financial support weight.
+    /// @param weight Captured support weight, before Manager-level reviewer exclusions.
     event WinnerSupportRecorded(uint256 indexed planId, address indexed supporter, uint256 weight);
-    /// @notice Emitted when a plan's supporter set and total review weight become immutable.
+    /// @notice Emitted when a plan's financial supporter set and weight become immutable.
     /// @param planId Winning proposal ID whose snapshot was sealed.
-    /// @param totalWeight Aggregate weight eligible to participate in milestone reviews.
-    /// @param supporterCount Number of distinct wallets eligible to review milestones.
+    /// @param totalWeight Full financial weight, including any execution-recipient contribution.
+    /// @param supporterCount Distinct financial supporters, before Manager-level review exclusions.
     event WinnerSnapshotSealed(uint256 indexed planId, uint256 totalWeight, uint256 supporterCount);
 
     // =============================================================
@@ -162,8 +162,11 @@ contract CommunityWinnerSnapshot is ICommunityMilestoneVoting {
     /**
      * @notice Records one wallet's stake behind a proposal that may later win.
      * @dev The voting module calls this only when a wallet supports that
-     *      proposal. Authors and the immutable execution recipient are filtered
-     *      by the voting layer before reaching this contract. Duplicate entries
+     *      proposal. The voting layer rejects the proposal author's vote.
+     *      This financial ledger includes an execution recipient's contribution
+     *      for refund rights. CommunityMilestoneManager separately excludes that
+     *      wallet's weight and address from milestone review.
+     *      Duplicate entries
      *      and changes after sealing are rejected to preserve a single source
      *      of truth for milestone-review eligibility.
      * @param planId Proposal ID that is a potential execution-plan ID.
@@ -181,7 +184,7 @@ contract CommunityWinnerSnapshot is ICommunityMilestoneVoting {
     }
 
     /**
-     * @notice Permanently freezes a winning proposal's reviewer cohort.
+     * @notice Permanently freezes a winning proposal's financial supporter cohort.
      * @dev `expectedTotalWeight` must match all weights accumulated through
      *      `recordWinnerSupport`; this cross-check detects an inconsistent
      *      settlement before any execution budget is created.
@@ -196,13 +199,15 @@ contract CommunityWinnerSnapshot is ICommunityMilestoneVoting {
     }
 
     // =============================================================
-    //                   MILESTONE REVIEW VIEWS
+    //                  WINNING-SUPPORT SNAPSHOT VIEWS
     // =============================================================
 
     /**
-     * @notice Returns a member's immutable review weight for a sealed plan.
+     * @notice Returns a member's immutable financial support weight for a sealed plan.
+     * @dev The legacy getter name does not imply final review eligibility:
+     *      patched Managers exclude the execution recipient separately.
      * @param planId Execution-plan/proposal ID to inspect.
-     * @param member Community member whose reviewer eligibility is queried.
+     * @param member Community member whose original winning support is queried.
      * @return weight Captured winning-support weight, or zero before sealing/ineligibility.
      */
     function milestoneVoterWeight(uint256 planId, address member) external view returns (uint256) {
@@ -210,7 +215,9 @@ contract CommunityWinnerSnapshot is ICommunityMilestoneVoting {
     }
 
     /**
-     * @notice Returns the count of distinct eligible milestone reviewers.
+     * @notice Returns the count of distinct financial winning supporters.
+     * @dev Includes a contributing execution recipient; use the patched Manager's
+     *      eligibleReviewerCountByPlan for the review approver threshold.
      * @param planId Execution-plan/proposal ID to inspect.
      * @return count Number of recorded winning supporters after sealing, otherwise zero.
      */
@@ -219,7 +226,7 @@ contract CommunityWinnerSnapshot is ICommunityMilestoneVoting {
     }
 
     /**
-     * @notice Returns the total immutable review weight for a sealed plan.
+     * @notice Returns the total immutable financial winning weight for a sealed plan.
      * @param planId Execution-plan/proposal ID to inspect.
      * @return weight Aggregate winning-support weight after sealing, otherwise zero.
      */

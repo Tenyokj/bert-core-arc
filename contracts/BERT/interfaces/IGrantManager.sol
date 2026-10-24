@@ -264,7 +264,7 @@ interface IGrantManager {
     /* ========== VIEW FUNCTIONS ========== */
 
     /**
-     * @notice Previews the 30/40/30 milestone schedule for a winning pledge.
+     * @notice Previews the round's schedule: V2.3 20/40/40 or legacy 30/40/30.
      * @dev The round fee is isolated from grant escrow and is excluded from this view.
      */
     function previewGrant(uint256 roundId, uint256 ideaId)

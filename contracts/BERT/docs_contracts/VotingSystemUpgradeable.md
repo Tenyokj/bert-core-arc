@@ -8,11 +8,12 @@ The contract owns round composition, timing, vote totals, and outcome. `FundingP
 
 **Key Features**
 - Starts contiguous funding rounds from the pending proposal queue
+- Snapshots V2.3 backer milestone mode and verifier; V2.3 proposals need immutable milestone plans
 - Records one USDC pledge per wallet per round
 - Enforces `minStake`, optional verified-human gating, and an optional per-wallet vote cap
 - Selects the highest-vote proposal whose post-fee funding meets its own `minimumNetFunding`
 - Produces a no-winner outcome when no proposal is viable
-- Updates proposal status and triggers reputation/progression effects at settlement
+- Updates proposal status and reputation at settlement; winning backers claim progression individually with `claimWinningParticipation`
 
 **Economic Semantics**
 - vote weight equals the pledged USDC amount
@@ -22,7 +23,8 @@ The contract owns round composition, timing, vote totals, and outcome. `FundingP
 
 **Safety Bounds**
 - `IDEAS_PER_ROUND` is constrained to `5..50`; default policy is `30`
-- `MAX_VOTERS_PER_IDEA` is `30`, bounding the progression loop during settlement
+- No V2.3 30-voters-per-idea cap or settlement progression loop; bounded idea count and lazy per-user progression keep settlement independent of cohort size
+- `currentRoundId` is the next unused ID; existing round IDs are `1 .. currentRoundId - 1`
 
 **Dependencies**
 - `FundingPoolUpgradeable` for pledge ledger opening, recording, and settlement

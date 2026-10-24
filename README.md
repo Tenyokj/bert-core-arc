@@ -1,4 +1,4 @@
-![Bert v1.2.x](https://img.shields.io/badge/Bert-USDC--native-0F766E)
+![Bert V2.3 and V3.1](https://img.shields.io/badge/Bert-V2.3%20%2B%20V3.1-0F766E)
 ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green)
 ![Hardhat](https://img.shields.io/badge/Hardhat-3.x-yellow)
 ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-orange)
@@ -14,7 +14,7 @@ Explore indexed testnet activity in [BERT Console V0.1.0 Beta](https://bertdao-c
 
 The protocol keeps proposal intake, voting rounds, treasury accounting, and staged grant distribution onchain. Economic flows are USDC-native: proposal deposits, vote commitments, treasury balances, reserve accounting, and grant payouts all settle in USDC-compatible units.
 
-The live voting model can additionally enforce verified-human participation through a dedicated verifier contract. When enabled, voting remains capital-weighted in USDC, but only wallets that pass the configured proof-of-personhood flow may participate, and each wallet is capped per idea vote.
+The voting model can enforce a configured verification-attestation gate through a dedicated verifier contract. Voting remains capital-weighted in USDC, and the configured per-pledge cap applies when enabled. Current testnet Demo attestations are not proof of personhood; the planned production policy is described below.
 
 ## Verification By Network
 
@@ -41,8 +41,14 @@ BERT turns grant allocation into programmable treasury flow:
 3. A pledge is bound to one selected idea for that round, not donated to a general winner pool.
 4. The highest-supported idea that meets its disclosed post-fee minimum funding target is selected.
 5. Losing pledges are refundable by their original voters. If no idea is viable, every pledge is refundable.
-6. The protocol fee is fixed when a round opens and moves to reserve only if the winning author starts the grant.
-7. The viable winner receives milestone-based USDC releases, while reviewers validate progress before later tranches unlock.
+6. The fee rate is fixed when a round opens. In V2.3, the fee moves to reserve proportionally with each released author tranche, not all upfront.
+7. In V2.3 backer-governed rounds, the viable winner receives 20% / 40% / 40% net-grant releases; eligible winning backers review proof before later tranches unlock, and the corresponding fee vests progressively.
+
+Each V2 round snapshots its milestone mode when it starts. Legacy reviewer-governed rounds retain 30% / 40% / 30%; upgrading the implementation does not rewrite an existing round. See [current release and payout modes](docs/CURRENT-RELEASE.md).
+
+Known deployed V3.1 gap: a distinct Member execution recipient can review if it supported the winner. A [local source patch](docs/V3.1-SELF-REVIEW-FIX.md) now rejects self-review while preserving refunds; it is not deployed and does not patch existing immutable Communities. See the [security review follow-up](docs/SECURITY-REVIEW-V3.1.md).
+
+The unreleased **Community Layer V3.2** ([release scope](docs/V3.2-RELEASE.md)) uses Manager 2.0.0 and requires [Admin quorum for every execution tranche](docs/V3.2-TRANCHE-QUORUM.md), with seven-active-day payment expiry and unpaid-budget refunds. These source rules are not yet the behavior of original deployed Communities.
 
 ## Why Arc
 
@@ -79,13 +85,13 @@ VotingSystem selects the highest-supported viable idea after the locked fee
 Losers claim their own pledges back
         |
         v
-Winner claims a net grant in 30% / 40% / 30% milestones
+V2.3 winner claims a net grant in 20% / 40% / 40% milestones
         |
         v
 If the grant is never claimed or expires, defined refunds reopen for winning pledgers
 ```
 
-The V2 model is not a pooled tournament where a voter who backed a losing idea silently funds a different winner. A pledge remains attributable to its voter and selected idea. The only successful-round fee is a disclosed protocol fee on the winning pledge, and it is finalized only after the winning author claims the grant.
+The V2 model is not a pooled tournament where a voter who backed a losing idea silently funds a different winner. A pledge remains attributable to its voter and selected idea. The disclosed successful-round fee is snapshotted at round opening. V2.3 vests it alongside each author tranche; cancellation restores the unvested fee together with the unreleased net grant for winning-backers' refunds. Legacy rounds finalize their whole fee at the initial claim.
 
 ## Core Modules
 
@@ -132,7 +138,7 @@ flowchart TB
 
     subgraph graph[The Graph: live Arc indexers]
         v2graph[V2 Subgraph]
-        v3graph[Current V3 Subgraph\nplanned versioned entities]
+        v3graph[V3.1 Subgraph\nversioned Community events]
     end
 
     user --> dapp
@@ -151,7 +157,7 @@ flowchart TB
 
 Each Community has its own immutable `CommunityHub`, modules, and `CommunityTreasury`; the Factory is the shared entry point. The Hub owns identity, immutable configuration, module addresses, and protected Admin actions. Membership, proposal, voting, and milestone logic have separate ownership boundaries. The Treasury is the sole USDC custodian and separates generic execution capital, vote escrow, milestone reserves, and supporter refund reserves.
 
-V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. V3.0 testnet contracts remain independently addressable under `legacy/V3_0`; the current V3 stack will receive a separate Factory, frontend ABI surface, and Subgraph before deployment.
+V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. V3.0 testnet contracts remain independently addressable under `legacy/V3_0`. V3.1 was deployed on Arc Testnet on October 12, 2026 with its own Factory, frontend ABI surface, and Subgraph; it does not upgrade existing V3.0 Communities. See the [release record](docs/V3.1-ARC-TESTNET-RELEASE.md).
 
 ## Security
 
@@ -195,7 +201,7 @@ pick a focused task from the [starter issue drafts](docs/STARTER-ISSUES.md).
 1. [Architecture](docs/ARCHITECTURE.md)
 2. [Security](docs/SECURITY.md)
 3. [Contracts](docs/CONTRACTS.md)
-4. [Migration notes](docs/MIGRATION_NOTES.md)
+4. [Current release and payout modes](docs/CURRENT-RELEASE.md)
 5. [Arc deployment guide](scripts/deploy/docs_deploy/DEPLOY.md)
 6. [Upgrades](docs/UPGRADES.md)
 7. [BERT V3 Community Layer](contracts/BERT/V3/README.md)

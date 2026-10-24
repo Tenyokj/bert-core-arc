@@ -2,6 +2,11 @@
 
 BERT is a modular, upgradeable, stablecoin-native grant allocation protocol built around proposal intake, round-based capital signaling, controlled treasury accounting, and milestone-based payout release.
 
+Current public layers are V2.3 and V3.1 on Arc Testnet. This document's global
+funding flow describes V2.3; legacy reviewer rounds retain their snapshotted
+30/40/30 behavior. See [current release and payout modes](CURRENT-RELEASE.md)
+and the [V3.1 module architecture](../contracts/BERT/V3/README.md).
+
 The protocol is not just a “grant voting app”. It is a multi-layer system with:
 - a proposal registry layer
 - a voting and round orchestration layer
@@ -48,7 +53,7 @@ Instead of distributing funds through an opaque or one-shot grant model, BERT V2
 - viable-winner resolution
 - conditional treasury allocation
 - staged author payout
-- reviewer-gated milestone release
+- winning-backer-governed milestone release
 - defined pledge refund paths
 
 ## Design Principles
@@ -69,7 +74,7 @@ Instead of distributing funds through an opaque or one-shot grant model, BERT V2
    A participant's pledge is bound to one selected idea. Losing pledges remain refundable; a winner receives only its own viable pledged capital, less the disclosed fee.
 
 6. Grants should not be paid blindly.
-   Winning a round does not imply full immediate release. Net winning capital moves through a 30 / 40 / 30 milestone schedule with reviewer checkpoints.
+   Winning a round does not imply full immediate release. V2.3 net winning capital moves through a 20 / 40 / 40 schedule with winning-backer review. Legacy rounds retain 30 / 40 / 30.
 
 7. Upgradeability should preserve boundaries.
    Modules remain separate even when upgraded, and storage extensions are appended rather than reordered.
@@ -194,7 +199,7 @@ Responsibilities:
 ### D. Round Resolution
 1. After the voting window closes, the round is ended.
 2. `VotingSystemUpgradeable` evaluates every round idea against its own `minimumNetFunding` after applying the fee snapshotted at round opening.
-3. The highest-vote eligible idea wins. A higher-vote idea that fails its minimum is not viable and does not win.
+3. The highest-vote eligible idea wins. For V2.3, viability also requires at least three distinct backers. An idea that fails either condition is skipped.
 4. If no idea is viable, the round has no winner.
 5. Status changes occur:
    - winner: `Voting -> WonVoting`
@@ -202,8 +207,7 @@ Responsibilities:
 6. Reputation updates are triggered:
    - winning author reputation can increase
    - losing/rejected author reputation can decrease
-7. Voter progression is updated:
-   - voters who backed the winning idea receive a “winning vote” registration
+7. Winning backers become eligible to call `claimWinningParticipation(roundId)` individually; settlement does not loop over all voters to issue progression credit.
 8. `FundingPoolUpgradeable` settles the round ledger: losing pledges are claimable by their original voters; a no-winner round makes every pledge claimable; the winning gross pledge becomes net grant capital plus pending fee escrow.
 9. Rejected ideas can have their author bond slashed into `protocolReserve` through the idea registry / funding pool interaction.
 
@@ -216,20 +220,20 @@ Responsibilities:
    - grant has not already been claimed
    - caller is the winning author
 3. The winning idea's net pledge is read from the funding pool.
-4. The pending fee becomes protocol reserve only at this point.
-5. The initial 30% payout is released.
+4. Progressive fee vesting starts; only the fee matching the initial 20% tranche enters reserve. Later fee shares vest with later payouts.
+5. The initial 20% net-grant payout is released for V2.3. Legacy rounds select their stored 30% policy and finalize the whole fee at claim.
 6. Idea status moves to `Funded`.
 7. If no claim occurs within 14 days, anyone can expire it and restore the full gross winning pledge for refund.
 
 ### F. Milestone Release
 1. The author submits milestone proof for the next stage.
-2. Reviewers evaluate the proof.
-3. Reviewer approvals can unlock:
+2. Eligible winning pledgers evaluate V2.3 proof; the author cannot vote. Protocol reviewers retain authority only over legacy-round milestone requests.
+3. Winning-backer approval after the full review window can unlock:
    - in-process payout
    - completion payout
-4. Rejections set `lastRejectedAt` and enforce cooldown before resubmission.
+4. Approval requires 40% winning-weight participation, exact two-thirds approval among participating weight, and three eligible approving backers. One rejected proof can be corrected after 48 hours; no-quorum receives one seven-day grace window.
 5. Final status progression ends at `Completed`.
-6. An overdue live grant can be cancelled permissionlessly; its unspent net pledge becomes refundable pro rata to winning pledgers.
+6. A terminal rejection, missed deadline or no-quorum after grace activates pro-rata refunds of the unreleased net grant plus unvested fee to the winning cohort.
 
 ## Core Modules
 
@@ -456,7 +460,7 @@ Examples:
 - `CURATOR_ROLE`
 - `REVIEWER_ROLE`
 
-This means moderation and milestone review are not open to every wallet by default.
+Curator/reviewer roles govern idea-quality signals and legacy milestone review. V2.3 milestone authority instead comes from the winning pledge cohort, not an earned reviewer role.
 
 ## State and Lifecycle Model
 
@@ -480,7 +484,7 @@ Failure path:
 2. author claims initial payout
 3. idea enters funded execution phase
 4. milestone proof submitted
-5. reviewers approve or reject
+5. eligible winning backers approve or reject (legacy rounds retain reviewers)
 6. later tranches released
 7. final completion closes the funded lifecycle
 
@@ -502,7 +506,7 @@ BERT distinguishes several economic buckets:
 These balances are not interchangeable:
 - author bond is anti-spam collateral
 - pledge capital is round-specific signaling capital and a refundable voter claim when its idea does not receive a live grant
-- pending fee is neither reserve nor author grant until the winning author claims
+- pending fee is not reserve until it vests; V2.3 vests progressively with paid tranches, while legacy rounds finalize at claim
 - reserve is protected protocol-held value
 - treasury deposits are general funding capacity
 
@@ -545,19 +549,22 @@ They are related, but not the same subsystem.
 The grant release model is intentionally staged.
 
 ### Tranches
-- initial claim: `30%`
+- initial claim: `20%`
 - in-process milestone: `40%`
-- completion milestone: `30%`
+- completion milestone: `40%` (remaining net grant after rounding)
+
+These are V2.3 values. `isBackerMilestoneRound(roundId)` selects the stored
+round policy; legacy reviewer rounds remain 30/40/30.
 
 ### Why This Exists
 A winning vote should not immediately unlock 100% of capital. The milestone layer ensures:
 - early execution capital is available
 - later capital requires proof
-- reviewers can reject insufficient proof
+- winning backers can reject insufficient V2.3 proof
 - rejected proof cannot be spammed repeatedly because cooldown is enforced
 
 ### Review Safeguards
-- duplicate review prevention
+- one counted position per eligible backer; changing a V2.3 position replaces its previous weight rather than adding a second vote
 - active request tracking
 - rejection cooldown using `lastRejectedAt`
 - payout flags to prevent re-release
@@ -618,7 +625,7 @@ This means deployment wiring is critical:
 ### Reviewer / Curator Trust
 Some lifecycle actions are intentionally delegated to earned user roles:
 - curators can mark low-quality ideas
-- reviewers can review ideas and milestone proofs
+- reviewers can review ideas and legacy milestone proofs; V2.3 payouts are reviewed by eligible winning backers
 
 This introduces human trust, but within bounded role-controlled surfaces.
 
@@ -685,7 +692,7 @@ BERT uses Arc as programmable funding infrastructure for real treasury coordinat
                                     +-----------+------------+
                                     | GrantManagerUpg.       |
                                     | claim + milestones     |
-                                    | 30 / 40 / 30 release   |
+                                    | 20 / 40 / 40 (V2.3)    |
                                     +-----------+------------+
                                                 |
                                                 v
@@ -712,9 +719,9 @@ VotingSystemUpgradeable
   v
 GrantManagerUpgradeable
   |
-  | initial claim: 30%
+  | V2.3 initial claim: 20%
   | milestone 1:   40%
-  | milestone 2:   30%
+  | milestone 2:   40% (remainder)
   v
 Winning builder
 ```
@@ -729,7 +736,7 @@ Round ends
    |
    +--> losing pledgers -> claim their own pledge refund
    |
-   +--> voters on winning idea -> registerWinningVote()
+   +--> winning voters -> claimWinningParticipation() -> registerWinningVote()
                                 |
                                 +--> CURATOR_ROLE at threshold
                                 +--> REVIEWER_ROLE at threshold

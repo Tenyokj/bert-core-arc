@@ -8,6 +8,7 @@ Central registry for BERT V2 funding proposals. It stores proposal metadata and 
 
 **Key Features**
 - Creates funding proposals with title, description, optional link, author bond, and minimum net funding target
+- Requires an immutable milestone-plan URI and hash commitment while Pending before V2.3 round admission
 - Tracks lifecycle state from `Pending` through funding and milestone execution
 - Stores reviews and curator low-quality signals
 - Integrates with `ReputationSystemUpgradeable` for author initialization

@@ -2,8 +2,9 @@
 pragma solidity ^0.8.20;
 
 /**
- * @notice Read-only winner-supporter snapshot consumed by CommunityMilestoneManager.
- * @dev CommunityVotingModule must snapshot this at settlement, before membership can change.
+ * @notice Full financial winner-supporter snapshot consumed by CommunityMilestoneManager.
+ * @dev CommunityVotingModule seals this at settlement. The Manager separately
+ *      excludes the execution recipient from review, not from financial refunds.
  */
 interface ICommunityMilestoneVoting {
     function milestoneVoterWeight(uint256 planId, address member) external view returns (uint256);

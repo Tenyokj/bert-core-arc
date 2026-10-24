@@ -1,4 +1,11 @@
-# BERT V3.1 Local E2E Runbook
+# Local Community Layer E2E: V3.2 Sources
+
+**Unreleased source change:** Manager 2.0.0 requires explicit Admin approvals and
+fixed-tranche execution after settlement and each passed milestone review. Use
+[the tranche-quorum guide](V3.2-TRANCHE-QUORUM.md) alongside this runbook; older
+automatic-transfer steps describe the original live Manager. Exercise expiry at
+all three stages and 100/80/40 unpaid-budget refunds. The next proof clock begins
+only after actual payment. No existing deployment was changed by these edits.
 
 This runbook exercises the deployed V3.1 contracts through the real frontend on a disposable Hardhat node. It is intentionally separate from Arc Testnet and never uses a real private key, real USDC, or a production proof-of-personhood attestation.
 
@@ -56,10 +63,10 @@ Deploy the isolated V3.1 infrastructure with the local PoP proxy address:
 LOCAL_RPC_URL=http://127.0.0.1:8545 \
 POP_VERIFIER_ADDRESS=<PoPVerifierUpgradeable proxy> \
 V3_PROXY_ADMIN_OWNER=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 \
-npx hardhat run scripts/deploy/deploy-v3-1.ts --network localhost
+npx hardhat run scripts/deploy/deploy-v3-2.ts --network localhost
 ```
 
-Record `V3_1_FACTORY_ADDRESS` and `V3_1_ADMIN_ACTIONS_LIBRARY_ADDRESS`.
+Record `V3_2_FACTORY_ADDRESS` and `V3_2_ADMIN_ACTIONS_LIBRARY_ADDRESS`.
 
 Authorize that Factory in the V2 FundingPool. This is required before any
 Community Treasury can route its protocol reserve to BERT:
@@ -67,8 +74,8 @@ Community Treasury can route its protocol reserve to BERT:
 ```bash
 LOCAL_RPC_URL=http://127.0.0.1:8545 \
 FUNDING_POOL_ADDRESS=<FundingPoolUpgradeable proxy> \
-V3_1_FACTORY_ADDRESS=<V3_1_FACTORY_ADDRESS> \
-npx hardhat run scripts/deploy/configure-v3-1-funding-pool.ts --network localhost
+V3_2_FACTORY_ADDRESS=<V3_2_FACTORY_ADDRESS> \
+npx hardhat run scripts/deploy/configure-v3-2-funding-pool.ts --network localhost
 ```
 
 ## 2. Fund and Verify Test Wallets
@@ -106,8 +113,8 @@ NEXT_PUBLIC_ROLES_REGISTRY_ADDRESS=<RolesRegistryUpgradeable proxy>
 NEXT_PUBLIC_POP_VERIFIER_ADDRESS=<PoPVerifierUpgradeable proxy>
 NEXT_PUBLIC_GRANT_MANAGER_ADDRESS=<GrantManagerUpgradeable proxy>
 
-NEXT_PUBLIC_V3_FACTORY_ADDRESS=<V3_1_FACTORY_ADDRESS>
-NEXT_PUBLIC_V3_ADMIN_ACTIONS_LIBRARY_ADDRESS=<V3_1_ADMIN_ACTIONS_LIBRARY_ADDRESS>
+NEXT_PUBLIC_V3_FACTORY_ADDRESS=<V3_2_FACTORY_ADDRESS>
+NEXT_PUBLIC_V3_ADMIN_ACTIONS_LIBRARY_ADDRESS=<V3_2_ADMIN_ACTIONS_LIBRARY_ADDRESS>
 NEXT_PUBLIC_V3_EVENT_FROM_BLOCK=0
 ```
 
@@ -208,7 +215,7 @@ Refresh the relevant dApp page after advancing time. Community deadlines use pau
 ### E. Negative and control checks
 
 1. Try to review from a wallet that did not support the winner: transaction must revert.
-2. Try to review from the Administration execution wallet / proposal author when excluded: transaction must revert.
+2. Confirm author voting is rejected. With patched Manager 1.0.2, a distinct Member execution wallet may fund the winner but both approve/reject review calls must revert. Exclude its weight/count only from review thresholds; preserve its financial refunds and exit-lock settlement. Original deployed Managers retain the gap; use a non-participating execution wallet for those pilots. See V3.1-SELF-REVIEW-FIX.md for the source/deployment boundary.
 3. Submit one rejected proof, advance a day, finalize, wait 48 hours, reopen correction, and submit a corrected proof. Confirm a second rejection fails the plan.
 4. Pause through the two-Admin action queue, advance local wall time, and verify Community-clock deadlines remain unchanged. Resume through the same quorum path.
 5. Attempt member exit while a vote or plan lock exists. It must remain blocked until the vote is settled and the plan completes or the wallet claims its failed-plan refund.
@@ -216,3 +223,5 @@ Refresh the relevant dApp page after advancing time. Community deadlines use pau
 ## E2E Exit Criteria
 
 The local rehearsal passes only if all four lanes settle, the completed plan releases exactly `20 / 40 / 40`, a failed plan refunds only winning supporters, an ineligible reviewer cannot vote, and Community pause preserves active-time deadlines.
+
+This historical filename is retained for existing links. Current commands deploy V3.2 sources, not a reproduction of original V3.1.

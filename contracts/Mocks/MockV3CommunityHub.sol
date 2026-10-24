@@ -10,6 +10,7 @@ contract MockV3CommunityHub {
     uint256 public adminApprovalThreshold = 1;
 
     mapping(address => bool) private _admins;
+    mapping(address => uint256) public adminRoleNonce;
     mapping(uint256 => mapping(address => bool)) private _activeValidatorsByEpoch;
 
     function setCommunityStatus(CommunityTypes.CommunityStatus status) external {
@@ -21,6 +22,7 @@ contract MockV3CommunityHub {
     }
 
     function setAdmin(address account, bool active) external {
+        if (_admins[account] != active) adminRoleNonce[account] += 1;
         _admins[account] = active;
     }
 

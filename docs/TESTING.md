@@ -1,5 +1,13 @@
 # BERT Contributor Testing Guide
 
+For the unreleased Manager 2.0.0, also test the complete
+[Admin-tranche quorum flow](V3.2-TRANCHE-QUORUM.md): no automatic initial payout,
+fresh approvals per stage, current-role nonce validity, permissionless fixed
+payment, seven-active-day expiry, 100/80/40 unpaid-budget refunds, pause and
+proof deadlines measured from actual payment. Original live Managers differ.
+
+**Source release:** current local commands exercise unreleased V3.2, not original V3.1. Use [V3.2 release scope](V3.2-RELEASE.md). Historical live checks remain separately labelled.
+
 **Status:** public Arc Testnet testing guide for deployed BERT V2.3 and V3.1.
 This is not an audit report, a production readiness claim, or permission to
 use real funds.
@@ -75,8 +83,8 @@ all local state and changes every deployed address.
 
 1. Start one local node: `npx hardhat node`.
 2. Deploy V2 proxies with `scripts/deploy/deploy-proxies.ts`.
-3. Deploy V3.1 with `scripts/deploy/deploy-v3-1.ts` using the local PoP proxy.
-4. Run `scripts/deploy/configure-v3-1-funding-pool.ts` once to authorize the
+3. Deploy V3.1 with `scripts/deploy/deploy-v3-2.ts` using the local PoP proxy.
+4. Run `scripts/deploy/configure-v3-2-funding-pool.ts` once to authorize the
    V3.1 Factory in FundingPool.
 5. Mint MockUSDC with `scripts/local/mint-v3-test-usdc.ts`.
 6. Record local PoP attestations with `scripts/local/verify-v3-test-wallets.ts`.
@@ -131,8 +139,8 @@ tranches and has no generic right to withdraw Treasury funds.
 | V3-09 | Admin action queue | Second Admin approval required for protected roster/pause/archive/cancellation |
 | V3-10 | Treasury withdrawal | Reservation, quorum, execution, and cancellation agree |
 | V3-11 | Successful plan | Winner gets 20/40/40 only once per tranche |
-| V3-12 | Review electorate | Only winner supporters may review; author/execution wallet cannot self-review |
-| V3-13 | Review threshold | 40% support-weight participation, 2/3 approval, max(3, ceil(3%)) approvers |
+| V3-12 | Review electorate | Patched Manager rejects recipient approve/reject in ordinary/corrected/grace review; excludes its weight/count from thresholds but includes it in financial refunds. Test all four lanes. Original deployed Managers remain vulnerable until separately handled |
+| V3-13 | Review threshold | 40% eligible support-weight participation, 6,667 bps (66.67%) approval, max(3, ceil(3% of eligible supporters)) approvers |
 | V3-14 | Rejection and correction | One correction after cooldown; second rejection fails plan |
 | V3-15 | No quorum/proof expiry | No automatic payout; unreleased reserve becomes supporter refunds |
 | V3-16 | Pause-aware deadlines | Community clock freezes voting, proof, review, and action windows |

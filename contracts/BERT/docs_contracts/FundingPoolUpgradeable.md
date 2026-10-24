@@ -11,7 +11,7 @@ The pool is the accounting source of truth for token movement. `VotingSystemUpgr
 - Opens a ledger for each funding round and snapshots its `pledgeFeeBps`
 - Records one pledge per voter per round with its selected idea
 - Separates winning gross pledge, pending fee escrow, net grant capital, refundable pledges, and protocol reserve
-- Finalizes the fee only after the winning author claims the grant
+- Vests V2.3 fees progressively with paid 20/40/40 tranches; legacy rounds finalize the whole fee at claim
 - Distributes a net grant in authorized milestone tranches
 - Opens defined refund paths for losing pledges, no-winner rounds, never-claimed winners, and expired live grants
 
@@ -19,13 +19,13 @@ The pool is the accounting source of truth for token movement. `VotingSystemUpgr
 - a losing pledger claims its full recorded pledge
 - if no proposal is viable, every pledger claims its full recorded pledge
 - if the selected author never claims, the full gross winning pledge, including the pending fee, is restored for refund
-- if a live grant expires, only its unspent net pledge is refunded pro rata to the winning pledge cohort
+- a failed V2.3 live grant restores both unpaid net capital and unvested fee for winning-cohort pro-rata refunds; legacy live-grant expiry restores only remaining net capital
 
 **Protocol Fee**
 - default: `500` basis points, or `5%`
 - maximum: `1,000` basis points, or `10%`
 - snapshotted at round opening
-- not reserve revenue until `GrantManagerUpgradeable.claimGrant` succeeds
+- no reserve revenue before author claim; V2.3 moves only the fee matching each paid tranche into reserve
 
 **Access Control**
 - only `VotingSystemUpgradeable` may open, record, or settle funding rounds

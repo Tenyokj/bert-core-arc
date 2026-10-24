@@ -26,3 +26,14 @@ The V3.1 module split is a major architectural change for the pre-existing
 is `2.0.0`. The new module and module-deployer contracts begin at `1.0.0`.
 `CommunityErrors` receives additive error definitions only and remains at
 `1.1.0`.
+
+## V3.2 Release
+
+The next Community Layer release is **V3.2**, independently of the unchanged
+Global Funding Layer **V2.3**. Comment/documentation-only V2 changes do not create
+V2.4 or V2.3.1 and do not require an implementation upgrade.
+
+V3.2 uses Manager `2.0.0`, Hub `2.1.0`, Membership `1.1.0`, CommunityTypes
+`2.1.0`, and Membership/Milestone deployers `1.1.0`. Do not synchronize every
+contract tag to `3.2.0` or reset a new deployment of an existing implementation
+to `1.0.0`. See [the V3.2 release scope](V3.2-RELEASE.md).

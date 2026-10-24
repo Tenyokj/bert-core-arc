@@ -92,7 +92,7 @@ pragma solidity ^0.8.20;
  * @notice Shared V3 data shapes used by CommunityFactory, CommunityHub, and CommunityTreasury.
  * @dev This library is a namespace only. It has no storage, executable business logic, or access control.
  * 
- * @custom:version 2.0.0
+ * @custom:version 2.1.0
  */
 library CommunityTypes {
     uint256 internal constant MILESTONE_BPS_DENOMINATOR = 10_000;
@@ -419,7 +419,8 @@ library CommunityTypes {
         CorrectionCooldown,
         GraceReview,
         Completed,
-        Failed
+        Failed,
+        AwaitingTranche
     }
 
     enum MilestoneReviewChoice {
@@ -432,6 +433,7 @@ library CommunityTypes {
     struct ExecutionPlan {
         uint256 proposalId;
         uint256 totalBudget;
+        /// @notice Review-quorum weight; patched Managers exclude the execution recipient.
         uint256 eligibleSupportWeight;
         uint256 releasedAmount;
         uint256 refundableAmount;
@@ -451,5 +453,14 @@ library CommunityTypes {
         uint256 participatingAddresses;
         uint8 proofAttempts;
         bytes32 evidenceHash;
+    }
+
+    /** @notice Immutable terms and payment state for one Admin-authorized tranche. */
+    struct ExecutionTranche {
+        uint256 amount;
+        uint64 readyAt;
+        uint64 expiresAt;
+        uint256 approvalThreshold;
+        bool paid;
     }
 }

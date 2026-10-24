@@ -1,6 +1,6 @@
-# BERT V3 Community Layer: V3.2 Sources
+# BERT V3 Community Layer: V3.2
 
-This directory contains the unreleased V3.2 Community Layer sources. The original
+This directory contains the V3.2 Community Layer sources deployed on Arc Testnet on 24 October 2026. The original
 testnet implementation is retained unchanged in `legacy/V3_0/`; it is not
 imported by the current contracts and must not be used for a new deployment.
 
@@ -35,9 +35,9 @@ winning supporters review evidence; failed plans return unreleased USDC pro rata
 creation bytecode outside the Hub prevents the EVM initcode-size failure that a
 single monolithic CommunityHub would otherwise hit.
 
-## V3.2 execution plan (not deployed)
+## V3.2 execution plan (Arc Testnet)
 
-**Current local source:** Manager 2.0.0 requires explicit Admin quorum before each
+**Current deployment policy:** Manager 2.0.0 requires explicit Admin quorum before each
 20/40/40 transfer. Settlement/review only opens a fixed seven-active-day payment
 authorization. Missed payments fail the plan and refund its unpaid execution
 budget. Original live Managers retain automatic payouts. See the
@@ -57,23 +57,23 @@ budget. Original live Managers retain automatic payouts. See the
    proof timeout, or no-quorum after grace fails the plan and makes the unspent
    reserve refundable only to the winning-supporter cohort.
 
-The V3.1 approval constant is `6,667 / 10,000`, slightly above the exact `2 / 3`
+The V3.2 approval constant (unchanged from V3.1) is `6,667 / 10,000`, slightly above the exact `2 / 3`
 comparison used by V2.3. Integrations must use the code's exact threshold and
 rounding, not interchange the two formulas.
 
 The Hub applies one Community clock to voting, proof, and review deadlines, so
 pausing the Community pauses its governance lifecycle consistently.
 
-**Source patch versus deployed code:** Manager `1.0.2` explicitly excludes the
+**Current versus historical policy:** V3.2 Manager `2.0.0` explicitly excludes the
 execution recipient from milestone review and review weight/count. Its financial
 support remains in the sealed snapshot for fair refunds; the Manager stores a
-separate original refund denominator. Existing deployed Managers do not have this
-fix. Use a non-participating execution wallet for old pilots and see the
-[patch record](../../../docs/V3.1-SELF-REVIEW-FIX.md) before a new deployment.
+separate original refund denominator. Original V3.1 Managers do not have this
+fix. New V3.2 Communities use the patched Manager and explicit tranche quorum. Use a non-participating execution wallet for old pilots and see the
+[current deployment record](../../../docs/V3.2-ARC-TESTNET-RELEASE.md).
 
 ## Contributor references
 
 - [Contributor testing guide](../../../docs/TESTING.md)
-- [Local V3.1 E2E runbook](../../../docs/LOCAL-V3.1-E2E.md)
-- [Arc Testnet release runbook](../../../docs/V3.1-ARC-TESTNET-RELEASE.md)
+- [Local V3.2 E2E runbook](../../../docs/LOCAL-V3.1-E2E.md)
+- [Current Arc Testnet release record](../../../docs/V3.2-ARC-TESTNET-RELEASE.md)
 - [V3.1 security review notes](../../../docs/SECURITY-REVIEW-V3.1.md)

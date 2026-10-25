@@ -3,15 +3,15 @@
 **Status:** internal Arc Testnet release review. This document is not an audit
 and does not claim that V3.1 is safe for mainnet use.
 
-## 2026-10-25 open V3.2 correction liveness finding
+## 2026-10-25 V3.2 correction liveness finding and V3.2.1 rollout
 
 Local browser E2E and a targeted Manager characterization reproduced an expired
 correction deadline: review + cooldown can outlast the original proof window,
 and reopening does not renew it. An absent executor can also leave the plan in
 `CorrectionCooldown`, where permissionless `failExpiredPlan` is unavailable.
 See [the finding and release implications](V3.2-CORRECTION-DEADLINE-FINDING.md).
-**Source remediation is prepared in Manager 2.0.1; no public deployment has been
-applied.** A fixed correction window is assigned at rejection and can expire
+**Manager 2.0.1 is included in the new V3.2.1 infrastructure deployed on 25 October.**
+See [receipt-backed release evidence](V3.2.1-ARC-TESTNET-RELEASE.md). A fixed correction window is assigned at rejection and can expire
 without the executor reopening it. Targeted regressions: 16 passing; full core:
 237 passing. Existing immutable Manager instances remain affected.
 

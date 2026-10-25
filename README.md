@@ -46,9 +46,9 @@ BERT turns grant allocation into programmable treasury flow:
 
 Each V2 round snapshots its milestone mode when it starts. Legacy reviewer-governed rounds retain 30% / 40% / 30%; upgrading the implementation does not rewrite an existing round. See [current release and payout modes](docs/CURRENT-RELEASE.md).
 
-Historical V3.1 gap: a distinct Member execution recipient can review if it supported the winner. The fix is deployed in V3.2 (Manager 2.0.0), preserving financial refund rights. Existing immutable V3.1 Communities retain the old behavior. See the [security review follow-up](docs/SECURITY-REVIEW-V3.1.md).
+Historical V3.1 gap: a distinct Member execution recipient can review if it supported the winner. The fix is deployed in V3.2 and retained in V3.2.1 (Manager 2.0.1), preserving financial refund rights. Existing immutable V3.1 Communities retain the old behavior. See the [security review follow-up](docs/SECURITY-REVIEW-V3.1.md).
 
-The **Community Layer V3.2, deployed on Arc Testnet on 24 October 2026,** ([release scope](docs/V3.2-RELEASE.md)) uses Manager 2.0.0 and requires [Admin quorum for every execution tranche](docs/V3.2-TRANCHE-QUORUM.md), with seven-active-day payment expiry and unpaid-budget refunds. These rules apply to new V3.2 Communities, not existing immutable V3.0/V3.1 instances. See the [deployment record](docs/V3.2-ARC-TESTNET-RELEASE.md).
+The **Community Layer V3.2.1, deployed on Arc Testnet on 25 October 2026,** ([release scope](docs/V3.2-RELEASE.md)) uses Manager 2.0.1 and requires [Admin quorum for every execution tranche](docs/V3.2-TRANCHE-QUORUM.md), with seven-active-day payment expiry and unpaid-budget refunds. These rules apply to new V3.2 Communities, not existing immutable V3.0/V3.1 instances. See the [deployment record](docs/V3.2.1-ARC-TESTNET-RELEASE.md).
 
 ## Why Arc
 
@@ -157,7 +157,7 @@ flowchart TB
 
 Each Community has its own immutable `CommunityHub`, modules, and `CommunityTreasury`; the Factory is the shared entry point. The Hub owns identity, immutable configuration, module addresses, and protected Admin actions. Membership, proposal, voting, and milestone logic have separate ownership boundaries. The Treasury is the sole USDC custodian and separates generic execution capital, vote escrow, milestone reserves, and supporter refund reserves.
 
-V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. V3.0 testnet contracts remain independently addressable under `legacy/V3_0`. V3.2 was deployed alongside the original V3.1 Factory on October 24, 2026. New Communities use the V3.2 Factory; old Communities retain their contracts. The V3 subgraph v3.2.0 indexes both modular Factories. See the [current release record](docs/V3.2-ARC-TESTNET-RELEASE.md) and [historical V3.1 record](docs/V3.1-ARC-TESTNET-RELEASE.md).
+V3 does not replace V2. Defined Community protocol inflows route into the existing V2 `FundingPoolUpgradeable` reserve, while each Community retains isolated membership, governance, and execution balances. V3.0 testnet contracts remain independently addressable under `legacy/V3_0`. V3.2 was deployed alongside the original V3.1 Factory on October 24, 2026. New Communities use the V3.2.1 hotfix Factory deployed on October 25; old Communities retain their contracts, including the correction-deadline defect in original Managers. The V3 subgraph v3.2.1 indexes all three modular Factories. See the [current release record](docs/V3.2.1-ARC-TESTNET-RELEASE.md) and [historical V3.1 record](docs/V3.1-ARC-TESTNET-RELEASE.md).
 
 ## Security
 

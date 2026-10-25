@@ -4,7 +4,7 @@ describe("V3.1 CommunityMilestoneManager", function () {
   const DAY = 24n * 60n * 60n;
   const proofHash = (value: number) => `0x${value.toString(16).padStart(64, "0")}`;
 
-  async function deployManager() {
+  async function deployManager(reviewDuration = DAY, proofDuration = 14n * DAY) {
     const { ethers, networkHelpers } = await hre.network.connect();
     const [votingModule, executionRecipient, supporterOne, supporterTwo, supporterThree, outsider] =
       await ethers.getSigners();
@@ -26,8 +26,8 @@ describe("V3.1 CommunityMilestoneManager", function () {
       executionRecipient.address,
       await treasury.getAddress(),
       await voting.getAddress(),
-      DAY,
-      14n * DAY,
+      reviewDuration,
+      proofDuration,
     );
 
     return {
@@ -125,6 +125,82 @@ describe("V3.1 CommunityMilestoneManager", function () {
     expect(plan.releasedAmount).to.equal(budget);
     expect(await treasury.paidTo(executionRecipient.address)).to.equal(budget);
   });
+
+  it("renews a fixed correction deadline with 14-day review and 7-day proof", async function () {
+    const { votingModule, executionRecipient, supporterOne, supporterTwo, supporterThree,
+      treasury, voting, manager, networkHelpers, hub } = await deployManager(14n * DAY, 7n * DAY);
+    const planId = 31n;
+    await seedThreeSupporters(voting, planId, supporterOne, supporterTwo, supporterThree);
+    await treasury.seedExecutionBalance(100n);
+    await manager.connect(votingModule).startExecutionPlan(planId, 100n, 100n, await communityTime());
+    await payTranche(hub, manager, planId);
+    const deadline = (await manager.getPlan(planId)).proofDeadline;
+    await hubCall(hub, manager, "submitMilestoneProof", [executionRecipient.address, planId, proofHash(31), await communityTime()]);
+    for (const supporter of [supporterOne, supporterTwo, supporterThree]) {
+      await hubCall(hub, manager, "castMilestoneReview", [supporter.address, planId, false, await communityTime()]);
+    }
+    await networkHelpers.time.increase(Number(14n * DAY + 1n));
+    const closedAt = await reviewClose(manager, planId, 1n);
+    await hubCall(hub, manager, "finalizeMilestoneReview", [planId, closedAt]);
+    expect((await manager.getPlan(planId)).status).to.equal(3n);
+    await expect(hubCall(hub, manager, "failExpiredPlan", [planId, closedAt])).to.be.revertedWith("plan active");
+    await networkHelpers.time.increase(Number(2n * DAY + 1n));
+    const correctedAt = (await manager.getReview(planId, 1n)).correctionAvailableAt;
+    const correctionDeadline = (await manager.getPlan(planId)).proofDeadline;
+    expect(correctionDeadline).to.equal(correctedAt + 7n * DAY);
+    expect(correctedAt).to.be.greaterThan(deadline);
+    await hubCall(hub, manager, "reopenAfterCorrection", [executionRecipient.address, planId, correctedAt]);
+    expect((await manager.getPlan(planId)).proofDeadline).to.equal(correctionDeadline);
+    // Exact-deadline submission is valid, matching the original proof boundary.
+    await hubCall(hub, manager, "submitMilestoneProof", [executionRecipient.address, planId, proofHash(32), correctionDeadline]);
+    expect((await manager.getReview(planId, 1n)).proofAttempts).to.equal(2n);
+    expect((await manager.getPlan(planId)).status).to.equal(2n);
+  });
+
+  for (const milestone of [1, 2]) for (const reopened of [false, true]) {
+    it(`expires milestone ${milestone} correction with ${reopened ? "a delayed reopen" : "an absent executor"}, refunding only unpaid capital`, async function () {
+      const { executionRecipient, supporterOne, supporterTwo, supporterThree, treasury, voting, manager, hub } = await deployManager(DAY, 300n);
+      const planId = 32n;
+      await seedThreeSupporters(voting, planId, supporterOne, supporterTwo, supporterThree);
+      await treasury.seedExecutionBalance(100n);
+      await manager.startExecutionPlan(planId, 100n, 100n, await communityTime());
+      await payTranche(hub, manager, planId);
+      if (milestone === 2) {
+        const submittedAt = (await manager.getPlan(planId)).proofDeadline;
+        await hubCall(hub, manager, "submitMilestoneProof", [executionRecipient.address, planId, proofHash(33), submittedAt]);
+        for (const supporter of [supporterOne, supporterTwo, supporterThree]) {
+          await hubCall(hub, manager, "castMilestoneReview", [supporter.address, planId, true, submittedAt]);
+        }
+        await hubCall(hub, manager, "finalizeMilestoneReview", [planId, await reviewClose(manager, planId, 1n)]);
+        await payTranche(hub, manager, planId);
+      }
+      const originalDeadline = (await manager.getPlan(planId)).proofDeadline;
+      await hubCall(hub, manager, "submitMilestoneProof", [executionRecipient.address, planId, proofHash(34), originalDeadline]);
+      for (const supporter of [supporterOne, supporterTwo, supporterThree]) {
+        await hubCall(hub, manager, "castMilestoneReview", [supporter.address, planId, false, originalDeadline]);
+      }
+      await hubCall(hub, manager, "finalizeMilestoneReview", [planId, await reviewClose(manager, planId, BigInt(milestone))]);
+      const availableAt = (await manager.getReview(planId, milestone)).correctionAvailableAt;
+      const deadline = (await manager.getPlan(planId)).proofDeadline;
+      expect(deadline).to.equal(availableAt + 300n);
+      await expect(hubCall(hub, manager, "reopenAfterCorrection", [executionRecipient.address, planId, availableAt - 1n])).to.be.revertedWith("cooldown active");
+      await expect(hubCall(hub, manager, "failExpiredPlan", [planId, deadline])).to.be.revertedWith("plan active");
+      if (reopened) {
+        await hubCall(hub, manager, "reopenAfterCorrection", [executionRecipient.address, planId, deadline - 1n]);
+        expect((await manager.getPlan(planId)).proofDeadline).to.equal(deadline);
+        await expect(hubCall(hub, manager, "submitMilestoneProof", [executionRecipient.address, planId, proofHash(35), deadline + 1n])).to.be.revertedWith("invalid proof");
+      } else {
+        await expect(hubCall(hub, manager, "reopenAfterCorrection", [executionRecipient.address, planId, deadline + 1n])).to.be.revertedWith("correction expired");
+      }
+      await hubCall(hub, manager, "failExpiredPlan", [planId, deadline + 1n]);
+      const refunded = milestone === 1 ? 80n : 40n;
+      expect((await manager.getPlan(planId)).status).to.equal(6n);
+      expect((await manager.getPlan(planId)).refundableAmount).to.equal(refunded);
+      expect((await manager.getPlan(planId)).releasedAmount).to.equal(100n - refunded);
+      expect(await treasury.refundsByPlan(planId)).to.equal(refunded);
+      expect(await manager.unresolvedPlanCount()).to.equal(0n);
+    });
+  }
 
   it("allows one corrected proof and gives every supporter a fresh review vote", async function () {
     const {

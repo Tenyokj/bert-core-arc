@@ -10,6 +10,12 @@ the [documentation audit](DOCUMENTATION-AUDIT-2026-10-24.md) records verificatio
 See [receipt-backed release evidence](V3.2-ARC-TESTNET-RELEASE.md).
 See [version scopes](V3.2-RELEASE.md).
 
+**Unreleased correction hotfix (25 October):** source Manager `2.0.1` renews a
+bounded correction proof window and permits expiry of abandoned cooldowns.
+This is not present in deployed `2.0.0` Managers. See
+[the finding](V3.2-CORRECTION-DEADLINE-FINDING.md) and
+[the new-infrastructure rollout plan](V3.2-CORRECTION-HOTFIX-ROLLOUT.md).
+
 **New versus existing Communities:** the V3.2 Manager `2.0.0`
 adds explicit Admin quorum for every 20/40/40 transfer, seven-active-day payment
 expiry and refunds of the whole unpaid execution budget. It retains the self-review

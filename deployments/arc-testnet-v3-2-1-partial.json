@@ -1,0 +1,17 @@
+{
+  "status": "partial-components-only-not-an-active-factory",
+  "chainId": "5042002",
+  "deployer": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+  "proxyAdminOwner": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+  "humanVerifier": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
+  "proxyNonce": 213,
+  "components": [
+    { "name": "CommunityAdminActions", "directory": "libraries", "nonce": 206, "address": "0xE0f9265aF9dFD29D259C468bCC1786AA47080089", "runtimeHash": "0xc553cd3b4ad291f3fed05eba665f6d4651686013dfc2f701ad01318b75b46384" },
+    { "name": "CommunityTreasuryDeployer", "directory": "community", "nonce": 207, "address": "0x5D11c6780FA89aF62b7A0B28ca502aaBBE81D11d", "runtimeHash": "0xba676c40f4a4e40c4980d6c6c1b1a06d9fee1d58f6152490afcd77f6e0bd394b" },
+    { "name": "CommunityMembershipModuleDeployer", "directory": "modules/deployers", "nonce": 208, "address": "0x04A432bbb627B276138c544d83079f0494634dC5", "runtimeHash": "0x61243670e5946ffe2427e7760e770590b9bd5a276184a5509a021ea791138cdf" },
+    { "name": "CommunityProposalModuleDeployer", "directory": "modules/deployers", "nonce": 209, "address": "0x22a7a329d5fe207de241f1B4a53A2A3E757D99b9", "runtimeHash": "0xd0bbb5cda0fc61f8ba2d73d35887e18853c98fdd41fb1230696333c7e8831abc" },
+    { "name": "CommunityVotingModuleDeployer", "directory": "modules/deployers", "nonce": 210, "address": "0x75D5F8343580c2b8570187785ba70fC8aBBbe9B5", "runtimeHash": "0x36ffeeb9dc6a5be43fafd1a4974503548520c3e06e1534a2590fb0165e365d2e" },
+    { "name": "CommunityMilestoneModuleDeployer", "directory": "modules/deployers", "nonce": 211, "address": "0x8E3EcA1AE38ACd266bB2A12eB4F2533211C36F46", "runtimeHash": "0xbb6ccd8c69b4b30feacb6711a97e2ae4743bac4629a13918069bb72ebc9f2840" },
+    { "name": "CommunityFactory", "directory": "community", "nonce": 212, "address": "0xE397EBb742d0D1c43392425D7B55632C22B18Abe", "runtimeHash": "0x276992dfe01f999f13fe5f91f1caae05ab310341e91d9d793b1a70fe638cf185" }
+  ]
+}

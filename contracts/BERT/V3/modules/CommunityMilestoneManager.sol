@@ -99,7 +99,7 @@ import {CommunityTypes} from "../libraries/CommunityTypes.sol";
  * @dev `planId == proposalId`. The sealed winner snapshot preserves financial
  *      support for refunds. Review weight and count exclude the immutable
  *      execution recipient, without confiscating that wallet's contribution.
- * @custom:version 2.0.0
+ * @custom:version 2.0.1
  */
 contract CommunityMilestoneManager is ReentrancyGuard {
     // =============================================================
@@ -543,6 +543,8 @@ contract CommunityMilestoneManager is ReentrancyGuard {
         if (!passed) {
             if (review.proofAttempts == 1) {
                 review.correctionAvailableAt = communityTime + CORRECTION_COOLDOWN;
+                // Bound the correction from rejection, not from an executor-controlled reopen.
+                plan.proofDeadline = review.correctionAvailableAt + proofDuration;
                 plan.status = CommunityTypes.ExecutionPlanStatus.CorrectionCooldown;
                 emit MilestoneCorrectionOpened(planId, plan.currentMilestone, review.correctionAvailableAt);
             } else _failPlan(planId);
@@ -558,9 +560,10 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     }
 
     /**
-     * @notice Reopens a rejected first milestone for exactly one corrected proof.
+     * @notice Reopens the first rejected proof of either milestone for one correction.
      * @dev Previous review tallies are reset, while the proof-attempt counter is
      *      retained so each supporter may cast one fresh vote on the correction.
+     *      Reopening cannot extend the fixed correction proof deadline.
      * @param executor Original external caller forwarded by CommunityHub.
      * @param planId Execution-plan ID leaving correction cooldown.
      * @param communityTime Current pausable Community clock time.
@@ -571,6 +574,7 @@ contract CommunityMilestoneManager is ReentrancyGuard {
         require(plan.status == CommunityTypes.ExecutionPlanStatus.CorrectionCooldown, "correction unavailable");
         CommunityTypes.MilestoneReview storage review = reviews[planId][plan.currentMilestone];
         require(communityTime >= review.correctionAvailableAt, "cooldown active");
+        require(communityTime <= plan.proofDeadline, "correction expired");
         review.openedAt = 0;
         review.closesAt = 0;
         review.correctionAvailableAt = 0;
@@ -583,13 +587,19 @@ contract CommunityMilestoneManager is ReentrancyGuard {
     }
 
     /**
-     * @notice Fails a plan whose execution recipient missed the active proof deadline.
+     * @notice Fails a plan whose recipient missed an initial or correction proof deadline.
+     * @dev Expiry is also available without the recipient reopening a rejected proof.
      * @param planId Execution-plan ID to fail for proof-submission inactivity.
      * @param communityTime Current pausable Community clock time.
      */
     function failExpiredPlan(uint256 planId, uint64 communityTime) external onlyHub {
         CommunityTypes.ExecutionPlan storage plan = plans[planId];
-        require(plan.status == CommunityTypes.ExecutionPlanStatus.AwaitingProof && communityTime > plan.proofDeadline, "plan active");
+        require(
+            (plan.status == CommunityTypes.ExecutionPlanStatus.AwaitingProof
+                || plan.status == CommunityTypes.ExecutionPlanStatus.CorrectionCooldown)
+                && communityTime > plan.proofDeadline,
+            "plan active"
+        );
         _failPlan(planId);
     }
 

@@ -8,7 +8,7 @@ proof deadlines measured from actual payment. Original live Managers differ.
 
 **Current release:** V3.2 is deployed on Arc Testnet; local commands exercise that policy, not original V3.1. Use [V3.2 release scope](V3.2-RELEASE.md). Historical live checks remain separately labelled.
 
-**Status:** public Arc Testnet testing guide for deployed BERT V2.3 and V3.1.
+**Status:** public Arc Testnet testing guide for deployed BERT V2.3 and V3.2.1.
 This is not an audit report, a production readiness claim, or permission to
 use real funds.
 
@@ -45,8 +45,8 @@ evaluated as a production identity system.
 | bert-docs-arc | Contract addresses, test instructions, and protocol claims |
 
 ~~~bash
-node --version # Node 22.10 or newer
-npm install
+node --version # Node >=22.13.0, matching package.json
+npm ci
 npx hardhat compile
 npx hardhat test
 npx hardhat --coverage
@@ -55,6 +55,14 @@ slither . --filter-paths "node_modules|test|legacy"
 
 Coverage identifies unexecuted paths; it is not proof of correctness. Slither
 findings must be reproduced and triaged against the actual capability graph.
+
+The [Authority Map](AUTHORITY-MAP.md) separates ProxyAdmin, protocol Admin,
+Community Admin and signer powers and records the focused economic-boundary
+regressions. Run those locally with:
+
+```bash
+npx hardhat test test/EconomicTrustBoundaries.fully.ts --network hardhat
+```
 
 ## 3. Local E2E Lab
 

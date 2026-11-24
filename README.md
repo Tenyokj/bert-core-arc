@@ -1,4 +1,4 @@
-![Bert V2.3 and V3.2](https://img.shields.io/badge/Bert-V2.3%20%2B%20V3.2-0F766E)
+![Bert V2.4 rollout and V3.2.1](https://img.shields.io/badge/Bert-V2.4_rollout%20%2B%20V3.2.1-0F766E)
 ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green)
 ![Hardhat](https://img.shields.io/badge/Hardhat-3.x-yellow)
 ![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-orange)
@@ -12,8 +12,14 @@ BERT is programmable stablecoin-native funding infrastructure for transparent gr
 
 Explore indexed testnet activity in [BERT Console V0.1.0 Beta](https://bertdao-console.vercel.app) ([source](https://github.com/Tenyokj/bert-console-arc)). The console is read-only; contract state and transaction receipts remain authoritative.
 
-Unreleased development: [V2.4 transparent treasury and protocol revenue](docs/V2.4-PROTOCOL-REVENUE.md).
-This source candidate is not deployed; current public versions below remain unchanged.
+Arc Testnet rollout: [V2.4 transparent treasury and protocol revenue](docs/V2.4-ARC-TESTNET-RELEASE.md).
+FundingPool 2.0.0 and immutable ProtocolRevenueTreasury 1.0.0 are deployed;
+V2 is active, Graph v0.4.0 and both clients are verified. The 20% eligible-fee
+policy is scheduled, **not active**: activation requires a separate transaction
+at/after 26 November 2026, 22:03:24 UTC. V2.4 is delivered for testnet with this
+activation explicitly pending; a public revenue pilot is recommended follow-up,
+not claimed acceptance. V3.2.1 contracts are unchanged. Current addresses are in
+the deployment manifest; the pre-V2.4 snapshot is retained separately for history.
 The [release configuration/runbook](docs/V2.4-RELEASE-CONFIGURATION.md) records
 owner-selected testnet terms and offline validation; it is not public-write approval.
 

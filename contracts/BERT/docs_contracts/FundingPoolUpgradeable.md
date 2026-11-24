@@ -3,6 +3,10 @@
 **Summary**
 USDC treasury and escrow layer for BERT V2. It holds author bonds and voter pledges, tracks conditional refund rights, finalizes successful-round fees, and executes authorized milestone payouts.
 
+V2.4 installed FundingPool implementation `2.0.0` on Arc Testnet November 24,
+2026. Its eligible-fee policy is scheduled, not active; see the
+[receipt-backed release record](../../../docs/V2.4-ARC-TESTNET-RELEASE.md).
+
 **Role In System**
 The pool is the accounting source of truth for token movement. `VotingSystemUpgradeable` decides round outcomes, while `GrantManagerUpgradeable` authorizes grant lifecycle actions.
 
@@ -25,7 +29,15 @@ The pool is the accounting source of truth for token movement. `VotingSystemUpgr
 - default: `500` basis points, or `5%`
 - maximum: `1,000` basis points, or `10%`
 - snapshotted at round opening
-- no reserve revenue before author claim; V2.3 moves only the fee matching each paid tranche into reserve
+- no earned fee before a payout; V2.3 rules vest only the fee matching each paid tranche
+- V2.4 earmarks the snapshotted share of the eligible pledge-funded earned fee as Treasury credit; the rest stays reserve
+- old rounds keep zero Treasury share; bonds, refunds, donations and V3 reserve inflows never create revenue credit
+
+**Revenue Treasury**
+The separate immutable `ProtocolRevenueTreasury` collects only its accrued credit
+and pays only its fixed beneficiaries. Neither Admin nor beneficiary can withdraw
+arbitrary pool custody. Activation, collection and beneficiary payment are separate
+transactions; there are no investor shares, withdrawable deposit claims or APY.
 
 **Access Control**
 - only `VotingSystemUpgradeable` may open, record, or settle funding rounds

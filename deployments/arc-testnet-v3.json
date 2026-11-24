@@ -2,7 +2,7 @@
   "network": "arcTestnet",
   "chainId": 5042002,
   "deployedAt": "2026-09-09",
-  "updatedAt": "2026-10-25",
+  "updatedAt": "2026-11-24",
   "usdc": "0x3600000000000000000000000000000000000000",
   "rolesRegistry": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
   "popVerifier": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
@@ -20,6 +20,10 @@
     "roleBootstrapDistributor": "0xb0CA3E4F33994EAFe34a6257a0b904b8179A1b30"
   },
   "v2": {
+    "release": "2.4.0",
+    "rolloutRecord": "arc-testnet-v2.4-rollout.json",
+    "subgraph": "https://api.studio.thegraph.com/query/1742046/bert-arc-testnet/v0.4.0",
+    "subgraphDeployment": "QmespxoHTuLqWtkUn29jMXjcBhFDXLsJjwwvPYRMAXpfAg",
     "ideaRegistry": {
       "proxy": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
       "implementation": "0xbcF691cc4160E2fc31D2bCe83fFc61821e931658",
@@ -29,10 +33,24 @@
     },
     "fundingPool": {
       "proxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
-      "implementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
+      "implementation": "0x06a6497C174f80Cb5D1E49BB5bD2519D520E7643",
+      "implementationVersion": "2.0.0",
+      "previousImplementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
       "proxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
-      "upgradeBlock": 66809444,
-      "upgradeTransaction": "0x6a3f82c71d2cbc2130908e86b8210b913668508c4afd68551b931a006c048593"
+      "upgradeBlock": 73930253,
+      "upgradeTransaction": "0x6e5efbed32f4576469cbeaff7bd8ef81d6be38d619417a9d097046fb8c77e962"
+    },
+    "protocolRevenueTreasury": {
+      "address": "0xeCF9D2fD1914D1aFa124498931fdAA976D4e143b",
+      "version": "1.0.0",
+      "upgradeable": false,
+      "deploymentBlock": 73930467,
+      "deploymentTransaction": "0x252bdb54baeff7bbf173ea25c4c38adab215060a8852a4ccec54ce9944d6caaa",
+      "beneficiaries": [{ "address": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF", "shareBps": 10000 }],
+      "policyStatus": "scheduled-not-active",
+      "scheduledShareBps": 2000,
+      "readyAt": 1795730604,
+      "scheduleTransaction": "0x7d50e5bfb5fec55ff80a5618c6c6edeb3e11d0701e083993a62c9801d56b41ba"
     },
     "votingSystem": {
       "proxy": "0xD008fC96902A9680FF77305881Ad6C6C075e7a68",

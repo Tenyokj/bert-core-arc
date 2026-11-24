@@ -3,7 +3,7 @@ import fs from "node:fs";
 import hre from "hardhat";
 import { Contract, FetchRequest, JsonRpcProvider, getAddress, id, keccak256, toBeHex } from "ethers";
 
-const manifest = JSON.parse(fs.readFileSync("deployments/arc-testnet-v3.json", "utf8"));
+const manifest = JSON.parse(fs.readFileSync("deployments/arc-testnet-pre-v2.4.json", "utf8"));
 const baseline = JSON.parse(fs.readFileSync("test/fixtures/FundingPoolV140.json", "utf8"));
 const rpcUrl = process.env.REVENUE_FORK_RPC_URL;
 const arcLocalRpc = process.env.REVENUE_ARC_LOCAL_RPC_URL;

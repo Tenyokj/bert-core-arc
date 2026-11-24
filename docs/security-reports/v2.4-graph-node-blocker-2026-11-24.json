@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "recordedAt": "2026-11-24T16:33:58.298Z",
+  "publicTransactionsSent": false,
+  "nativeEvidenceSha256": "fd387417233b34954a9bb33747b6ce49f5e6b0ff6edb8275f8b6691dd330d928",
+  "graphNode": "graphprotocol/graph-node:v0.45.0",
+  "scope": "V2 production mappings and revenue Treasury discovery/template",
+  "checks": [],
+  "historicalRpcProbe": {
+    "block": 73754171,
+    "blockHash": "0xec127c1c2082476e5705f9499b5ef76f19c9b90aacd732e430c1978c037f81c9",
+    "address": "0xbFAf9117D452f678e3241BaBCC46c45770d81e57",
+    "passed": false,
+    "rpcError": {
+      "code": -32603,
+      "message": "missing bytecode for code hash 0x63553812e73eac99d84151acadc83b15da53704b214e2507304d1e59e827bd5a"
+    }
+  },
+  "error": "Error: Historical Arc RPC cannot serve the fixture; refuse Graph acceptance: {\"code\":-32603,\"message\":\"missing bytecode for code hash 0x63553812e73eac99d84151acadc83b15da53704b214e2507304d1e59e827bd5a\"}\n    at file:///Users/daniilvolkova/bert/bert_orig/bert-frontend/subgraph/scripts/accept-revenue-graph-node.mjs:103:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+}

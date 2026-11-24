@@ -1,0 +1,52 @@
+{
+  "recordedAt": "2026-11-23T20:29:38.609Z",
+  "status": "blocked",
+  "scope": "Pinned Arc snapshot and local-only upgrade rehearsal",
+  "publicTransactionsSent": false,
+  "fullHistoricalReconciliation": false,
+  "evmEmulation": "Generic EDR/Prague, not native Arc consensus or precompile emulation",
+  "arcUsdcTransferBehaviorVerified": false,
+  "blockNumber": 73753950,
+  "blockHash": "0xea1db9920001148186b76cc2504a73ca3da6b7697717d2aee9c6b4ffd9376dff",
+  "publicSnapshot": {
+    "proxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
+    "implementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
+    "proxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
+    "proxyAdminOwner": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+    "implementationCodeHash": "0x9b50616499522f7680fb6f25253e4da0445a7bc4482e30db8c126873bc76952e",
+    "runtimeBytes": 20145,
+    "actual": "1140000000",
+    "fields": {
+      "usdc": "0x3600000000000000000000000000000000000000",
+      "roles": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
+      "ideaRegistry": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
+      "totalPoolBalance": "1140000000",
+      "protocolReserve": "0",
+      "pledgeFeeBps": "500",
+      "communityFactory": "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",
+      "communityFactoryCount": "4",
+      "paused": false,
+      "getDistributionCount": "0"
+    }
+  },
+  "frozenBaseline": {
+    "commit": "d87e475cbd833047619c4cd9cb4950cbdc1fb9de",
+    "runtimeBytes": 20145,
+    "runtimeCodeHash": "0x9b50616499522f7680fb6f25253e4da0445a7bc4482e30db8c126873bc76952e",
+    "exactRuntimeMatch": true
+  },
+  "upstreamTransferSimulation": {
+    "method": "eth_call",
+    "amount": "1",
+    "sourceBalance": "3537839",
+    "from": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+    "to": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "returned": true,
+    "publicStateChanged": false
+  },
+  "forkAsset": {
+    "actual": "1140000000",
+    "matchesPinnedPublicBalance": true
+  },
+  "failedStage": "probe real Arc USDC transfers on local fork"
+}

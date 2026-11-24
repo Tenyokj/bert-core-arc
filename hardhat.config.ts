@@ -25,6 +25,7 @@ const config: HardhatUserConfig = {
       version: "0.8.28",
       settings: {
         evmVersion: "prague",
+        outputSelection: { "*": { "*": ["storageLayout"] } },
         optimizer: {
           enabled: true,
           runs: 200,

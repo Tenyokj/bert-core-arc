@@ -1,0 +1,204 @@
+{
+  "date": "2026-11-23",
+  "status": "Local source candidate, not deployed; scoped triage is not an independent audit",
+  "command": "slither . --ignore-compile --filter-paths 'node_modules|test|legacy|contracts/Mocks' --json /private/tmp/bert-v24-revenue-review-slither-20261123.json",
+  "buildPrecondition": "Sequential npx hardhat clean and npx hardhat compile; exactly one current ordinary compiler output unit, no coverage instrumentation",
+  "analysisSuccess": true,
+  "total": 210,
+  "severityCounts": {
+    "High": 12,
+    "Medium": 20,
+    "Low": 72,
+    "Informational": 106
+  },
+  "rawReportSha256": "a69c0ccda4462dc3491bea2df3b9dbc6cc59b982e91c4c2323accce954be65ce",
+  "sourceSha256": {
+    "contracts/BERT/DAO/FundingPoolUpgradeable.sol": "ac608c985799ec380ddb1a7953c2c745bc0faff24f376da94d8cfb183390ada1",
+    "contracts/BERT/DAO/ProtocolRevenueTreasury.sol": "83189e9e1d7a060a0760705d0026659a5fff6a7715fdff114aea8992d4bd2807",
+    "contracts/BERT/interfaces/IFundingPool.sol": "3e0767bbc907780d5bef72516df136e2bb8a87bb431e21fe918a05000f42082c",
+    "contracts/BERT/interfaces/IProtocolRevenuePool.sol": "bd7c6d3acfd2cea2a6e4f45f1a152279cfa9abcb9a238e358eebb1f6344a5b6b",
+    "contracts/BERT/interfaces/IProtocolRevenueTreasury.sol": "0e01f1679ac527187dc2cd2bbac72af1ca95eaa6aa25de330b809ed0775d023c"
+  },
+  "scopeResults": [
+    {
+      "check": "arbitrary-send-erc20",
+      "impact": "High",
+      "confidence": "High",
+      "description": "FundingPoolUpgradeable.recordPledgeFrom(address,uint256,uint256,uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#426-456) uses arbitrary from in transferFrom: usdc.safeTransferFrom(from,address(this),amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#440)\n"
+    },
+    {
+      "check": "arbitrary-send-erc20",
+      "impact": "High",
+      "confidence": "High",
+      "description": "FundingPoolUpgradeable.depositAuthorStakeFrom(address,uint256,uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#384-407) uses arbitrary from in transferFrom: usdc.safeTransferFrom(from,address(this),amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#399)\n"
+    },
+    {
+      "check": "reentrancy-balance",
+      "impact": "High",
+      "confidence": "Medium",
+      "description": "Reentrancy in FundingPoolUpgradeable.claimProtocolRevenue(uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#738-754):\n\tExternal call allowing reentrancy:\n\t- usdc.safeTransfer(msg.sender,amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#747)\n\tBalance read before the call:\n\t- actual = usdc.balanceOf(address(this)) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#741)\n\tPossible stale balance used after the call in a condition:\n\t- usdc.balanceOf(msg.sender) != beforeBalance + amount || usdc.balanceOf(address(this)) != actual - amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#749-750)\n\t\t- stale variable `actual`\n"
+    },
+    {
+      "check": "reentrancy-balance",
+      "impact": "High",
+      "confidence": "Medium",
+      "description": "Reentrancy in ProtocolRevenueTreasury.release(address) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#211-224):\n\tExternal call allowing reentrancy:\n\t- usdc.safeTransfer(payee,amount) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#218)\n\tBalance read before the call:\n\t- treasuryBalance = usdc.balanceOf(address(this)) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#217)\n\tPossible stale balance used after the call in a condition:\n\t- usdc.balanceOf(payee) != beforeBalance + amount || usdc.balanceOf(address(this)) != treasuryBalance - amount (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#220-221)\n\t\t- stale variable `treasuryBalance`\n"
+    },
+    {
+      "check": "reentrancy-balance",
+      "impact": "High",
+      "confidence": "Medium",
+      "description": "Reentrancy in ProtocolRevenueTreasury.collect(uint256) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#198-203):\n\tExternal call allowing reentrancy:\n\t- IProtocolRevenuePool(fundingPool).claimProtocolRevenue(amount) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#200)\n\tBalance read before the call:\n\t- beforeBalance = usdc.balanceOf(address(this)) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#199)\n\tPossible stale balance used after the call in a condition:\n\t- usdc.balanceOf(address(this)) != beforeBalance + amount (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#201)\n\t\t- stale variable `beforeBalance`\n"
+    },
+    {
+      "check": "reentrancy-balance",
+      "impact": "High",
+      "confidence": "Medium",
+      "description": "Reentrancy in FundingPoolUpgradeable.claimProtocolRevenue(uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#738-754):\n\tExternal call allowing reentrancy:\n\t- usdc.safeTransfer(msg.sender,amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#747)\n\tBalance read before the call:\n\t- beforeBalance = usdc.balanceOf(msg.sender) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#746)\n\tPossible stale balance used after the call in a condition:\n\t- usdc.balanceOf(msg.sender) != beforeBalance + amount || usdc.balanceOf(address(this)) != actual - amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#749-750)\n\t\t- stale variable `beforeBalance`\n"
+    },
+    {
+      "check": "reentrancy-balance",
+      "impact": "High",
+      "confidence": "Medium",
+      "description": "Reentrancy in ProtocolRevenueTreasury.release(address) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#211-224):\n\tExternal call allowing reentrancy:\n\t- usdc.safeTransfer(payee,amount) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#218)\n\tBalance read before the call:\n\t- amount = releasable(payee) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#212)\n\tPossible stale balance used after the call in a condition:\n\t- usdc.balanceOf(payee) != beforeBalance + amount || usdc.balanceOf(address(this)) != treasuryBalance - amount (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#220-221)\n\t\t- stale variable `amount`\n"
+    },
+    {
+      "check": "reentrancy-balance",
+      "impact": "High",
+      "confidence": "Medium",
+      "description": "Reentrancy in ProtocolRevenueTreasury.release(address) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#211-224):\n\tExternal call allowing reentrancy:\n\t- usdc.safeTransfer(payee,amount) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#218)\n\tBalance read before the call:\n\t- beforeBalance = usdc.balanceOf(payee) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#216)\n\tPossible stale balance used after the call in a condition:\n\t- usdc.balanceOf(payee) != beforeBalance + amount || usdc.balanceOf(address(this)) != treasuryBalance - amount (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#220-221)\n\t\t- stale variable `beforeBalance`\n"
+    },
+    {
+      "check": "incorrect-equality",
+      "impact": "Medium",
+      "confidence": "High",
+      "description": "FundingPoolUpgradeable.executeRevenuePolicy() (contracts/BERT/DAO/FundingPoolUpgradeable.sol#719-730) uses a dangerous strict equality:\n\t- revenuePolicyReadyAt == 0 || block.timestamp < revenuePolicyReadyAt (contracts/BERT/DAO/FundingPoolUpgradeable.sol#720)\n"
+    },
+    {
+      "check": "incorrect-equality",
+      "impact": "Medium",
+      "confidence": "High",
+      "description": "ProtocolRevenueTreasury.release(address) (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#211-224) uses a dangerous strict equality:\n\t- amount == 0 (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#213)\n"
+    },
+    {
+      "check": "reentrancy-no-eth",
+      "impact": "Medium",
+      "confidence": "Medium",
+      "description": "Reentrancy in FundingPoolUpgradeable.recordPledgeFrom(address,uint256,uint256,uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#426-456):\n\tExternal calls:\n\t- usdc.safeTransferFrom(from,address(this),amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#440)\n\tState variables written after the call(s):\n\t- pledges[roundId][from] = Pledge({ideaId:ideaId,amount:amount,refundClaimed:false}) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#441-445)\n\tFundingPoolUpgradeable.pledges (contracts/BERT/DAO/FundingPoolUpgradeable.sol#184) can be used in cross function reentrancies:\n\t- FundingPoolUpgradeable.getPledge(uint256,address) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#679-686)\n"
+    },
+    {
+      "check": "uninitialized-local",
+      "impact": "Medium",
+      "confidence": "Medium",
+      "description": "ProtocolRevenueTreasury.constructor(address,IERC20,address[],uint256[]).sum (contracts/BERT/DAO/ProtocolRevenueTreasury.sol#174) is a local variable never initialized\n"
+    },
+    {
+      "check": "calls-loop",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "FundingPoolUpgradeable._isActiveCommunityTreasury(address) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1145-1159) has external calls inside a loop: active = ICommunityFactoryRegistry(factory).isActiveCommunityTreasury(treasury) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1151-1155)\n\tCalls stack containing the loop:\n\t\tFundingPoolUpgradeable.receiveCommunityReserve(uint256)\n"
+    },
+    {
+      "check": "reentrancy-benign",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "Reentrancy in FundingPoolUpgradeable.deposit(uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#339-351):\n\tExternal calls:\n\t- usdc.safeTransferFrom(msg.sender,address(this),amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#344)\n\tState variables written after the call(s):\n\t- donorBalances[msg.sender] += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#346)\n\t- totalPoolBalance += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#347)\n"
+    },
+    {
+      "check": "reentrancy-benign",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "Reentrancy in FundingPoolUpgradeable.receiveCommunityReserve(uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#359-372):\n\tExternal calls:\n\t- usdc.safeTransferFrom(msg.sender,address(this),amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#366)\n\tState variables written after the call(s):\n\t- protocolReserve += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#368)\n\t- totalPoolBalance += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#367)\n"
+    },
+    {
+      "check": "reentrancy-benign",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "Reentrancy in FundingPoolUpgradeable.recordPledgeFrom(address,uint256,uint256,uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#426-456):\n\tExternal calls:\n\t- usdc.safeTransferFrom(from,address(this),amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#440)\n\tState variables written after the call(s):\n\t- _pledgeCountByRoundAndIdea[roundId][ideaId] += 1 (contracts/BERT/DAO/FundingPoolUpgradeable.sol#448)\n\t- _poolByRoundAndIdea[roundId][ideaId] += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#447)\n\t- revenueEligiblePledges[roundId][ideaId] += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#450)\n\t- totalPoolBalance += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#446)\n"
+    },
+    {
+      "check": "reentrancy-benign",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "Reentrancy in FundingPoolUpgradeable.depositAuthorStakeFrom(address,uint256,uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#384-407):\n\tExternal calls:\n\t- usdc.safeTransferFrom(from,address(this),amount) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#399)\n\tState variables written after the call(s):\n\t- authorStakeByIdea[ideaId] += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#402)\n\t- donorBalances[from] += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#401)\n\t- totalPoolBalance += amount (contracts/BERT/DAO/FundingPoolUpgradeable.sol#403)\n"
+    },
+    {
+      "check": "timestamp",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "FundingPoolUpgradeable.cancelRevenuePolicy() (contracts/BERT/DAO/FundingPoolUpgradeable.sol#709-715) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- revenuePolicyReadyAt == 0 (contracts/BERT/DAO/FundingPoolUpgradeable.sol#710)\n"
+    },
+    {
+      "check": "timestamp",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "FundingPoolUpgradeable.executeRevenuePolicy() (contracts/BERT/DAO/FundingPoolUpgradeable.sol#719-730) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- revenuePolicyReadyAt == 0 || block.timestamp < revenuePolicyReadyAt (contracts/BERT/DAO/FundingPoolUpgradeable.sol#720)\n"
+    },
+    {
+      "check": "timestamp",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "FundingPoolUpgradeable.getDistribution(uint256) (contracts/BERT/DAO/FundingPoolUpgradeable.sol#942-953) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- index >= distributionHistory.length (contracts/BERT/DAO/FundingPoolUpgradeable.sol#948)\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Parameter FundingPoolUpgradeable.setUsdc(address)._newToken (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1031) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Parameter FundingPoolUpgradeable.setCommunityFactory(address)._communityFactory (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1072) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Parameter FundingPoolUpgradeable.initialize(address,address,address)._ideaRegistry (contracts/BERT/DAO/FundingPoolUpgradeable.sol#281) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Parameter FundingPoolUpgradeable.initialize(address,address,address)._rolesRegistry (contracts/BERT/DAO/FundingPoolUpgradeable.sol#282) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Parameter FundingPoolUpgradeable.setIdeaRegistry(address)._newRegistry (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1056) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Variable FundingPoolUpgradeable._poolByRoundAndIdea (contracts/BERT/DAO/FundingPoolUpgradeable.sol#150) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Variable FundingPoolUpgradeable.__gap (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1214) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Parameter FundingPoolUpgradeable.setGovernanceToken(address)._newToken (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1045) is not in mixedCase\n"
+    },
+    {
+      "check": "naming-convention",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Parameter FundingPoolUpgradeable.initialize(address,address,address)._usdc (contracts/BERT/DAO/FundingPoolUpgradeable.sol#280) is not in mixedCase\n"
+    },
+    {
+      "check": "unused-state",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "FundingPoolUpgradeable.__gap (contracts/BERT/DAO/FundingPoolUpgradeable.sol#1214) is never used in FundingPoolUpgradeable (contracts/BERT/DAO/FundingPoolUpgradeable.sol#103-1215)\n"
+    }
+  ]
+}

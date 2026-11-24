@@ -83,19 +83,22 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import { RolesAwareUpgradeable } from "../extensions/Roles/RolesAwareUpgradeable.sol";
 import { IFundingPool } from "../interfaces/IFundingPool.sol";
 import { IIdeaRegistry } from "../interfaces/IIdeaRegistry.sol";
 import { ICommunityFactoryRegistry } from "../interfaces/ICommunityFactoryRegistry.sol";
+import { IProtocolRevenueTreasury } from "../interfaces/IProtocolRevenueTreasury.sol";
 import "../utils/Errors.sol";
 
 /**
  * @title FundingPool
  * @notice Manages USDC deposits and distributes grants to winning ideas
  * @dev Handles donor balances, fund safekeeping, and controlled distribution
- * @dev Pausable, Upgradeable
+ * @dev Pausable, Upgradeable. Revenue is disabled by default and snapshotted only
+ *      for newly opened rounds; old reserves and Community inflows are not revenue.
  * 
- * @custom:version 1.4.0
+ * @custom:version 2.0.0
  */
 contract FundingPoolUpgradeable is 
     Initializable, 
@@ -209,6 +212,56 @@ contract FundingPoolUpgradeable is
 
     /// @notice Maximum Factory count permitted for CommunityTreasury reserve authentication.
     uint256 public constant MAX_COMMUNITY_FACTORIES = 16;
+
+    /// @notice Minimum public notice before a revenue policy affects future rounds.
+    uint256 public constant REVENUE_POLICY_DELAY = 48 hours;
+
+    /// @notice Token permanently pinned when a valid revenue policy is first scheduled.
+    address public revenueAsset;
+
+    /// @notice Current receiver used only when snapshotting a newly opened round.
+    address public revenueTreasury;
+
+    /// @notice Share of earned success fees assigned to that receiver, not a new pledge fee.
+    uint256 public revenueShareBps;
+
+    /// @notice Receiver proposed for the next policy; zero is allowed only with zero share.
+    address public scheduledRevenueTreasury;
+
+    /// @notice Proposed share of earned fees in basis points.
+    uint256 public scheduledRevenueShareBps;
+
+    /// @notice Earliest execution timestamp; zero means no scheduled policy exists.
+    uint256 public revenuePolicyReadyAt;
+
+    /**
+     * @notice Immutable round policy and cumulative earned Treasury entitlement.
+     * @param treasury Receiver fixed when the round opens.
+     * @param shareBps Share of earned fees, using a 10,000 denominator.
+     * @param accrued Cumulative entitlement including amounts already collected.
+     * @param eligibleFee Fee attributable to recorded winning pledges, excluding reserve top-ups.
+     * @param totalFee Total fee fixed by the existing settlement logic.
+     */
+    struct RoundRevenue {
+        address treasury;
+        uint256 shareBps;
+        uint256 accrued;
+        uint256 eligibleFee;
+        uint256 totalFee;
+    }
+
+    /// @notice Policy snapshots; pre-upgrade rounds have zero share and remain unchanged.
+    mapping(uint256 => RoundRevenue) public fundingRoundRevenue;
+
+    /// @notice Earned, unpaid entitlement payable exclusively to each receiver.
+    mapping(address => uint256) public pendingRevenueByTreasury;
+
+    /// @notice Total earned revenue earmarked outside protocolReserve but still held here.
+    uint256 public totalPendingProtocolRevenue;
+
+    /// @notice Actual pledge principal recorded for revenue-enabled round/idea pairs.
+    /// @dev Reserve allocation never increases this source-specific counter.
+    mapping(uint256 => mapping(uint256 => uint256)) public revenueEligiblePledges;
 
     /* ========== INITIALIZE ========== */
 
@@ -362,7 +415,9 @@ contract FundingPoolUpgradeable is
 
         fundingRoundOpened[roundId] = true;
         fundingRoundFeeBps[roundId] = pledgeFeeBps;
+        fundingRoundRevenue[roundId] = RoundRevenue(revenueTreasury, revenueShareBps, 0, 0, 0);
         emit FundingRoundOpened(roundId, pledgeFeeBps);
+        emit FundingRoundRevenueSnapshotted(roundId, revenueTreasury, revenueShareBps);
     }
 
     /**
@@ -391,6 +446,9 @@ contract FundingPoolUpgradeable is
         totalPoolBalance += amount;
         _poolByRoundAndIdea[roundId][ideaId] += amount;
         _pledgeCountByRoundAndIdea[roundId][ideaId] += 1;
+        if (fundingRoundRevenue[roundId].shareBps != 0) {
+            revenueEligiblePledges[roundId][ideaId] += amount;
+        }
 
         emit FundsDeposited(from, amount);
         emit PledgeRecorded(roundId, ideaId, from, amount);
@@ -419,6 +477,14 @@ contract FundingPoolUpgradeable is
         uint256 grossFunding = _poolByRoundAndIdea[roundId][winningIdeaId];
         uint256 fee = (grossFunding * fundingRoundFeeBps[roundId]) / 10_000;
         uint256 netFunding = grossFunding - fee;
+        RoundRevenue storage policy = fundingRoundRevenue[roundId];
+        if (policy.shareBps != 0) {
+            policy.eligibleFee = Math.min(fee, Math.mulDiv(
+                revenueEligiblePledges[roundId][winningIdeaId], fundingRoundFeeBps[roundId], 10_000
+            ));
+            policy.totalFee = fee;
+            emit FundingRoundRevenueBaseSet(roundId, policy.eligibleFee, fee);
+        }
         _poolByRoundAndIdea[roundId][winningIdeaId] = netFunding;
         pendingProtocolFeeByRound[roundId] = fee;
         winningGrossPledgeByRound[roundId] = grossFunding;
@@ -439,9 +505,9 @@ contract FundingPoolUpgradeable is
         uint256 fee = pendingProtocolFeeByRound[roundId];
         pendingProtocolFeeByRound[roundId] = 0;
         fundingRoundFeeFinalized[roundId] = true;
-        protocolReserve += fee;
+        uint256 retained = _accountEarnedFee(roundId, fee, fee);
 
-        emit IdeaFundsReserved(roundId, winner, fee);
+        emit IdeaFundsReserved(roundId, winner, retained);
         emit FundingRoundFeeFinalized(roundId, fee);
     }
 
@@ -489,7 +555,7 @@ contract FundingPoolUpgradeable is
 
         progressiveFeeTrancheBpsByRound[roundId] = cumulativeTrancheBps;
         progressiveFeeReleasedByRound[roundId] = targetReleased;
-        protocolReserve += amount;
+        uint256 retained = _accountEarnedFee(roundId, amount, targetReleased);
 
         if (cumulativeTrancheBps == 10_000) {
             pendingProtocolFeeByRound[roundId] = 0;
@@ -497,7 +563,7 @@ contract FundingPoolUpgradeable is
             emit FundingRoundFeeFinalized(roundId, amount);
         }
 
-        emit IdeaFundsReserved(roundId, fundingRoundWinner[roundId], amount);
+        emit IdeaFundsReserved(roundId, fundingRoundWinner[roundId], retained);
         emit FundingRoundFeeReleased(roundId, amount, cumulativeTrancheBps);
     }
 
@@ -617,6 +683,139 @@ contract FundingPoolUpgradeable is
     {
         Pledge storage pledge = pledges[roundId][voter];
         return (pledge.ideaId, pledge.amount, pledge.refundClaimed);
+    }
+
+    /* ========== REVENUE FUNCTIONS ========== */
+
+    /**
+     * @notice Announces a future-round fee split, without changing any existing round.
+     * @param treasury Receiver bound to this proxy and USDC; zero disables revenue.
+     * @param shareBps Share of earned fees, at most 10,000; zero requires zero receiver.
+     * @dev Replacing a proposal restarts its full delay. Once scheduled, the token
+     *      remains pinned even if the proposal is cancelled. A receiver's identity
+     *      getters are validation, not proof of trustworthy bytecode.
+     */
+    function scheduleRevenuePolicy(address treasury, uint256 shareBps) external onlyAdmin {
+        _validateRevenuePolicy(treasury, shareBps);
+        if (treasury != address(0)) revenueAsset = address(usdc);
+        scheduledRevenueTreasury = treasury;
+        scheduledRevenueShareBps = shareBps;
+        revenuePolicyReadyAt = block.timestamp + REVENUE_POLICY_DELAY;
+        emit RevenuePolicyScheduled(treasury, shareBps, revenuePolicyReadyAt);
+    }
+
+    /// @notice Cancels a proposed policy without modifying active or round-local rules.
+    /// @dev Restricted to protocol administrators; the token pin is not cleared.
+    function cancelRevenuePolicy() external onlyAdmin {
+        if (revenuePolicyReadyAt == 0) revert RevenuePolicyNotReady();
+        delete scheduledRevenueTreasury;
+        delete scheduledRevenueShareBps;
+        delete revenuePolicyReadyAt;
+        emit RevenuePolicyCancelled();
+    }
+
+    /// @notice Applies the exact announced policy after its public notice period.
+    /// @dev Permissionless execution, including while paused. It never rewrites a round.
+    function executeRevenuePolicy() external {
+        if (revenuePolicyReadyAt == 0 || block.timestamp < revenuePolicyReadyAt) revert RevenuePolicyNotReady();
+        address treasury = scheduledRevenueTreasury;
+        uint256 shareBps = scheduledRevenueShareBps;
+        _validateRevenuePolicy(treasury, shareBps);
+        revenueTreasury = treasury;
+        revenueShareBps = shareBps;
+        delete scheduledRevenueTreasury;
+        delete scheduledRevenueShareBps;
+        delete revenuePolicyReadyAt;
+        emit RevenuePolicyActivated(treasury, shareBps);
+    }
+
+    /**
+     * @notice Pays only the calling Treasury's already earned success-fee entitlement.
+     * @param amount Amount to transfer to msg.sender, never an arbitrary recipient.
+     * @dev Separate pull operation: a failed collection cannot block a grant tranche.
+     *      Reserve, grants, bonds, pending fees and donations never mint entitlement.
+     */
+    function claimProtocolRevenue(uint256 amount) external nonReentrant whenNotPaused {
+        if (amount == 0 || amount > pendingRevenueByTreasury[msg.sender]) revert RevenueUnavailable();
+        if (protocolReserve + totalPendingProtocolRevenue > totalPoolBalance) revert InvalidRevenueAccounting();
+        uint256 actual = usdc.balanceOf(address(this));
+        if (actual < totalPoolBalance) revert PoolBalanceShortfall(totalPoolBalance, actual);
+        pendingRevenueByTreasury[msg.sender] -= amount;
+        totalPendingProtocolRevenue -= amount;
+        totalPoolBalance -= amount;
+        uint256 beforeBalance = usdc.balanceOf(msg.sender);
+        usdc.safeTransfer(msg.sender, amount);
+        if (
+            usdc.balanceOf(msg.sender) != beforeBalance + amount ||
+            usdc.balanceOf(address(this)) != actual - amount
+        ) revert UnsupportedRevenueTransfer();
+        emit ProtocolRevenueClaimed(msg.sender, amount);
+        emit PoolBalanceUpdated(totalPoolBalance);
+    }
+
+    /**
+     * @notice Reports custody, reserve and revenue without labelling other funds as profit.
+     * @return actual Actual pool token balance.
+     * @return accounted Total recorded custody, including reserve and earned revenue.
+     * @return reserve Protocol reserve, not withdrawable team revenue.
+     * @return revenue Earned revenue still payable to immutable round receivers.
+     * @return otherFunds Other recorded capital: bonds, pledges, grant/fee escrow and donations.
+     * @return surplus Unrecorded direct token transfers, never automatically revenue.
+     * @return shortfall Amount by which actual custody is below its recorded total.
+     * @dev Historical per-category aggregate counters do not exist; otherFunds must
+     *      not be presented as a full breakdown of historical liabilities.
+     */
+    function getTreasuryAccounting() external view returns (
+        uint256 actual, uint256 accounted, uint256 reserve, uint256 revenue,
+        uint256 otherFunds, uint256 surplus, uint256 shortfall
+    ) {
+        actual = usdc.balanceOf(address(this));
+        accounted = totalPoolBalance;
+        reserve = protocolReserve;
+        revenue = totalPendingProtocolRevenue;
+        if (reserve + revenue > accounted) revert InvalidRevenueAccounting();
+        otherFunds = accounted - reserve - revenue;
+        if (actual >= accounted) surplus = actual - accounted;
+        else shortfall = accounted - actual;
+    }
+
+    /**
+     * @dev Allocates only newly earned fees; cumulative rounding makes collection timing irrelevant.
+     * @param roundId Round whose policy was fixed before pledges were accepted.
+     * @param amount Newly earned fee amount.
+     * @param cumulativeFee Total fee earned across this round's released tranches.
+     * @return retained Portion of amount remaining in protocol reserve.
+     */
+    function _accountEarnedFee(uint256 roundId, uint256 amount, uint256 cumulativeFee)
+        private returns (uint256 retained)
+    {
+        RoundRevenue storage policy = fundingRoundRevenue[roundId];
+        uint256 eligibleEarnedFee = policy.eligibleFee == 0
+            ? 0 : Math.mulDiv(cumulativeFee, policy.eligibleFee, policy.totalFee);
+        uint256 cumulativeRevenue = Math.mulDiv(eligibleEarnedFee, policy.shareBps, 10_000);
+        uint256 revenue = cumulativeRevenue - policy.accrued;
+        policy.accrued = cumulativeRevenue;
+        if (revenue != 0) {
+            pendingRevenueByTreasury[policy.treasury] += revenue;
+            totalPendingProtocolRevenue += revenue;
+            emit ProtocolRevenueAccrued(roundId, policy.treasury, revenue);
+        }
+        retained = amount - revenue;
+        protocolReserve += retained;
+    }
+
+    /// @dev Checks a proposed receiver without calling it from grant settlement or fee vesting.
+    /// @param treasury Proposed receiver; zero must be paired with zero share.
+    /// @param shareBps Proposed share of earned fees in basis points.
+    function _validateRevenuePolicy(address treasury, uint256 shareBps) private view {
+        if (shareBps > 10_000 || (treasury == address(0)) != (shareBps == 0)) revert InvalidRevenuePolicy();
+        if (treasury != address(0)) {
+            if (
+                treasury == address(this) || treasury.code.length == 0 ||
+                IProtocolRevenueTreasury(treasury).fundingPool() != address(this) ||
+                IProtocolRevenueTreasury(treasury).usdc() != usdc
+            ) revert InvalidRevenuePolicy();
+        }
     }
 
     /** @notice Configures the successful-round fee; 10% is the hard safety ceiling. */
@@ -833,6 +1032,7 @@ contract FundingPoolUpgradeable is
         if (_newToken == address(0)) {
             revert ZeroAddress("newToken");
         }
+        if (revenueAsset != address(0) && _newToken != revenueAsset) revert RevenueAssetLocked();
         usdc = IERC20(_newToken);
         emit UsdcUpdated(_newToken);
         emit GovernanceTokenUpdated(_newToken);
@@ -961,12 +1161,16 @@ contract FundingPoolUpgradeable is
     /**
      * @notice Checks real pool balance
      * @dev Can only be called by the contract admin.
-     *      Reconciles `totalPoolBalance` with the actual token balance while keeping
-     *      `protocolReserve` accounted for separately.
+     *      Records direct-transfer surplus without subtracting reserve, which is
+     *      already included in total custody. Never writes off a token shortfall
+     *      or classifies surplus as earned revenue. Old inconsistent sync snapshots
+     *      require a separate pre-upgrade reconciliation; this is not a migration.
      */
-    function syncBalance() external onlyAdmin {
+    function syncBalance() external onlyAdmin nonReentrant {
         uint256 real = usdc.balanceOf(address(this));
-        totalPoolBalance = real - protocolReserve;
+        if (real < totalPoolBalance) revert PoolBalanceShortfall(totalPoolBalance, real);
+        totalPoolBalance = real;
+        emit PoolBalanceUpdated(real);
     }
 
     /* ========== PAUSE FUNCTIONS ========== */
@@ -1007,5 +1211,5 @@ contract FundingPoolUpgradeable is
      * @custom:upgrade-safety Reserve slots after newly added variables when upgrading
      * @custom:warning Do not reorder existing storage variables in future versions
      */
-    uint256[29] private __gap;
+    uint256[19] private __gap;
 }

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "release": "V2.4",
+  "status": "unreleased",
+  "chainId": 5042002,
+  "fundingPoolProxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
+  "expectedPreviousImplementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
+  "expectedProxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "initialRevenueTreasury": "0x0000000000000000000000000000000000000000",
+  "initialRevenueShareBps": 0,
+  "activation": {
+    "policyDelaySeconds": 172800,
+    "delayApproved": true,
+    "shareBps": 2000,
+    "shareApproved": true,
+    "treasuryAddress": null,
+    "beneficiaries": [
+      {
+        "address": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+        "shareBps": 10000
+      }
+    ],
+    "beneficiariesApproved": true
+  }
+}

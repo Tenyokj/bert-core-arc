@@ -1,0 +1,166 @@
+{
+  "recordedAt": "2026-11-23T20:49:36.400Z",
+  "status": "bounded local upgrade passed; not a full rollout approval",
+  "scope": "Pinned Arc snapshot and local-only upgrade rehearsal",
+  "publicTransactionsSent": false,
+  "fullHistoricalReconciliation": false,
+  "localUpgradePerformed": true,
+  "evmEmulation": "Arc Foundry executing Arc semantics on a loopback-only fork",
+  "arcUsdcTransferBehaviorVerified": true,
+  "blockNumber": 73753950,
+  "blockHash": "0xea1db9920001148186b76cc2504a73ca3da6b7697717d2aee9c6b4ffd9376dff",
+  "publicSnapshot": {
+    "proxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
+    "implementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
+    "proxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
+    "proxyAdminOwner": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+    "implementationCodeHash": "0x9b50616499522f7680fb6f25253e4da0445a7bc4482e30db8c126873bc76952e",
+    "runtimeBytes": 20145,
+    "actual": "1140000000",
+    "fields": {
+      "usdc": "0x3600000000000000000000000000000000000000",
+      "roles": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
+      "ideaRegistry": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
+      "totalPoolBalance": "1140000000",
+      "protocolReserve": "0",
+      "pledgeFeeBps": "500",
+      "communityFactory": "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",
+      "communityFactoryCount": "4",
+      "paused": false,
+      "getDistributionCount": "0"
+    }
+  },
+  "frozenBaseline": {
+    "commit": "d87e475cbd833047619c4cd9cb4950cbdc1fb9de",
+    "runtimeBytes": 20145,
+    "runtimeCodeHash": "0x9b50616499522f7680fb6f25253e4da0445a7bc4482e30db8c126873bc76952e",
+    "exactRuntimeMatch": true
+  },
+  "upstreamTransferSimulation": {
+    "method": "eth_call",
+    "amount": "1",
+    "sourceBalance": "3537839",
+    "from": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+    "to": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "returned": true,
+    "publicStateChanged": false
+  },
+  "executionNode": {
+    "network": "arc",
+    "hardFork": "Zero6",
+    "clientVersion": "anvil/v1.7.1"
+  },
+  "forkAsset": {
+    "actual": "1140000000",
+    "matchesPinnedPublicBalance": true
+  },
+  "preUpgradeState": {
+    "fields": {
+      "usdc": "0x3600000000000000000000000000000000000000",
+      "roles": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
+      "ideaRegistry": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
+      "totalPoolBalance": "1140000000",
+      "protocolReserve": "0",
+      "pledgeFeeBps": "500",
+      "communityFactory": "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",
+      "communityFactoryCount": "4",
+      "paused": false,
+      "getDistributionCount": "0"
+    },
+    "rounds": [
+      {
+        "round": "1",
+        "pools": [
+          "0",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        "fundingRoundOpened": false,
+        "fundingRoundSettled": false,
+        "fundingRoundWinner": "0",
+        "fundingRoundFeeBps": "0",
+        "pendingProtocolFeeByRound": "0",
+        "fundingRoundFeeFinalized": false,
+        "fundingRoundCancelled": false,
+        "grantRefundActive": false,
+        "winningGrossPledgeByRound": "0",
+        "winningPledgeCountByRound": "0",
+        "grantRefundTotalByRound": "0",
+        "grantRefundPaidByRound": "0",
+        "grantRefundClaimCountByRound": "0",
+        "progressiveFundingRoundFeeStarted": false,
+        "progressiveFeeReleasedByRound": "0",
+        "progressiveFeeTrancheBpsByRound": "0",
+        "progressiveFeeRestoredForRefund": false,
+        "distributed": false
+      }
+    ],
+    "bonds": [
+      "0",
+      "0",
+      "0",
+      "0",
+      "50000000",
+      "50000000"
+    ],
+    "factories": [
+      [
+        "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",
+        true
+      ],
+      [
+        "0xe16Cd61a21feA97393e6eEE3A7F7A26828021dD0",
+        true
+      ],
+      [
+        "0xf793786BCecfbfE35a22E36180032b32BD5208Ba",
+        true
+      ],
+      [
+        "0x23E023E0D8B3436319BC6e5e72615Bc7A0c6234E",
+        true
+      ]
+    ]
+  },
+  "inventoryLimits": "Bounded known round/idea getters only; not an event-complete liability inventory, donor/pledger enumeration or future arbitrary allocation-key scan",
+  "localUpgrade": {
+    "transactionHash": "0x536831d66385ec431c8b545587ba06bce4bdd1eea088756283ba93e973c30841",
+    "implementationCodeHash": "0x9bdc8ebe21215ee39c22daf7620e6a81a2954c9527380e8a544e5bc14acc9032",
+    "runtimeBytes": 24269,
+    "oldStatePreserved": true,
+    "revenueStillDisabled": true
+  },
+  "nativeBlocklistProbe": {
+    "passed": true,
+    "blockedPayee": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "source": "Direct test donation, not pool revenue",
+    "blockedEntitlementPreserved": "1000",
+    "otherBeneficiaryPaid": "1000",
+    "issuerBlocklistUnchanged": true
+  },
+  "nativeRevenueProbe": {
+    "passed": true,
+    "gross": "1000000",
+    "fee": "50000",
+    "initialNetPayment": "190000",
+    "earnedFee": "10000",
+    "revenue": "4000",
+    "refund": "800000",
+    "refundTransactionHash": "0xfbce3b5de3122271f7a4d34ca2f981fc7abd05fb478c813d146bd8c63c547ad8",
+    "oldCapitalPreserved": true,
+    "scope": "Direct calls impersonating existing authorized modules; not browser E2E or the complete GrantManager lifecycle",
+    "exampleSplitsOnly": true
+  },
+  "toolchain": {
+    "repository": "https://github.com/circlefin/arc-foundry",
+    "release": "v0.8.0-4",
+    "platform": "aarch64-apple-darwin",
+    "archiveSha256": "a99228f3403b3547e35c518387f9ad020e4293ac5e8ef4da7899a5495cf2e3e9",
+    "checksumVerified": true,
+    "anvilCommit": "3e95efaeaaaca64d6ac9c1ee988968683dbd0d22"
+  },
+  "harnessSha256": "ef2054d950974ce8ad52748798a2d80ca83cd2bc9732cee48f29b70b03270717"
+}

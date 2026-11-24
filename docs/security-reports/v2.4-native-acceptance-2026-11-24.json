@@ -1,0 +1,108 @@
+{
+  "recordedAt": "2026-11-24T16:36:46.222Z",
+  "status": "native GrantManager passed; Graph clean replay/reorg blocked; gate 5 incomplete",
+  "publicTransactionsSent": false,
+  "chainId": 31337,
+  "nativeReceipts": 160,
+  "nativeScenarios": [
+    {
+      "name": "full native GrantManager 20/40/40",
+      "passed": true,
+      "gross": "60000000",
+      "fee": "3000000",
+      "net": "57000000",
+      "revenue": "600000",
+      "historicalPolicyPreserved": true
+    },
+    {
+      "name": "native grant cancellation after 20%",
+      "passed": true,
+      "refundPercent": "80",
+      "slashedUnclaimedBond": "0"
+    },
+    {
+      "name": "native grant cancellation after 60%",
+      "passed": true,
+      "refundPercent": "40",
+      "slashedUnclaimedBond": "0"
+    },
+    {
+      "name": "native grant cancellation after 0%",
+      "passed": true,
+      "refundPercent": "100",
+      "slashedUnclaimedBond": "50000000"
+    }
+  ],
+  "revenuePaid": "1080000",
+  "graphPartialEvents": 38,
+  "graphHistoricalRpcFailure": {
+    "block": 73754171,
+    "blockHash": "0xec127c1c2082476e5705f9499b5ef76f19c9b90aacd732e430c1978c037f81c9",
+    "address": "0xbFAf9117D452f678e3241BaBCC46c45770d81e57",
+    "passed": false,
+    "rpcError": {
+      "code": -32603,
+      "message": "missing bytecode for code hash 0x63553812e73eac99d84151acadc83b15da53704b214e2507304d1e59e827bd5a"
+    }
+  },
+  "testsRepeated": {
+    "revenueSolidity": 27,
+    "mapping": 10,
+    "offlineReleasePlanner": 5,
+    "documentation": 4
+  },
+  "images": [
+    {
+      "tags": [
+        "graphprotocol/graph-node:v0.40.0"
+      ],
+      "digests": [
+        "graphprotocol/graph-node@sha256:992ff68ddfb4a93ee3d8f21c7be2e9d6cb8af56b76631e32a8e9c45e6c702d59"
+      ],
+      "id": "sha256:992ff68ddfb4a93ee3d8f21c7be2e9d6cb8af56b76631e32a8e9c45e6c702d59"
+    },
+    {
+      "tags": [
+        "graphprotocol/graph-node:v0.45.0"
+      ],
+      "digests": [
+        "graphprotocol/graph-node@sha256:b0436347fb24f9ae45b6d3959cac97bf60b3238ad1633a875c118ff86a07a0d3"
+      ],
+      "id": "sha256:b0436347fb24f9ae45b6d3959cac97bf60b3238ad1633a875c118ff86a07a0d3"
+    },
+    {
+      "tags": [
+        "postgres:14"
+      ],
+      "digests": [
+        "postgres@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059"
+      ],
+      "id": "sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059"
+    },
+    {
+      "tags": [
+        "ipfs/kubo:v0.34.1"
+      ],
+      "digests": [
+        "ipfs/kubo@sha256:1cf421fbd881d01144c0da39aa1511c05f1ef3fd5eebee6ba7487ecc0f915a44"
+      ],
+      "id": "sha256:1cf421fbd881d01144c0da39aa1511c05f1ef3fd5eebee6ba7487ecc0f915a44"
+    }
+  ],
+  "sha256": {
+    "docs/security-reports/v2.4-native-grants-2026-11-24.json": "fd387417233b34954a9bb33747b6ce49f5e6b0ff6edb8275f8b6691dd330d928",
+    "docs/security-reports/v2.4-graph-node-partial-2026-11-24.json": "e1a86cfec323bc457feddc6b64b6e1d24e98eac45dec23c6960ea5ebcf3a5788",
+    "docs/security-reports/v2.4-graph-node-blocker-2026-11-24.json": "b7c0b4a2d3dbad274b1554fedad722a0a8f72a21a65e198d617d3ab8dc9c4266",
+    "scripts/local/accept-v2-4-native-grants.mjs": "94da71cad60f7e4a1e78f9e38c317ef4529ca2a1ebe0c405b15c455bfd66800c",
+    "frontend/subgraph/scripts/accept-revenue-graph-node.mjs": "4734f83c670fc680b3f344ce48c03da1f969defc957ce4517350491648ef9b3b",
+    "frontend/subgraph/docker-compose.revenue.yml": "272e6f9977d96f22986f9e3f057f951559aefb83c0b9cc308d34b78d839b6484",
+    "contracts/BERT/DAO/FundingPoolUpgradeable.sol": "ac608c985799ec380ddb1a7953c2c745bc0faff24f376da94d8cfb183390ada1",
+    "contracts/BERT/DAO/ProtocolRevenueTreasury.sol": "83189e9e1d7a060a0760705d0026659a5fff6a7715fdff114aea8992d4bd2807"
+  },
+  "limitations": [
+    "Fresh local proxies, populated-proxy upgrade checked separately",
+    "Native execution is not the MockUSDC injected-wallet browser run",
+    "Graph clean replay/reorg not accepted",
+    "No audit certificate or public rollout authorization"
+  ]
+}

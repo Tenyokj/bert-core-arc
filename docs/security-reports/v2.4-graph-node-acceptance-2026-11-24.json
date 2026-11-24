@@ -1,0 +1,430 @@
+{
+  "status": "passed real Graph Node acceptance; not public rollout authorization",
+  "recordedAt": "2026-11-24T16:41:51.157Z",
+  "publicTransactionsSent": false,
+  "fixtureEvidenceSha256": "7cf839dfbaccdb51fe1a06468c1b999896f88beb93a7269d4cc9f2ba87b5be9d",
+  "mockTokenUsed": true,
+  "nativeArcExecution": false,
+  "graphNode": "graphprotocol/graph-node:v0.45.0",
+  "scope": "V2 production mappings and revenue Treasury discovery/template",
+  "checks": [
+    {
+      "name": "native discovery, immutable payees, round policy and exact RPC log agreement",
+      "passed": true,
+      "events": 38
+    },
+    {
+      "name": "Graph Node process restart preserves entities and dynamic template",
+      "passed": true
+    },
+    {
+      "name": "two-block controlled local reorg removes orphan event and restores policy and financial entities",
+      "passed": true,
+      "orphanTransaction": "0xae76dbe7b7442904d811c124a052853606a34f8c6efd556a24a0a10ffc27c8f3",
+      "orphanTip": "0x439d087c556a80445a98c8874109f568993b454e77e2628cb72d3532db4866b8",
+      "canonicalTip": "0xf6a3a0700bcec3fc8b18476bdced86bb0fb038e43d4d398daa6282abb912b8b9"
+    },
+    {
+      "name": "fresh Postgres/IPFS store replays canonical history identically after reorg",
+      "passed": true
+    }
+  ],
+  "historicalRpcProbe": {
+    "block": 57,
+    "blockHash": "0xc6ca0d3f10fc817a29cf2d15b812cfe786e8826a12a2f132454ce79b1e45a392",
+    "address": "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
+    "passed": true
+  },
+  "paddingBlocks": 0,
+  "entities": {
+    "protocolRevenueStates": [
+      {
+        "id": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed",
+        "currentPolicyKnown": true,
+        "currentTreasury": "0x99bba657f2bbc93c02d617f8ba121cb8fc104acf",
+        "currentShareBps": "2000",
+        "scheduled": false,
+        "scheduledTreasury": "0x0000000000000000000000000000000000000000",
+        "scheduledShareBps": "0",
+        "readyAt": "0",
+        "accrued": "1080000",
+        "claimed": "1080000",
+        "pending": "0"
+      }
+    ],
+    "protocolRevenueReceivers": [
+      {
+        "id": "0x99bba657f2bbc93c02d617f8ba121cb8fc104acf",
+        "discoveryStatus": "Indexed",
+        "templateStarted": true,
+        "payeeCount": 1,
+        "accrued": "1080000",
+        "claimed": "1080000",
+        "pending": "0",
+        "observedCollected": "1080000",
+        "observedReleased": "1080000"
+      }
+    ],
+    "revenueBeneficiaries": [
+      {
+        "id": "0x99bba657f2bbc93c02d617f8ba121cb8fc104acf-0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+        "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+        "shareBps": "10000",
+        "observedReleased": "1080000"
+      }
+    ],
+    "fundingRoundRevenues": [
+      {
+        "id": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed-1",
+        "roundId": "1",
+        "treasuryAddress": "0x99bba657f2bbc93c02d617f8ba121cb8fc104acf",
+        "shareBps": "2000",
+        "baseObserved": true,
+        "eligibleFee": "3000000",
+        "totalFee": "3000000",
+        "accrued": "600000"
+      },
+      {
+        "id": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed-2",
+        "roundId": "2",
+        "treasuryAddress": "0x99bba657f2bbc93c02d617f8ba121cb8fc104acf",
+        "shareBps": "2000",
+        "baseObserved": true,
+        "eligibleFee": "3000000",
+        "totalFee": "3000000",
+        "accrued": "120000"
+      },
+      {
+        "id": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed-3",
+        "roundId": "3",
+        "treasuryAddress": "0x99bba657f2bbc93c02d617f8ba121cb8fc104acf",
+        "shareBps": "2000",
+        "baseObserved": true,
+        "eligibleFee": "3000000",
+        "totalFee": "3000000",
+        "accrued": "360000"
+      },
+      {
+        "id": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed-4",
+        "roundId": "4",
+        "treasuryAddress": "0x99bba657f2bbc93c02d617f8ba121cb8fc104acf",
+        "shareBps": "2000",
+        "baseObserved": true,
+        "eligibleFee": "3000000",
+        "totalFee": "3000000",
+        "accrued": "0"
+      }
+    ],
+    "revenueEvents": [
+      {
+        "id": "0x00f20b0e0668337465491fe0855e4ca4fbe221027a70d5e646254959b7e7206f-0",
+        "kind": "PolicyScheduled",
+        "amount": null,
+        "txHash": "0x00f20b0e0668337465491fe0855e4ca4fbe221027a70d5e646254959b7e7206f",
+        "logIndex": "0",
+        "blockNumber": "85"
+      },
+      {
+        "id": "0x0188ab0f08949d0ff3eaca52e33f78c0e43dcd1e6d40951332e449cf9e41d16f-1",
+        "kind": "Claimed",
+        "amount": "120000",
+        "txHash": "0x0188ab0f08949d0ff3eaca52e33f78c0e43dcd1e6d40951332e449cf9e41d16f",
+        "logIndex": "1",
+        "blockNumber": "75"
+      },
+      {
+        "id": "0x0188ab0f08949d0ff3eaca52e33f78c0e43dcd1e6d40951332e449cf9e41d16f-3",
+        "kind": "Collected",
+        "amount": "120000",
+        "txHash": "0x0188ab0f08949d0ff3eaca52e33f78c0e43dcd1e6d40951332e449cf9e41d16f",
+        "logIndex": "3",
+        "blockNumber": "75"
+      },
+      {
+        "id": "0x18ba392234166998150c470624743439f4addfc6d83834496951baf5b5af8f36-1",
+        "kind": "Accrued",
+        "amount": "120000",
+        "txHash": "0x18ba392234166998150c470624743439f4addfc6d83834496951baf5b5af8f36",
+        "logIndex": "1",
+        "blockNumber": "143"
+      },
+      {
+        "id": "0x1e7a167eafc72b46b266db3e8dd52a1cfab881ce21c1d5f41af94ff4fa502e24-1",
+        "kind": "Released",
+        "amount": "120000",
+        "txHash": "0x1e7a167eafc72b46b266db3e8dd52a1cfab881ce21c1d5f41af94ff4fa502e24",
+        "logIndex": "1",
+        "blockNumber": "119"
+      },
+      {
+        "id": "0x2207b90a7b098ddf70a35048ba8eb09f25f991c07280951a662433deaf0b8db8-1",
+        "kind": "RoundSnapshotted",
+        "amount": null,
+        "txHash": "0x2207b90a7b098ddf70a35048ba8eb09f25f991c07280951a662433deaf0b8db8",
+        "logIndex": "1",
+        "blockNumber": "136"
+      },
+      {
+        "id": "0x2b542ca5d277bad7bc6d8b2070ae1a1af7f3b91719b20eb2c907ac0ebbbef1a4-0",
+        "kind": "Accrued",
+        "amount": "240000",
+        "txHash": "0x2b542ca5d277bad7bc6d8b2070ae1a1af7f3b91719b20eb2c907ac0ebbbef1a4",
+        "logIndex": "0",
+        "blockNumber": "82"
+      },
+      {
+        "id": "0x33ae7f5e065299a210edcbbd14ef56f35e038a0e39b11fc94135e59402b38c0c-1",
+        "kind": "Claimed",
+        "amount": "240000",
+        "txHash": "0x33ae7f5e065299a210edcbbd14ef56f35e038a0e39b11fc94135e59402b38c0c",
+        "logIndex": "1",
+        "blockNumber": "83"
+      },
+      {
+        "id": "0x33ae7f5e065299a210edcbbd14ef56f35e038a0e39b11fc94135e59402b38c0c-3",
+        "kind": "Collected",
+        "amount": "240000",
+        "txHash": "0x33ae7f5e065299a210edcbbd14ef56f35e038a0e39b11fc94135e59402b38c0c",
+        "logIndex": "3",
+        "blockNumber": "83"
+      },
+      {
+        "id": "0x35a3176be4d60a63aeb12decfd2edb5f02b5897f6cc138e4bbefec56cc317f27-0",
+        "kind": "PolicyActivated",
+        "amount": null,
+        "txHash": "0x35a3176be4d60a63aeb12decfd2edb5f02b5897f6cc138e4bbefec56cc317f27",
+        "logIndex": "0",
+        "blockNumber": "87"
+      },
+      {
+        "id": "0x3794cb71fcbc2486a409fdf84af9dc8aaa4d8ff572feb113eab20b6f4c63ac45-1",
+        "kind": "Released",
+        "amount": "120000",
+        "txHash": "0x3794cb71fcbc2486a409fdf84af9dc8aaa4d8ff572feb113eab20b6f4c63ac45",
+        "logIndex": "1",
+        "blockNumber": "76"
+      },
+      {
+        "id": "0x3de9bd05d2fd9786340617f27729fee7c55b6c4de88323bca56ce04fe39a1d00-1",
+        "kind": "Released",
+        "amount": "240000",
+        "txHash": "0x3de9bd05d2fd9786340617f27729fee7c55b6c4de88323bca56ce04fe39a1d00",
+        "logIndex": "1",
+        "blockNumber": "84"
+      },
+      {
+        "id": "0x41ec105129405ac3f7ddec2ce9315cc6183901c00ddde07f59bb2ad9fbaebfa0-14",
+        "kind": "RoundBaseSet",
+        "amount": null,
+        "txHash": "0x41ec105129405ac3f7ddec2ce9315cc6183901c00ddde07f59bb2ad9fbaebfa0",
+        "logIndex": "14",
+        "blockNumber": "142"
+      },
+      {
+        "id": "0x562eecfa8ac4d1fc578cdcbfbabf237e02656cc6f8c843960bdc00a7ebb1e820-1",
+        "kind": "RoundSnapshotted",
+        "amount": null,
+        "txHash": "0x562eecfa8ac4d1fc578cdcbfbabf237e02656cc6f8c843960bdc00a7ebb1e820",
+        "logIndex": "1",
+        "blockNumber": "110"
+      },
+      {
+        "id": "0x662de176255e919c2e55c46bf15212910d7aa5ee9ad635b9ef6fe90bd4ed59d3-1",
+        "kind": "Claimed",
+        "amount": "120000",
+        "txHash": "0x662de176255e919c2e55c46bf15212910d7aa5ee9ad635b9ef6fe90bd4ed59d3",
+        "logIndex": "1",
+        "blockNumber": "118"
+      },
+      {
+        "id": "0x662de176255e919c2e55c46bf15212910d7aa5ee9ad635b9ef6fe90bd4ed59d3-3",
+        "kind": "Collected",
+        "amount": "120000",
+        "txHash": "0x662de176255e919c2e55c46bf15212910d7aa5ee9ad635b9ef6fe90bd4ed59d3",
+        "logIndex": "3",
+        "blockNumber": "118"
+      },
+      {
+        "id": "0x823949e01ba99bedeea8f85bb1823ad7c32086c3a335a75723782bd5c47f75bf-14",
+        "kind": "RoundBaseSet",
+        "amount": null,
+        "txHash": "0x823949e01ba99bedeea8f85bb1823ad7c32086c3a335a75723782bd5c47f75bf",
+        "logIndex": "14",
+        "blockNumber": "116"
+      },
+      {
+        "id": "0x8688112c11d8420b935d28991a9b1a3f9ca936d3178d464e6fd8ecacdd1130e7-14",
+        "kind": "RoundBaseSet",
+        "amount": null,
+        "txHash": "0x8688112c11d8420b935d28991a9b1a3f9ca936d3178d464e6fd8ecacdd1130e7",
+        "logIndex": "14",
+        "blockNumber": "73"
+      },
+      {
+        "id": "0x88e3427be3a6f164f09cf27ad2baacc716e135d9ee34b2b5fc34090c1fe6febe-1",
+        "kind": "Accrued",
+        "amount": "120000",
+        "txHash": "0x88e3427be3a6f164f09cf27ad2baacc716e135d9ee34b2b5fc34090c1fe6febe",
+        "logIndex": "1",
+        "blockNumber": "74"
+      },
+      {
+        "id": "0x99ab20ee3f5e4c8c79d5b1da23bf54cb0af36362aa4f7d3392174b8d4d4b7e4c-0",
+        "kind": "Accrued",
+        "amount": "240000",
+        "txHash": "0x99ab20ee3f5e4c8c79d5b1da23bf54cb0af36362aa4f7d3392174b8d4d4b7e4c",
+        "logIndex": "0",
+        "blockNumber": "151"
+      },
+      {
+        "id": "0x9c8e495f6834ff099e450a73b96c07b78763f855dec986912c86b15181c3363d-0",
+        "kind": "PolicyActivated",
+        "amount": null,
+        "txHash": "0x9c8e495f6834ff099e450a73b96c07b78763f855dec986912c86b15181c3363d",
+        "logIndex": "0",
+        "blockNumber": "99"
+      },
+      {
+        "id": "0x9e2906a9db0bcc8891d6e1876eba5ef53d042623ddc8c9cb028ca58b3c22bf6e-1",
+        "kind": "Released",
+        "amount": "240000",
+        "txHash": "0x9e2906a9db0bcc8891d6e1876eba5ef53d042623ddc8c9cb028ca58b3c22bf6e",
+        "logIndex": "1",
+        "blockNumber": "153"
+      },
+      {
+        "id": "0x9e665d22d1ce3fbcf278e1cbb1985a310d14ed39fd60fbc019d571d7145871f4-0",
+        "kind": "PolicyScheduled",
+        "amount": null,
+        "txHash": "0x9e665d22d1ce3fbcf278e1cbb1985a310d14ed39fd60fbc019d571d7145871f4",
+        "logIndex": "0",
+        "blockNumber": "54"
+      },
+      {
+        "id": "0x9f50b05392dbd2e8b925aa13eb20db5aaaa23c67ec839ac5b3cbc7e157d7e593-1",
+        "kind": "RoundSnapshotted",
+        "amount": null,
+        "txHash": "0x9f50b05392dbd2e8b925aa13eb20db5aaaa23c67ec839ac5b3cbc7e157d7e593",
+        "logIndex": "1",
+        "blockNumber": "67"
+      },
+      {
+        "id": "0xa204cdde9b3f47bfe99fa747ac4522d5110229f87964415f46468e15ae457167-1",
+        "kind": "Released",
+        "amount": "120000",
+        "txHash": "0xa204cdde9b3f47bfe99fa747ac4522d5110229f87964415f46468e15ae457167",
+        "logIndex": "1",
+        "blockNumber": "145"
+      },
+      {
+        "id": "0xa80a60dd4647274eb569ecb0c02e6a6b40928bece66fb4427aa5030e749eae20-0",
+        "kind": "PolicyActivated",
+        "amount": null,
+        "txHash": "0xa80a60dd4647274eb569ecb0c02e6a6b40928bece66fb4427aa5030e749eae20",
+        "logIndex": "0",
+        "blockNumber": "56"
+      },
+      {
+        "id": "0xaccf57265d4fb0cb7db4bd699a3b36bf99767f667037bc9963f9d807dc501bc4-1",
+        "kind": "RoundSnapshotted",
+        "amount": null,
+        "txHash": "0xaccf57265d4fb0cb7db4bd699a3b36bf99767f667037bc9963f9d807dc501bc4",
+        "logIndex": "1",
+        "blockNumber": "170"
+      },
+      {
+        "id": "0xaf0b492bf708f7869be08d820527c755a959948ec8fbb974744b0228f0009349-1",
+        "kind": "Claimed",
+        "amount": "240000",
+        "txHash": "0xaf0b492bf708f7869be08d820527c755a959948ec8fbb974744b0228f0009349",
+        "logIndex": "1",
+        "blockNumber": "94"
+      },
+      {
+        "id": "0xaf0b492bf708f7869be08d820527c755a959948ec8fbb974744b0228f0009349-3",
+        "kind": "Collected",
+        "amount": "240000",
+        "txHash": "0xaf0b492bf708f7869be08d820527c755a959948ec8fbb974744b0228f0009349",
+        "logIndex": "3",
+        "blockNumber": "94"
+      },
+      {
+        "id": "0xc15261a4e409edf9fd7ce8dfd1278e4918e1283c7ee436d4ae077bd23258b857-1",
+        "kind": "Accrued",
+        "amount": "120000",
+        "txHash": "0xc15261a4e409edf9fd7ce8dfd1278e4918e1283c7ee436d4ae077bd23258b857",
+        "logIndex": "1",
+        "blockNumber": "117"
+      },
+      {
+        "id": "0xc221ac037906014770a5cec809240fc4d925cf416cb680551da2c77a6c7a1505-1",
+        "kind": "Claimed",
+        "amount": "240000",
+        "txHash": "0xc221ac037906014770a5cec809240fc4d925cf416cb680551da2c77a6c7a1505",
+        "logIndex": "1",
+        "blockNumber": "152"
+      },
+      {
+        "id": "0xc221ac037906014770a5cec809240fc4d925cf416cb680551da2c77a6c7a1505-3",
+        "kind": "Collected",
+        "amount": "240000",
+        "txHash": "0xc221ac037906014770a5cec809240fc4d925cf416cb680551da2c77a6c7a1505",
+        "logIndex": "3",
+        "blockNumber": "152"
+      },
+      {
+        "id": "0xc3c207905f2596b79b90d43f7ee44303f337bb83d8a0438a25dd2e41bbef18af-14",
+        "kind": "RoundBaseSet",
+        "amount": null,
+        "txHash": "0xc3c207905f2596b79b90d43f7ee44303f337bb83d8a0438a25dd2e41bbef18af",
+        "logIndex": "14",
+        "blockNumber": "176"
+      },
+      {
+        "id": "0xcae532e5d919bd77607b61e237b639d98521c8368c7ee9958e3957e84a97f99f-0",
+        "kind": "Accrued",
+        "amount": "240000",
+        "txHash": "0xcae532e5d919bd77607b61e237b639d98521c8368c7ee9958e3957e84a97f99f",
+        "logIndex": "0",
+        "blockNumber": "93"
+      },
+      {
+        "id": "0xe8cbd49b05365e679811b102ae28eade5c72670459404fc4eb9ec7ed471f1b5b-0",
+        "kind": "PolicyScheduled",
+        "amount": null,
+        "txHash": "0xe8cbd49b05365e679811b102ae28eade5c72670459404fc4eb9ec7ed471f1b5b",
+        "logIndex": "0",
+        "blockNumber": "97"
+      },
+      {
+        "id": "0xf9a33b40f477019d7bfc8be219a320e3e9c903c92e01e41f848c24ad14737c95-1",
+        "kind": "Released",
+        "amount": "240000",
+        "txHash": "0xf9a33b40f477019d7bfc8be219a320e3e9c903c92e01e41f848c24ad14737c95",
+        "logIndex": "1",
+        "blockNumber": "95"
+      },
+      {
+        "id": "0xf9afa8196781948048e410f00ea09f2e3ed97984d95d7c47c4644719362c6357-1",
+        "kind": "Claimed",
+        "amount": "120000",
+        "txHash": "0xf9afa8196781948048e410f00ea09f2e3ed97984d95d7c47c4644719362c6357",
+        "logIndex": "1",
+        "blockNumber": "144"
+      },
+      {
+        "id": "0xf9afa8196781948048e410f00ea09f2e3ed97984d95d7c47c4644719362c6357-3",
+        "kind": "Collected",
+        "amount": "120000",
+        "txHash": "0xf9afa8196781948048e410f00ea09f2e3ed97984d95d7c47c4644719362c6357",
+        "logIndex": "3",
+        "blockNumber": "144"
+      }
+    ]
+  },
+  "localSubgraphs": {
+    "primaryName": "bert-revenue-native-mwux9q2d",
+    "replayName": "bert-revenue-clean-mwux9q2d"
+  },
+  "harnessSha256": "58e736fba9eae504fdaa07d4da18d76799835626f068a12c5290d2a730f82edc"
+}

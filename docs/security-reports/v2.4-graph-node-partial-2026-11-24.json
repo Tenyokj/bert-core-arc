@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "recordedAt": "2026-11-24T16:24:28.553Z",
+  "publicTransactionsSent": false,
+  "nativeEvidenceSha256": "fd387417233b34954a9bb33747b6ce49f5e6b0ff6edb8275f8b6691dd330d928",
+  "graphNode": "graphprotocol/graph-node:v0.40.0",
+  "scope": "V2 production mappings and revenue Treasury discovery/template",
+  "checks": [
+    {
+      "name": "native discovery, immutable payees, round policy and exact RPC log agreement",
+      "passed": true,
+      "events": 38
+    },
+    {
+      "name": "Graph Node process restart preserves entities and dynamic template",
+      "passed": true
+    }
+  ],
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '0x56a6991612fe63900fcb57170229ec73cf11b4c09b946250afa0ec903a9060df'\n- '0x6b09c767369422a3a14e69c032bae1b215188b480d27c63b6360936b6c0c4b2e'\n\n    at file:///Users/daniilvolkova/bert/bert_orig/bert-frontend/subgraph/scripts/accept-revenue-graph-node.mjs:168:10\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+}

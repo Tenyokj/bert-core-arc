@@ -49,7 +49,7 @@ node --version # Node >=22.13.0, matching package.json
 npm ci
 npx hardhat compile
 npx hardhat test
-npx hardhat --coverage
+npx hardhat test --coverage
 slither . --filter-paths "node_modules|test|legacy"
 ~~~
 
@@ -65,6 +65,34 @@ npx hardhat test test/EconomicTrustBoundaries.fully.ts --network hardhat
 ```
 
 ## 3. Local E2E Lab
+
+### Unreleased V2.4 Revenue Regressions
+
+The [transparent treasury candidate](V2.4-PROTOCOL-REVENUE.md) is local source,
+not the public deployment. Run `npx hardhat test test/ProtocolRevenue.fully.ts`
+for delayed snapshots, earned-fee collection, immutable beneficiary payouts,
+ERC-20 failures, conservation and a populated Transparent-proxy upgrade from
+the frozen 1.4.0 baseline. This does not replace a fork of actual deployed state.
+Run Slither separately: its adapter cleans compilation artifacts, so concurrent
+test and Slither processes are not supported.
+
+For the bounded read-only public custody inventory, run
+`node --test scripts/local/lib/revenue-inventory.test.mjs` and follow
+[historical accounting](V2.4-HISTORICAL-ACCOUNTING.md). Its six script tests are
+separate from the 268-test Solidity suite; a balanced snapshot is not browser E2E
+or an independently exhaustive chain scan.
+
+The [V2.4 browser acceptance record](V2.4-E2E-ACCEPTANCE.md) adds
+`npm run test:e2e:revenue` in the sibling frontend, or `test:e2e:all` including
+the four V3 lanes. It uses compiled contracts, MockUSDC and a local EIP-1193 test
+wallet, not MetaMask. The record distinguishes successful browser/receipt replay
+from native execution. The separate [native Arc acceptance](V2.4-NATIVE-ACCEPTANCE.md)
+passes the full GrantManager lifecycle and 0/20/60% cancellation cases with actual
+native USDC and gas-adjusted balance assertions; it is not browser-wallet testing.
+The separate [real Graph Node acceptance](V2.4-GRAPH-ACCEPTANCE.md) passes exact
+38-log/RPC agreement, restart, reorg and clean replay on a fresh MockUSDC chain.
+
+### Released Community Lab
 
 The canonical setup is [LOCAL-V3.1-E2E.md](LOCAL-V3.1-E2E.md). It deploys
 disposable V2 and V3.2 contracts to Hardhat chain ID 31337, mints MockUSDC,

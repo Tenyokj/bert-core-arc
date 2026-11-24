@@ -22,6 +22,11 @@
     validation only; no RPC, signer, deployment or transaction submission.
     Run with `node`; see `docs/V2.4-RELEASE-CONFIGURATION.md`. Its sibling
     `prepare-v2-4-release.test.mjs` contains five offline guard tests.
+19. `scripts/deploy/rollout-v2-4.mjs` - read-only fresh V2.4 preflight/verification;
+    `rollout-v2-4.ts` is the explicit-send Hardhat entry point for separate
+    implementation, maintenance, upgrade, Treasury and reopening phases.
+    Persistent transaction journal; no automatic revenue activation.
+    See `docs/V2.4-CONTROLLED-ROLLOUT.md` before any public send.
 
 **Local E2E**
 1. `scripts/local/mint-v3-test-usdc.ts` - mint MockUSDC to local Hardhat test wallets only

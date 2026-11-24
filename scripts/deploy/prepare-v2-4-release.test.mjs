@@ -5,7 +5,7 @@ import { validateReleaseConfig } from "./prepare-v2-4-release.mjs";
 
 const read = (name) => JSON.parse(readFileSync(new URL(`../../${name}`, import.meta.url)));
 const source = read("release-config/arc-testnet-v2.4.json");
-const manifest = read("deployments/arc-testnet-v3.json");
+const manifest = read("deployments/arc-testnet-pre-v2.4.json");
 const artifact = { contractName: "FundingPoolUpgradeable", deployedBytecode: "0x6000" };
 const copy = () => structuredClone(source);
 

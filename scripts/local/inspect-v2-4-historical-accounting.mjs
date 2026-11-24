@@ -6,7 +6,7 @@ import { reconcilePreRoundInventory } from "./lib/revenue-inventory.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const read = (path) => JSON.parse(fs.readFileSync(`${root}${path}`, "utf8"));
-const manifest = read("deployments/arc-testnet-v3.json");
+const manifest = read("deployments/arc-testnet-pre-v2.4.json");
 const baseline = read("test/fixtures/FundingPoolV140.json");
 const prior = read("docs/security-reports/v2.4-arc-fork-73753950.json");
 const rpc = process.env.REVENUE_INVENTORY_RPC_URL;

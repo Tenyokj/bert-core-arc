@@ -85,7 +85,7 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
     requireCondition(process.argv.length <= 3, "Usage: node scripts/deploy/prepare-v2-4-release.mjs [config.json]");
     const read = (filename) => JSON.parse(readFileSync(filename, "utf8"));
     const config = read(process.argv[2] ? path.resolve(process.argv[2]) : path.join(root, "release-config/arc-testnet-v2.4.json"));
-    console.log(JSON.stringify(validateReleaseConfig(config, read(path.join(root, "deployments/arc-testnet-v3.json")),
+    console.log(JSON.stringify(validateReleaseConfig(config, read(path.join(root, "deployments/arc-testnet-pre-v2.4.json")),
       read(path.join(root, "artifacts/contracts/BERT/DAO/FundingPoolUpgradeable.sol/FundingPoolUpgradeable.json"))), null, 2));
   } catch (error) {
     console.error(error.message);

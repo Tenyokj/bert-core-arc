@@ -1,0 +1,128 @@
+{
+  "network": "arcTestnet",
+  "chainId": 5042002,
+  "deployedAt": "2026-09-09",
+  "updatedAt": "2026-10-25",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "rolesRegistry": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
+  "popVerifier": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
+  "sharedProxies": {
+    "rolesRegistry": {
+      "proxy": "0xf15c6213666EB4c09f594567DEf1345E2899BCC7",
+      "implementation": "0xee5786c8e1ecf741b36d1c049d57019e109e6b09",
+      "proxyAdmin": "0x828d02dbebccfa68212ff50d068f3d7d4e32e5a0"
+    },
+    "popVerifier": {
+      "proxy": "0xb8E2CB14F99E1a17C3Eee5863272A7F6dAF3C62b",
+      "implementation": "0x90da195cf2eb6cde5f29bdaf9b25eccc7aeb52b0",
+      "proxyAdmin": "0x2043e6ff4b45affdfda9e29f9d27325c35f98a6b"
+    },
+    "roleBootstrapDistributor": "0xb0CA3E4F33994EAFe34a6257a0b904b8179A1b30"
+  },
+  "v2": {
+    "ideaRegistry": {
+      "proxy": "0xE6563acfdc194Ba3861EfD928Bd8B1B33a5D29d5",
+      "implementation": "0xbcF691cc4160E2fc31D2bCe83fFc61821e931658",
+      "proxyAdmin": "0xc56a44edE787c5C046c79E1BA5b1236Aec0C7347",
+      "upgradeBlock": 65961605,
+      "upgradeTransaction": "0x25e04b6ab0565ce090536473922d30b3b9eddbb5bacb508b954093f670f835cf"
+    },
+    "fundingPool": {
+      "proxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
+      "implementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
+      "proxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
+      "upgradeBlock": 66809444,
+      "upgradeTransaction": "0x6a3f82c71d2cbc2130908e86b8210b913668508c4afd68551b931a006c048593"
+    },
+    "votingSystem": {
+      "proxy": "0xD008fC96902A9680FF77305881Ad6C6C075e7a68",
+      "implementation": "0xfbf81677C3958Aa5D677022360302f365528888c",
+      "proxyAdmin": "0x971a69360f30ff671f40e692b3b72b812c1c9bf0",
+      "upgradeBlock": 65961663,
+      "upgradeTransaction": "0x27ee898d0856b0e5ee473040cd209282c75612f70da236ef04732518f4a7c461"
+    },
+    "grantManager": {
+      "proxy": "0xA110baB4562d59d8bb7eDA4a05E53F40c678ccB2",
+      "implementation": "0x8A46C5Bab3b1e62d3eB055C070c53D74d72A30F3",
+      "proxyAdmin": "0x1d3e84217702fdd53fae2ea652e520777e7caa47",
+      "upgradeBlock": 65961794,
+      "upgradeTransaction": "0x69835e5aea756ff89b0257ce1a27a21d6465ec353ca643c5b0d72e261066b5f8"
+    },
+    "voterProgression": {
+      "proxy": "0xF6EB65957bb5e363FCD6B84AAdf76E41Ba754E14",
+      "implementation": "0xeec0ed80ec6482c0eeef44b2db9c480056700597",
+      "proxyAdmin": "0x61dd57e2f85ce4b4bff93b91c45651a06ef513c7"
+    },
+    "reputationSystem": {
+      "proxy": "0x3594C46983460733F6470f7b61De2f3bB2918a81",
+      "implementation": "0x331f5f31714689d611991ba83cdda71e8732117f",
+      "proxyAdmin": "0x1e8feb21d8e73a1eec44aa09ec5b59fb9376c0b1"
+    }
+  },
+  "v3Legacy": {
+    "factory": "0x811fFb3B53d43e608Ee4dF854aa1BdC471F37589",
+    "factoryImplementation": "0x53532C921EC65e71d89Eb54D2A767d6AbA3D818c",
+    "factoryProxyAdmin": "0x7CeA6Fd35d8248d0691686Db10fCd94849Cd3a79",
+    "factoryDeploymentBlock": 61277385,
+    "treasuryDeployer": "0x84594a42E59789C687e9397a994D71CFfa522409",
+    "adminActionsLibrary": "0x5EA79A8a98f588aa342f53baCBC8729A6Ea1177E",
+    "fundingPoolConfigurationTransaction": "0x7ccb8902cf7036951820126e051e18ca8508c8cc8349ffc34469d1a25a1cdf74"
+  },
+  "v3": {
+    "version": "3.2.1",
+    "milestoneManagerVersion": "2.0.1",
+    "deployedAt": "2026-10-25",
+    "factory": "0x23E023E0D8B3436319BC6e5e72615Bc7A0c6234E",
+    "factoryImplementation": "0xE397EBb742d0D1c43392425D7B55632C22B18Abe",
+    "factoryProxyAdmin": "0xfd9a838E1F727cfd25D52E3E3e93D42C73965d86",
+    "factoryDeploymentBlock": 69044184,
+    "factoryDeploymentTransaction": "0x311e3115421abfb5b3e83232d19575a1e670ff3fa53b0b4d0cc651d8501261ed",
+    "treasuryDeployer": "0x5D11c6780FA89aF62b7A0B28ca502aaBBE81D11d",
+    "membershipModuleDeployer": "0x04A432bbb627B276138c544d83079f0494634dC5",
+    "proposalModuleDeployer": "0x22a7a329d5fe207de241f1B4a53A2A3E757D99b9",
+    "votingModuleDeployer": "0x75D5F8343580c2b8570187785ba70fC8aBBbe9B5",
+    "milestoneModuleDeployer": "0x8E3EcA1AE38ACd266bB2A12eB4F2533211C36F46",
+    "adminActionsLibrary": "0xE0f9265aF9dFD29D259C468bCC1786AA47080089",
+    "fundingPoolConfigurationTransaction": "0x0068709ea7e3b176f77dd993e5b4dbdb98ea0f66e7ae5051836f2bb0820614c2",
+    "fundingPoolConfigurationBlock": 69044535,
+    "subgraph": "https://api.studio.thegraph.com/query/1742046/bert-v-3-1-arc-testnet/v3.2.1",
+    "subgraphDeployment": "QmatHFmHX8JwEh9MnCEsD5KUrXVuaxECiHKBFNMbi5NcHU",
+    "retainedFactoryStartBlock": 66809847
+  },
+  "v3Previous": {
+    "version": "3.1.0",
+    "factory": "0xe16Cd61a21feA97393e6eEE3A7F7A26828021dD0",
+    "factoryImplementation": "0x98B9f4C5AE645861a54944cf4C4299Cf1b08e618",
+    "factoryProxyAdmin": "0x67ba9074bC2B696f3d5c808623429Cd2D207e81f",
+    "factoryDeploymentBlock": 66809847,
+    "factoryDeploymentTransaction": "0x4f60aeca659d275ef8cef0c761441207a83a78012b1006c8a79b3beaca84ec32",
+    "treasuryDeployer": "0x009F80F6Eab73806655B10E2A5f42Ed3F2A9125b",
+    "membershipModuleDeployer": "0x1bC3fe5821B88d4Dcf5253Ee860D21eCEe235010",
+    "proposalModuleDeployer": "0xe7421a97D168825E048E29eb70196918d71c5a7D",
+    "votingModuleDeployer": "0xb3f60c1dB662b1d62F9Aa7652F95B62D819FfA6d",
+    "milestoneModuleDeployer": "0xdb7846846011792cf9c70391078a0399E8a91569",
+    "adminActionsLibrary": "0x889A087A90cf711D86B208681ea8AfE668479303",
+    "fundingPoolConfigurationTransaction": "0x845f814537778cdd61d2e11fe3eb80d4fda9557058212afc3ef884c70f16e66a",
+    "subgraph": "https://api.studio.thegraph.com/query/1742046/bert-v-3-1-arc-testnet/v3.1.0"
+  },
+  "v3PreviousV32": {
+    "version": "3.2.0",
+    "deployedAt": "2026-10-24",
+    "factory": "0xf793786BCecfbfE35a22E36180032b32BD5208Ba",
+    "factoryImplementation": "0x0E119814fdDA2766B9762056622Aa3156cEBfe75",
+    "factoryProxyAdmin": "0x82B52Dc601f3830FB638F84784Ff624B2c152660",
+    "factoryDeploymentBlock": 68888068,
+    "factoryDeploymentTransaction": "0x217bf856e206f18297c39caf8c474d48bf0e59caa70d39f58c0d9d795b57c6f6",
+    "treasuryDeployer": "0x374D742CC904edC4Dc09Bfd6BC941519969C1adf",
+    "membershipModuleDeployer": "0x5196CC82fc05e6b4623c381a944a8D24b02984dd",
+    "proposalModuleDeployer": "0x5286B45c3DA60F7341F3f0147163c6B42FeD01a3",
+    "votingModuleDeployer": "0x9D6cef8dEC24ffea29ed1319ebc4E0d729DCe25F",
+    "milestoneModuleDeployer": "0xB1D4A3d54a0E7bC1CCA66F973A08b25F99FD37bf",
+    "adminActionsLibrary": "0x4755E0bc1CB4ffB958595d40A55d1F63862bC815",
+    "fundingPoolConfigurationTransaction": "0xb101ec91d9252961ceacf348bf6bcca695d234c8b7d475d00c058adb674205b4",
+    "fundingPoolConfigurationBlock": 68888345,
+    "subgraph": "https://api.studio.thegraph.com/query/1742046/bert-v-3-1-arc-testnet/v3.2.0",
+    "subgraphDeployment": "QmPRRt8FN9ibN4LhSmBBoxEc5WBj55ThE2LjGyRyTNL2oh",
+    "retainedFactoryStartBlock": 66809847
+  }
+}

@@ -15,7 +15,7 @@ const same = (a, b) => a?.toLowerCase() === b?.toLowerCase();
 
 export function loadRolloutContext(provider) {
   const config = read("release-config/arc-testnet-v2.4.json");
-  const manifest = read("deployments/arc-testnet-v3.json");
+  const manifest = read("deployments/arc-testnet-pre-v2.4.json");
   const baseline = read("test/fixtures/FundingPoolV140.json");
   function artifact(name) {
     const value = read(`artifacts/contracts/BERT/DAO/${name}.sol/${name}.json`);

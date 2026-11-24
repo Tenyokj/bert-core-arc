@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "network": "arcTestnet",
+  "chainId": 5042002,
+  "updatedAt": "2026-11-24",
+  "status": "contracts-installed-and-reopened; indexer-and-clients-verified; revenue-scheduled-awaiting-activation",
+  "sourceCommit": "1e2c471",
+  "sourceMergeCommit": "5ed0675",
+  "fundingPool": {
+    "proxy": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
+    "proxyAdmin": "0x9F2ED133FEB47Dad3d9a1BDE7ea728D198029919",
+    "previousImplementation": "0x2ce7facbc1716b7dEdA10a9134751189a75D3b76",
+    "implementation": "0x06a6497C174f80Cb5D1E49BB5bD2519D520E7643",
+    "implementationVersion": "2.0.0",
+    "runtimeBytes": 24269,
+    "runtimeHash": "0x9bdc8ebe21215ee39c22daf7620e6a81a2954c9527380e8a544e5bc14acc9032",
+    "implementationDeployment": {
+      "transaction": "0x72c6ea66059ed15c4a3694fcb7126d03105cb49f9083c59dc4075293410cbf9c",
+      "block": 73929642,
+      "blockHash": "0xf215b292bf62ebd3bc28b89837010fe403d1049fc94390f4ec415dd6d736075f"
+    },
+    "upgrade": {
+      "transaction": "0x6e5efbed32f4576469cbeaff7bd8ef81d6be38d619417a9d097046fb8c77e962",
+      "block": 73930253,
+      "blockHash": "0x541a1f08819003c61b287d75fff570795b11869f2e3f0f7d6aac2ddf1986f0cc",
+      "initializerCalldata": "0x"
+    }
+  },
+  "treasury": {
+    "address": "0xeCF9D2fD1914D1aFa124498931fdAA976D4e143b",
+    "version": "1.0.0",
+    "upgradeable": false,
+    "usdc": "0x3600000000000000000000000000000000000000",
+    "beneficiaries": [{ "address": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF", "shareBps": 10000 }],
+    "runtimeHash": "0x4ca53dd7bab324f2a37f9d36429bb4f0d3a6afdb539bb98eb632ace25df52940",
+    "deployment": {
+      "transaction": "0x252bdb54baeff7bbf173ea25c4c38adab215060a8852a4ccec54ce9944d6caaa",
+      "block": 73930467,
+      "blockHash": "0xf7e1dc552a93e1131c5dda29ffed57a64b06808bd2a91290a2feebec9bb260b6"
+    }
+  },
+  "reopening": {
+    "grants": { "transaction": "0x064f1347bb045376cad904355340bca3f88d2adb77bbeb340911f8876a11c015", "block": 73930758 },
+    "voting": { "transaction": "0xf5e98490ff46ce87b91af1e751c1fb89f64f87502d955a7a6ebdd7c055a30ee9", "block": 73930800 },
+    "pool": { "transaction": "0xf20da1ceec4f860647d780786a96b98fa41074700a09f3b00d158c7cdbc713bd", "block": 73930847 }
+  },
+  "verification": {
+    "block": 73930983,
+    "blockHash": "0xaf1a84298a0b005b09bc6f31cdb6788cbea04a7ff3e2ea1e6686380409148d87",
+    "allReceiptsSuccessfulAndCanonical": true,
+    "actualUSDC": "1140000000",
+    "recordedUSDC": "1140000000",
+    "reserveUSDC": "0",
+    "poolPaused": false,
+    "votingPaused": false,
+    "grantsPaused": false,
+    "revenueTreasury": "0x0000000000000000000000000000000000000000",
+    "revenueShareBps": 0,
+    "scheduledRevenueTreasury": "0x0000000000000000000000000000000000000000",
+    "revenuePolicyReadyAt": 0
+  },
+  "v2Subgraph": {
+    "slug": "bert-arc-testnet",
+    "version": "v0.4.0",
+    "endpoint": "https://api.studio.thegraph.com/query/1742046/bert-arc-testnet/v0.4.0",
+    "deployment": "QmespxoHTuLqWtkUn29jMXjcBhFDXLsJjwwvPYRMAXpfAg",
+    "status": "owner-reported Synced; caught-up endpoint and both client proxies verified",
+    "firstObservedIndexedBlock": 43491872,
+    "firstObservedHasIndexingErrors": false,
+    "clientEnvironmentSwitchConfirmed": true,
+    "verifiedConsoleIndexedBlock": 73934775,
+    "verifiedDappIndexedBlock": 73934887,
+    "verifiedDeployment": "QmespxoHTuLqWtkUn29jMXjcBhFDXLsJjwwvPYRMAXpfAg",
+    "verifiedHasIndexingErrors": false
+  },
+  "clientTreasuryCheck": {
+    "consoleHTTPStatus": 200,
+    "mode": "v2.4",
+    "paused": false,
+    "actualUSDC": "1140000000",
+    "recordedUSDC": "1140000000",
+    "directRPCPolicyCheckBlock": 73934741,
+    "activeRevenueShareBps": 0,
+    "scheduledRevenueShareBps": 0,
+    "revenuePolicyReadyAt": 0,
+    "dappScheduleFormPresentInPublishedBundle": true
+  },
+  "revenueSchedule": {
+    "transaction": "0x7d50e5bfb5fec55ff80a5618c6c6edeb3e11d0701e083993a62c9801d56b41ba",
+    "block": 73935171,
+    "blockHash": "0xc1c578f3833085642e70b748f87f8a1a2906ade2612be5009707ff4c64724040",
+    "status": 1,
+    "scheduledAt": 1795557804,
+    "treasury": "0xeCF9D2fD1914D1aFa124498931fdAA976D4e143b",
+    "shareBps": 2000,
+    "readyAt": 1795730604,
+    "readyAtUTC": "2026-11-26T22:03:24.000Z",
+    "readyAtEuropeMadrid": "2026-11-26T23:03:24+01:00",
+    "delaySeconds": 172800,
+    "activationConfirmed": false,
+    "directRPCCheckBlock": 73935268,
+    "activeShareBpsAtCheck": 0,
+    "indexedCheckBlock": 73935281,
+    "indexedScheduledValuesMatchRPC": true,
+    "indexedReceiverDiscoveryStatus": "Indexed",
+    "indexedBeneficiarySplitMatches": true,
+    "indexingErrors": false
+  },
+  "pending": ["Explorer source verification", "Actual 48-hour notice ending 2026-11-26T22:03:24Z", "Separate policy activation", "Publication of final documentation and GitHub release"],
+  "recommendedFollowUp": ["Public new-round eligible-fee accrual, collection and payout pilot"],
+  "note": "Receipt-backed V2.4 testnet delivery; revenue activation remains pending. The consolidated manifest is current; its exact pre-upgrade snapshot is archived separately. Preserve the completed operational journal, never bypass its fingerprint or repeat its sends. A deployed Treasury is not an active revenue policy."
+}

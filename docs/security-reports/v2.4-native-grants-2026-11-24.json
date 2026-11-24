@@ -1,0 +1,1522 @@
+{
+  "status": "passed full native GrantManager scenarios; not public rollout authorization",
+  "recordedAt": "2026-11-24T16:16:52.292Z",
+  "chainId": 31337,
+  "publicTransactionsSent": false,
+  "freshLocalDeployment": true,
+  "populatedProxyUpgrade": false,
+  "walletBrowserTest": false,
+  "mockTokenUsed": false,
+  "block": 73753950,
+  "blockHash": "0xea1db9920001148186b76cc2504a73ca3da6b7697717d2aee9c6b4ffd9376dff",
+  "asset": "0x3600000000000000000000000000000000000000",
+  "receipts": [
+    {
+      "label": "deploy RolesRegistryUpgradeable",
+      "hash": "0xd2b1854b1f62fa6865a82d8b8c31bce0b8c4d0a5a13528ad60fb22b8997fbc74",
+      "blockNumber": 73754124,
+      "blockHash": "0x5f21fbda230353980bc44802fbbb5847ca26d43532845d53f54f10f66525d424",
+      "gasUsed": "1097611",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy RolesRegistryUpgradeable",
+      "hash": "0x506c689e1b6390b470502493d57af2bd63455e0050ad07bdf88a58ff2a7fede4",
+      "blockNumber": 73754125,
+      "blockHash": "0xcf35ad5bb1656c219f4599d9a29ff2fe82fd360bbb66ce217d9717089a2c078c",
+      "gasUsed": "737486",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy ReputationSystemUpgradeable",
+      "hash": "0xf842c10fd7d1ee590fbca44653d7cba24202bec3aedb18c718db8e85f58940b1",
+      "blockNumber": 73754126,
+      "blockHash": "0x71434337c0d1467599a5799ae2446a32f6d34954e300c1bc9202630219183f7b",
+      "gasUsed": "1250573",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy ReputationSystemUpgradeable",
+      "hash": "0x078e73921df90c0b6fb40f29f5bee78667ed1021a2f157d4310187bf57e396ab",
+      "blockNumber": 73754127,
+      "blockHash": "0x7c5f5d5670575e39f267640862867b89be94a46f2af85b7eef3baa8bbddd610f",
+      "gasUsed": "711523",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy VoterProgressionUpgradeable",
+      "hash": "0xb01835d54c285cd3f0fcb17e7b76e77e9e3b7b802f5a0cf0914f49ac5ecd5ba5",
+      "blockNumber": 73754128,
+      "blockHash": "0x164055ab8a66ae59d4d07901ba7ca22d0a9306f0ee5870deaddc2b55abb0ed2e",
+      "gasUsed": "1275597",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy VoterProgressionUpgradeable",
+      "hash": "0xeabde75e7a76c91bab6b43ef42055bf5d84abe49641459c8a0cc8ef140e2ae47",
+      "blockNumber": 73754129,
+      "blockHash": "0x71c1c7d1979d854f88120a59003d80e20b69fbb71b878ff7d50fe7dedbb8b728",
+      "gasUsed": "711465",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy IdeaRegistryUpgradeable",
+      "hash": "0x92a6b126386b6c90994e88222623c8d37f195e73871b6ad9fa24f1f896827104",
+      "blockNumber": 73754130,
+      "blockHash": "0x65047905a8791c2eb15a734a96ed0cb1132a2933e38658bb008335b48dc6a9cb",
+      "gasUsed": "3879759",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy IdeaRegistryUpgradeable",
+      "hash": "0x7bbe452e9c6e3ffde68288463f92f0c91f438904cf7ceff265b14d2da4f5c586",
+      "blockNumber": 73754131,
+      "blockHash": "0xdeb987440d9679c95a171281fbda431ab5342188f19f103628b6d51f2133a322",
+      "gasUsed": "824890",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy FundingPoolUpgradeable",
+      "hash": "0x7ed040b35c1b745cc877c9cfb0d152b70b905cfec9a46726deea9e47530cef45",
+      "blockNumber": 73754132,
+      "blockHash": "0xbf2ecfdae103bd64efbdd54d0544c4ecb835c266c4353e202eb9211b9ea40998",
+      "gasUsed": "5328928",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy FundingPoolUpgradeable",
+      "hash": "0x6f832fdfa4a338642e44dffa8d4d0e1d6f460b4cb0dafb868351ec54e23bb321",
+      "blockNumber": 73754133,
+      "blockHash": "0x86f39cd5c2ca0fe12d8c2f242e44f80292bbb4dd34b0fafc90f1d13bb1205568",
+      "gasUsed": "826797",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy VotingSystemUpgradeable",
+      "hash": "0x33baea09dc420015a4d81916b3b341dd4baa7cb2f67371be276a66cb7b3a4fdc",
+      "blockNumber": 73754134,
+      "blockHash": "0xe7093963c5f0333860edb8e34598d5f9eb9fd0a379ad16ca271d178b34319217",
+      "gasUsed": "3681937",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy VotingSystemUpgradeable",
+      "hash": "0xe496d9139808f8e85f615bdafcb331bdde1acfbc375ec35aeb56136d5edce9f6",
+      "blockNumber": 73754135,
+      "blockHash": "0x7f79c3cc919e03e5f7cf2cee9913b2c4044f4dffddaebf1a7dc97612a5b62151",
+      "gasUsed": "963067",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy PoPVerifierUpgradeable",
+      "hash": "0x3e0abc1b38c14da28c76cec0e5270f493005bb6942f9367150d3f5e7b74bf8d2",
+      "blockNumber": 73754136,
+      "blockHash": "0x1c84b4fa8442b91971cf1802c41fe632506ed55e4c10f4ded758260eae9b13f5",
+      "gasUsed": "1261360",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy PoPVerifierUpgradeable",
+      "hash": "0x4f1ceed65e48246db560dbe593cceb6e01e817ac8c5d11c42d5947324d620c88",
+      "blockNumber": 73754137,
+      "blockHash": "0xd93ecb949e735395c4a0e19f6fb1de05231b50da4ac3dc004768b9cf02a9be4d",
+      "gasUsed": "785354",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy GrantManagerUpgradeable",
+      "hash": "0x217aee426bef99b49ed33106b91bf09713c258451a599c2c8f3dfa793be82a31",
+      "blockNumber": 73754138,
+      "blockHash": "0x94dd1271a82dc13b107cc30229246b8d8d8f6cbace7d08d2fec1ec40e4abd0f2",
+      "gasUsed": "4544436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "proxy GrantManagerUpgradeable",
+      "hash": "0xee47c3b1b7e2fce04609414e29ba572343493600b7c1f440994d61f09d20b254",
+      "blockNumber": 73754139,
+      "blockHash": "0xaadcf7871b75e43053e0d49060618186e606e88ae4426ec87007e740fc732846",
+      "gasUsed": "849715",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "grant VOTING_ROLE",
+      "hash": "0x569b48de97c2340c54319920fc4e99740412b1cfdb7fcdf9e7cbf7a50983822d",
+      "blockNumber": 73754140,
+      "blockHash": "0x8968646e9bf5b7a47a58fd585264141c04c36b7324443ff3c9667d4f04b5e3aa",
+      "gasUsed": "54956",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "grant GRANT_ROLE",
+      "hash": "0xd6e64f5b1398ddd522bfa83f8cfb24e74c02deec7e996103103113e91aacb986",
+      "blockNumber": 73754141,
+      "blockHash": "0x48cc56b900d2fc881c5f2e9fa2db767910c56259d7681fab83310301ae798bbe",
+      "gasUsed": "54996",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "grant DISTRIBUTOR_ROLE",
+      "hash": "0xef8c83595c30defa1259533d6b914e755fa30e0a2c35b93b1a5e5cfe86ed8bd1",
+      "blockNumber": 73754142,
+      "blockHash": "0xaa7b5831e680af993317285ebbe8f257609dc1ee9071c666f88093efdaa1c750",
+      "gasUsed": "55036",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "grant IREGISTRY_ROLE",
+      "hash": "0xc6baa8a426ffff901c60d4670083d848a92422f0e5c587ed2c23e5292d398504",
+      "blockNumber": 73754143,
+      "blockHash": "0xa2d3780b3412f96044cb325a345cc8e230e6fd2f0290abc7c3323ab0f5c42502",
+      "gasUsed": "55064",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "grant REPUTATION_MANAGER_ROLE",
+      "hash": "0x226ac7f14dfdaf5fb011eb5948544c27d9323ddf64284c0d78ab33d626d233f3",
+      "blockNumber": 73754144,
+      "blockHash": "0xaec1eb886516d3f4008102c604b1f9d1622ce5b6bb0f34a29bd5a3470b9b11f1",
+      "gasUsed": "55107",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "grant REPUTATION_MANAGER_ROLE",
+      "hash": "0x0d2cffcb66eeb047771ca0804d6919c9f29957cb148186ccb6f985487194e479",
+      "blockNumber": 73754145,
+      "blockHash": "0x1da100c73c6f636507399f58220cb45eb11e2b2c81f24387f2e0b0cd1e483311",
+      "gasUsed": "55107",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "grant progression role",
+      "hash": "0x56025dbf247731cebeb41053f41782eb4f8b74b1980fcab5829dd376bfe750f1",
+      "blockNumber": 73754146,
+      "blockHash": "0x6796f510fce84266770d938d9505df1558222c3f513a5100410c740584bca0f5",
+      "gasUsed": "56664",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "wire idea pool",
+      "hash": "0x82724e16b1451d0335d701eca28182ad0966ea0700b89d59c04cfc79b1befe12",
+      "blockNumber": 73754147,
+      "blockHash": "0x05220f4a896955464aea8f2f61fe33270322e440886dbc7d6ab53728465c253b",
+      "gasUsed": "63949",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "wire voter verifier",
+      "hash": "0x0915dc0637ea8c830c1eebb4a9b6a1a8b7fe42c7f7b8549160cfff6b2638cb92",
+      "blockNumber": 73754148,
+      "blockHash": "0x2025afc5a8f4501ce8fae5629945f115175b1c6d9c70b26e65e114faf123be13",
+      "gasUsed": "63956",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "wire author verifier",
+      "hash": "0xd463b9d9172063de69f56eb843c390bcab8e4a86655512d93fc3e221d981f745",
+      "blockNumber": 73754149,
+      "blockHash": "0x05ee422f8758fe021e5bc98ea28e8c7004827ec34cb26c02c485d4687399c1b7",
+      "gasUsed": "63904",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "require verified voters",
+      "hash": "0xad950c247395c1be0de756dbd078bebab2c985920220c68d0c93d66cf6266505",
+      "blockNumber": 73754150,
+      "blockHash": "0x2ece8474b4e1b97427404be9cd24010a1761768b957d7dec3c8fc23b321ea5fc",
+      "gasUsed": "46521",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "require verified authors",
+      "hash": "0x2446b8bd2c7ce566f8f5550848ce851d1b038da83b9e727ffc95ab3bc447ce11",
+      "blockNumber": 73754151,
+      "blockHash": "0x9e3df997dd6231c19ba1431717a4d5b8a705a4b2960977036018053f80da5b33",
+      "gasUsed": "46535",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "five ideas per round",
+      "hash": "0x7887d37712391f330345a3ef1e0ee31590d094a691e2d8d0655639cc62777188",
+      "blockNumber": 73754152,
+      "blockHash": "0xd0b4afec86351f822886ac2085580960165f040379966605c368aacc35f3785d",
+      "gasUsed": "46462",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "enable real backer milestones",
+      "hash": "0x3d2fddd647cbb6ac757378fb5dba470b4ab65c04382c191f463a1563aa6cfce2",
+      "blockNumber": 73754153,
+      "blockHash": "0x749e71edd96d2534e0b6c7c2b5213ed688c0d805d47546b0b40c009172e9ea81",
+      "gasUsed": "63636",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "unpause local module",
+      "hash": "0xeedaec3d00b8f2340032a129a777bf55c3968e46a299fd5c733eb48961becebd",
+      "blockNumber": 73754154,
+      "blockHash": "0x62bea0089285f13ee3b1c87fecefc39e7eb63ec9a9db4332fbf89993baf6d27d",
+      "gasUsed": "41706",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "unpause local module",
+      "hash": "0x857ff8ce46edfacff0d869dc205823fdcbc78f68213ecf1a0d062ffac51dc3ac",
+      "blockNumber": 73754155,
+      "blockHash": "0xb87a415623e2b0395ee1f51d790dff529dd292b05f547fb92583ecd280ca78be",
+      "gasUsed": "41650",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "unpause local module",
+      "hash": "0xd6c4f7a5bec1b1209e15dfb3cb98be54a7d25a791fd39cf2b851e6b51e8548e2",
+      "blockNumber": 73754156,
+      "blockHash": "0xbcb56c49c84d21ecdb0f0cbc01adedf7da4a77a31f4fe2e596b3bcbeecf447bb",
+      "gasUsed": "41631",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "local PoP credential",
+      "hash": "0xc1b8872e11032561b42041c3e3d0a7b32b3224707a89aae6b57bec3ea5ca3708",
+      "blockNumber": 73754157,
+      "blockHash": "0x095a60f9ee5a226e60e09bcfea512abbfbc40ff264dc272f990a117653e75e10",
+      "gasUsed": "89026",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "approve actual native USDC",
+      "hash": "0x124e6e6956ae454b585b889e6ecfaf0c4a0df86e46f7c7b22ca35e20c655e902",
+      "blockNumber": 73754158,
+      "blockHash": "0x60d60149c3ce21e193b369e8509458c49333f718dd09de29c35dd049d6f16400",
+      "gasUsed": "55786",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "local PoP credential",
+      "hash": "0x22a5fe9248daf09ef8ff40d23f6735f90d6d27b2beaddbc1e2678201232f09e1",
+      "blockNumber": 73754159,
+      "blockHash": "0xbfca47f9f7481e41a5e964eb635f65ff8eaf01c0f6dd940dc0c7ecc0474dfaaa",
+      "gasUsed": "89026",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "approve actual native USDC",
+      "hash": "0x964a465a52fbfa1e04b73514af6354c96348898dca872840a7d91655d9b00179",
+      "blockNumber": 73754160,
+      "blockHash": "0xec6907e30df97aeeaac6a83da9bb693343e506fe7222ab2865f0ccdc59133f0b",
+      "gasUsed": "55786",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "local PoP credential",
+      "hash": "0x69f952e06bff17c12fc6112505b12c1d125c457db96fd51e42670e10f9cff817",
+      "blockNumber": 73754161,
+      "blockHash": "0x5c2db1227401130541b8e14053836803c2ba8b72ae22b4214ae131115f2aa8f6",
+      "gasUsed": "89014",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "approve actual native USDC",
+      "hash": "0x1b8c73b2242f4df8a319bc50199b0a8be0249ba78ecd5fac367f8a2e0a511b84",
+      "blockNumber": 73754162,
+      "blockHash": "0x16756316c1f0d0743448ca586ada41d880132d95a84bbfec3c1ceb5f25f26f05",
+      "gasUsed": "55786",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "local PoP credential",
+      "hash": "0x4c2d27ad53c925b66310b3f5279d2205962d1fcaa0da94ea0b71fb81500ca06b",
+      "blockNumber": 73754163,
+      "blockHash": "0xb1b35f7d253d2cb94542bc9041dabe69377a1a9167c9c46aae009f83b8cfa9d7",
+      "gasUsed": "89014",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "approve actual native USDC",
+      "hash": "0x3109e1de3c159d2c99a1e0aabec7d74a2b84bc65d55fa46d07b0f49d4c687248",
+      "blockNumber": 73754164,
+      "blockHash": "0x66e4d1c41a78c4bfedeb90129c06ceceaa76117f9720cfb12386c241fb203cd6",
+      "gasUsed": "55786",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "local PoP credential",
+      "hash": "0x043da52183047070ac10e854942277763a53695956b93e8f0babc0d20949dd6f",
+      "blockNumber": 73754165,
+      "blockHash": "0x788814db0f266c540e3c3acfe806899139d6ec492a16d22b4a061c623d2169c6",
+      "gasUsed": "89014",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "approve actual native USDC",
+      "hash": "0xc91a2580016459d7a78288d9c5329b00ab3f23f8417bdd0207f582354b928a15",
+      "blockNumber": 73754166,
+      "blockHash": "0x9bd1d3cb925f5abea02c0c2266a93f196a0aa94f4f52f543d5310991620076aa",
+      "gasUsed": "55786",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "deploy immutable Treasury",
+      "hash": "0x2a19bd2b43bc472a5d2cd7406c66af0bc7e52d49ae69360ad7408dee1752e498",
+      "blockNumber": 73754167,
+      "blockHash": "0xab904a6bd75a072942f0b8dadf2ddebb1480338817c0e06f04c46c67633eec8e",
+      "gasUsed": "853275",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "schedule policy",
+      "hash": "0xeb15b314beedbc38b29ad8a24b1fd3c545a64a5b2bbada79505ecb49f52e1f4e",
+      "blockNumber": 73754168,
+      "blockHash": "0x26e4ed997a500cbbed3984ec20f1549368b9394a8a21b783c9329cf0ee32ba68",
+      "gasUsed": "137894",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "activate exact policy",
+      "hash": "0xba363f4df116b375fffd517d27fcba497c760a979187c492e5d935e9e9250775",
+      "blockNumber": 73754170,
+      "blockHash": "0x3f1f2908836d7f203b229685600d46fb56b7244cf72122c4d4803d8585dcf44f",
+      "gasUsed": "79378",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x785032440e56bb2c6ddbcd4bfb0634929c9b45a9b6c67b11c9a36623f4d0056a",
+      "blockNumber": 73754171,
+      "blockHash": "0xec127c1c2082476e5705f9499b5ef76f19c9b90aacd732e430c1978c037f81c9",
+      "gasUsed": "488154",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x43a28fb75dd2d3e18ad9f96bfe7c22e99129e99b047bc95b6ebed895999323bb",
+      "blockNumber": 73754172,
+      "blockHash": "0x9ba855887daba3c500e53ce237c90ca231e844ce05d55311649f82333c6de4a9",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x540d310e3c6d5502e553802a36b27c48b22b26271d7b84769f46de8a4a4a88b0",
+      "blockNumber": 73754173,
+      "blockHash": "0x40308812c4c18c3f6d21d3230969288353acd66fc97806d591f94cf27b126c1d",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xabe9cb6139a89ff1a4d48195ebb8bb43f2171503eee1d9fbd3ebbc186baf9e0a",
+      "blockNumber": 73754174,
+      "blockHash": "0x682a3f986937f7c0bb025d3ad279e1766a3c7124242ab2914d4a7bcc63851217",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x765027754d6c081ee11636e978b81716fd482c3e13c9b0ff31fd24c44159bd99",
+      "blockNumber": 73754175,
+      "blockHash": "0x31f0d9d199502a100e8245203cb22e516ac35284b1d3c6d8384bb8820a8a4363",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x5e9abbf4b2ceffda7bbf8e276ad83981168e390c3777026fcafe15d79bacd129",
+      "blockNumber": 73754176,
+      "blockHash": "0xdd26164f143d12312df37b6e6695bcf8acadae2e9289bd4b28af22ae72aa6c29",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x6d2e142e6b2f2dee34f3d2fddf517e3d0c431c6d2cc9c0977a4eda407aa09f9d",
+      "blockNumber": 73754177,
+      "blockHash": "0x82d730eeefd1626b8715230d792e52c623309be4dc7889a09b6d1686e8c47a85",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x251d3a5d724c6bbea422012f7a02362b8071f5b1dc0f27a7607c73b0ac37238d",
+      "blockNumber": 73754178,
+      "blockHash": "0x412fdcaab05de0fb3fdf13c7d2f777f3b7b990a3d02e731e45a2dc7b8cc08591",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x4198677a203b055b5f083d55c5a6b8cb1170349fb2609d1e852c96a050d5715f",
+      "blockNumber": 73754179,
+      "blockHash": "0x41edba66bcfa3185d04ec6f1fe3850352252b036078350a40dcbc758d551fe24",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xcd58741b29adf8e6f94e9de45c46ff1b5b41963e3614d1cb07c3d8e4ac2689ac",
+      "blockNumber": 73754180,
+      "blockHash": "0x0972af6c3374554a507930ee2ee1c2a70d2c30c2991eea844ff64bab027ede06",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "start real funding round",
+      "hash": "0x5fc83986136e067d29ea181d10213478faa809946edba43d9902bc379ead1e6b",
+      "blockNumber": 73754181,
+      "blockHash": "0xa71447718b6a21782d266c1fc4f2046efc25832eddd3dc786081b978df0b3644",
+      "gasUsed": "789726",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0xfa5c11c0a8437ea8796eaef57e352146ebb4aaf5a353fc0501687966dcfc55d2",
+      "blockNumber": 73754182,
+      "blockHash": "0x7c58e399fe4d1fd849e89677e3a533a840bee8664cf15fe495fd3b3029ad5903",
+      "gasUsed": "419183",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0x34920cd8896a703dd6a9f2d4c9aa994f78f40813ccdde998dd16aa9f110bab44",
+      "blockNumber": 73754183,
+      "blockHash": "0x253bf47da51f2ec9a372d917ba6ec91be10e471448d88b712306365fa202a9ce",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0x0096e78aabd4e0aee4c1e8d5c6e42c7ba6775f7589c6ae5f5d4189a0021a0566",
+      "blockNumber": 73754184,
+      "blockHash": "0xe0d9d2b88108af83c459a13462cce39ae3305934e512c3600256f7fab599490f",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to alternative",
+      "hash": "0x11edffd0da1404f2e88dca317d81529e538fe28a65c8e46443c166294f40be00",
+      "blockNumber": 73754185,
+      "blockHash": "0x04f3510cd0ef707e2b3c598918999eaa0af1207c9ad700ec141482d254a4e5d5",
+      "gasUsed": "402083",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "settle through VotingSystem",
+      "hash": "0xe927d7d147a88d7b5a82f3dd599ad8e5d14391ac0e89357108c2130aec0c7e2a",
+      "blockNumber": 73754187,
+      "blockHash": "0x0d838dee29e6d0f9aeaf5c1a5aae74aa5b94968414678540b3b558a531189ed9",
+      "gasUsed": "562366",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "claim initial 20% and author bond",
+      "hash": "0x7692b9d4932ed92d4af8451d5308c4f82bfa4a488103de70a1b931059b6ff02b",
+      "blockNumber": 73754188,
+      "blockHash": "0xc6a38c30e5d059a7594a7a17cf09dca5f5366e4679bcc44ebd00794b597266c0",
+      "gasUsed": "652648",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "collect earned fee",
+      "hash": "0xc7bd12532947207dc8bc4fa5681f0fc0ba9b13607d0fe9bd3826324d1afe8201",
+      "blockNumber": 73754189,
+      "blockHash": "0x75c72c79a0c2accf6d858b28ffea15056ee41c7bd42ac16d85bf9048ed91e183",
+      "gasUsed": "92509",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pay immutable beneficiary",
+      "hash": "0x7023d042373e211f1fa1d284fdae5e6c2404c9b031ee2d0cdfa5d9ee0bc112e5",
+      "blockNumber": 73754190,
+      "blockHash": "0x6172f3309c13979160d1c8cf5b9758c655f3f78162fabd53fd665b080dd07fb6",
+      "gasUsed": "114853",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "submit actual milestone proof",
+      "hash": "0x2e1421c549d179f4ecbdcae46dd482787a0ad5869ad5e373a2738959fa27a29e",
+      "blockNumber": 73754191,
+      "blockHash": "0x162c58482f9950c8a3196d2871f9a5a6ea6ade239bd9e101227f9490ecf79205",
+      "gasUsed": "216101",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0xce08011f499407e10c05852ef01baef82b178a72b7c04ca7bb7a7061f13aee28",
+      "blockNumber": 73754192,
+      "blockHash": "0x276780462692591569943266ff6c310624a61da7777411021e434962a4aabfec",
+      "gasUsed": "148558",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0xe01815725d024c8f0259e39a17aa882c2f5d386f4c2657cf16bfc352c2cd9385",
+      "blockNumber": 73754193,
+      "blockHash": "0x95f09e96d417c82d0297cbc2337149ef22b65c112bc3f5ecfd0c512861dd6495",
+      "gasUsed": "114358",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0x0e61db862daa3bc305e95449497ce7d8db9b19fcfb3e46eb5c2cafc17ab6aa03",
+      "blockNumber": 73754194,
+      "blockHash": "0xb0bd91055cde24bd5b1312ca7e66070356ee12c31ff9268b61257804228fa4f5",
+      "gasUsed": "114358",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "release approved 40%",
+      "hash": "0x706b8472da247bbbeba1d616118da194c7b3e864e24a7a90ce4a11817771d55a",
+      "blockNumber": 73754196,
+      "blockHash": "0xd2f539d36589f8d6e6db4b1cb027db53a4314a27c3a336fef60d0c836f20b99a",
+      "gasUsed": "411028",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "collect earned fee",
+      "hash": "0x58e5b8bc41bd5c8ebe5d59a641cbb2c0d031ae882ca79467a9ff230d3ff152fc",
+      "blockNumber": 73754197,
+      "blockHash": "0xec6d4bd7b250828940a5563f33a484ae8babfa1e6cdc89aeff9b676f72527383",
+      "gasUsed": "92509",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pay immutable beneficiary",
+      "hash": "0xfb51c7eea725dcd618bd87252cbacf8ad47a6de91876ea1c80126337de5c8388",
+      "blockNumber": 73754198,
+      "blockHash": "0x5b8af03db08b64725b93036822874bd5295c9c8426f744921c4f0298218389f8",
+      "gasUsed": "80653",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "schedule policy",
+      "hash": "0xc1a27cc8e0741dccb1d193012279ed6841104c0333b746da00ab8de444d415d6",
+      "blockNumber": 73754199,
+      "blockHash": "0x19e0c7b4e6923b4628ff64f3066c1571c18c4268ab4d3cfff49ebe3307fa03ce",
+      "gasUsed": "69182",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "activate exact policy",
+      "hash": "0xeea01018ccee158d8e723f42a095b6703c170894eba4a6bc4173ec1e647d0a5c",
+      "blockNumber": 73754201,
+      "blockHash": "0xc2b7b98a088d3c81e1ea423b1a2ef6f0509398795a0fe34e1b0d50f7c7df08a6",
+      "gasUsed": "38080",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "submit actual milestone proof",
+      "hash": "0x72cd0d0efcc8cf466f509302b8d032f2f9d991f95bcae693eac561a0f3f3cab7",
+      "blockNumber": 73754202,
+      "blockHash": "0xafcdb3246de8368fce594903e1812437ff0a7069b50e730532374100f4097877",
+      "gasUsed": "216305",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0x2bf2bb34a62233a3a899d52459001f441840f7cc3f4e31a019eaf4668fc298e5",
+      "blockNumber": 73754203,
+      "blockHash": "0x82be54f00d3b2f184707ffbacafc017b3407442a6f0d5cc730ff63c7a6236388",
+      "gasUsed": "148558",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0xdcaacdc29fd8f4198c8802f99a8e3313cf089bf20ab0e7481b6e2c6a2b23c39b",
+      "blockNumber": 73754204,
+      "blockHash": "0xd96a49d52418dcae65d2434a064de4fea4f5f5456823ab7a69e2f2b978008d8a",
+      "gasUsed": "114358",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0x1e001f9fd40dc0f7adaacc8a38f406bc4ad9ac8b215ed98ca70401644ca2d284",
+      "blockNumber": 73754205,
+      "blockHash": "0xa81c58e5d775b852b6845a5d8386df095b6b628d0e2268404cc7f74b88cb1a58",
+      "gasUsed": "114358",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "release approved 40%",
+      "hash": "0x7dc38327dca9662cbd129abd9c278bc78b615da025084ce5a28f19da2a9d56eb",
+      "blockNumber": 73754207,
+      "blockHash": "0xce389c87ef1aa8a91e0250a32a59848efa2a0a37f93385eedc6023a4e7ce0a51",
+      "gasUsed": "422614",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "collect earned fee",
+      "hash": "0xc614c0c6fe6e98d84b9515932514780deaf060ece7e718be70b684180e01beb6",
+      "blockNumber": 73754208,
+      "blockHash": "0x9840aa4417c4999eafd27371c1c78e4261c139097978ab9a854af823f6feeadf",
+      "gasUsed": "92509",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pay immutable beneficiary",
+      "hash": "0x8cad9e434ecdf78c4698bf8ed2430d746cda95edbce1225b040b70d51e5b9819",
+      "blockNumber": 73754209,
+      "blockHash": "0x1d233c0e6710dd47524f586f0b834ea78875f47a0402fa4bbab84ec4d6ef0aec",
+      "gasUsed": "80653",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "losing pledge full refund",
+      "hash": "0x1bd9dfb9470623b8cee9d5d2846a3e3a8bf5de26291d48139871b090aec0e453",
+      "blockNumber": 73754210,
+      "blockHash": "0xd2d4be362879c3e9248b805f644ae1e57555c2886ae547a5d4c5f2556efae553",
+      "gasUsed": "102024",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "schedule policy",
+      "hash": "0x69b8786e6b0ebb8d09a213fcfa389ba1ce4c268e6838d3fdc27ca499f794579b",
+      "blockNumber": 73754211,
+      "blockHash": "0x84588fc184901606c9f7ab4043384ffc6cae43f9de780b17d4c878502586c767",
+      "gasUsed": "117994",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "activate exact policy",
+      "hash": "0x4e3ee8c3a5d6df7c1a6ab783d5848f6afd28bd61d47a7e12c4852ff3a492d3c2",
+      "blockNumber": 73754213,
+      "blockHash": "0xa40f8daaf4ec8971dea0e01bc4f92409424be6fb00e4779911943a5a5500da56",
+      "gasUsed": "79378",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x1e463afc9e898a824cf78115b875b1df31387bc2be3860f0d42b2d98048ad7df",
+      "blockNumber": 73754214,
+      "blockHash": "0xf8b10dee3093044ee585c8da14bb6b115b086b6d488a014cd4b6ee727e9aee00",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x787b740aaac9fc7f91db6ec47b8f482abf8c88f40ac0d39990462f18fcba5b2c",
+      "blockNumber": 73754215,
+      "blockHash": "0xa22de6b484b3c93e2d887dd5027501a8aafd434961af1cf31463b6c61a95620a",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0xbe158c59cf9489ae6650229a70971bc87cce9546f8e5fa54cb7f87c5aa2fac45",
+      "blockNumber": 73754216,
+      "blockHash": "0x49b979d9c16d4f68ad26248859a3f720eb44562f6fa0de79acd61b028f8de7de",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xd512f7cf93a42c7c20166793f5874d7598159e504f5f77b0515c3f1d12a2101a",
+      "blockNumber": 73754217,
+      "blockHash": "0xf779d2c8481006f41c0efb6d036b228afc27bea55224741cd81498562121a725",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0xfcde294c25c43a1c2c911e2190de117ed4c58ec242987a7ad22b4f176b8f7380",
+      "blockNumber": 73754218,
+      "blockHash": "0xd7b3742aed10246cd26a9bd548b36dcd51984316c20af38d961a1e6dea120ad6",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x2f7da63e10e0911f1fdd1345c1ec2493073c4f5a405fca0f328d8d8cba8f05b4",
+      "blockNumber": 73754219,
+      "blockHash": "0x7d75ef9adc4882871d893a12400b7e63510c6942f0da1f577f92074ca13714cc",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x0c8d397ef76267b23fe1ab93ac09f7e38454c4aebcb9708f1abedbd067023998",
+      "blockNumber": 73754220,
+      "blockHash": "0x0ae0daf237df073cfb44bb8ff00025879acbc8d66763121c90e849800d7a9e69",
+      "gasUsed": "384933",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xedac132c6a2c3c4a2b73f78ff7cdea2810d532ef184635e8cfb3b69f3f9c56e7",
+      "blockNumber": 73754221,
+      "blockHash": "0x7ea9d2145e2ff646a4a1cc0c7217c34e6607bdb7a141cf9d5ded9781d405c003",
+      "gasUsed": "84436",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x29216ca01282965bc323ffd9c060f21c59f9823142e688a207f4903a7adbb060",
+      "blockNumber": 73754222,
+      "blockHash": "0x926ce715f785518906ea58a6e2946d30b2c96244b76e4e9452de6bc30a081397",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x16a53ef535a9c00b7831072b07acd2ddfcc66105ef7d63c44e82987ff9a0240c",
+      "blockNumber": 73754223,
+      "blockHash": "0x34080262e992ef5b71eb066fc72af24d97699051ab86196f7f1904519b9ebda6",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "start real funding round",
+      "hash": "0x0795edf294eeb8d27aa419df8d4072c2cba5b588e78882fc8f02567f96c9f750",
+      "blockNumber": 73754224,
+      "blockHash": "0x25463b100e6d84e3fc20bc06d2944dfddddcd57e836125a87932fb74444be0f0",
+      "gasUsed": "775003",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0xf4f667283639cda3e06fc440e17e66b1dafb2382d9597ff1ec3053f7a8a4fd64",
+      "blockNumber": 73754225,
+      "blockHash": "0x824f9dac3c2eeca461d994cdcceecb76137e33207ae5e50b712f404eca53ad69",
+      "gasUsed": "419183",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0xbd421d4812f7fb27657c842b50214ef991db7a3ad2e56887fb698ac536d8c689",
+      "blockNumber": 73754226,
+      "blockHash": "0xf3bcb518cbd6c68b286e7fb7652dc37d982eaa2c587ed054decee7eac90d7b32",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0x505c42dc81f7103d5916a4c89671b290b1956dfeff9fb30f35242cdbbcf92dc7",
+      "blockNumber": 73754227,
+      "blockHash": "0x7ca53e9b5dfe3c204e81616fb3774c340e7cc0268a69fd1ae657a7ff14e3e79c",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to alternative",
+      "hash": "0xe91e68149b596743273409c280c9ba328ec0c8b6ab6728813149049758e2540b",
+      "blockNumber": 73754228,
+      "blockHash": "0x5e605d96922cfba97130c436f726b1258cb4e415ae24e081965ff7adf0bc576d",
+      "gasUsed": "402083",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "settle through VotingSystem",
+      "hash": "0x20d78b9d5548775282f8a598f0feb2e6dcd170b1312d15467b0e89b8b8f2076e",
+      "blockNumber": 73754230,
+      "blockHash": "0x9c8661b18d0761f14e5d442cd83af29b645fcdeaad685a9b3f2a3eb520b75f3c",
+      "gasUsed": "528166",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "claim initial 20% and author bond",
+      "hash": "0x10c027806389a0a97528a1492f3625af03fb61b2f156e2bc6fbf3d31d6199b7f",
+      "blockNumber": 73754231,
+      "blockHash": "0x92c4a0120f9e9c79d3debc644e70436de9d98864e300cf5c33ad6cb3e6d41293",
+      "gasUsed": "635548",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "collect earned fee",
+      "hash": "0x9a8764aea5859e322f439e3e14f2d4b8b6a55263c5681f842ed3023c958bc45c",
+      "blockNumber": 73754232,
+      "blockHash": "0x3eaf2887cafe82e52aad3d5aabd823bb137a1763b6714c2a50ef658fe0d85783",
+      "gasUsed": "92509",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pay immutable beneficiary",
+      "hash": "0x63ad0897323bac0f66ee5049c1e6ae818cdf89d737dd079cd112ba05fae874da",
+      "blockNumber": 73754233,
+      "blockHash": "0x422d9d07ae9f4cf44308553f84955d78019aa41f65acd4df6984e5abfb3e0146",
+      "gasUsed": "80653",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "cancel overdue actual grant",
+      "hash": "0x764e53ee8ee59b189f21ab42e99e6ac8e26b4d4932a213fc4c55404333896c63",
+      "blockNumber": 73754235,
+      "blockHash": "0x1a6e0ace9a35b7358664b28bddc948dee961fc0532e5200498a5909d8c3b27fd",
+      "gasUsed": "218073",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0x6e41f97bd175187895a211a01336547adf11b6cf6df6f29db636102b9bf2e377",
+      "blockNumber": 73754236,
+      "blockHash": "0xb5db8e35a3bc899fbff89e381a53563e856bd17df612b7eeba859c822cf9ff79",
+      "gasUsed": "162496",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0xe6714177b4b783ad78820812c8d2cbee739be1ef2aaaea878f15ddc5a62f81b6",
+      "blockNumber": 73754237,
+      "blockHash": "0x18422d00e429f9b566c2ea4f7a43d4e7f90d0746fd151b469505a709599a0f51",
+      "gasUsed": "128296",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0xf85f1419103d4e8409b06e80a4eb4ca3040b8ed272525e96dda6aa7a36d66724",
+      "blockNumber": 73754238,
+      "blockHash": "0x8378779013b744ff667edda8442af55744649d2a21d84644b7a0960b86695900",
+      "gasUsed": "121325",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "losing pledge full refund",
+      "hash": "0xe5ab3feb706e2ba137408cfa49ec5eaa508c8baafb89021ba92031d85b28ff78",
+      "blockNumber": 73754239,
+      "blockHash": "0x87b2a5c95665c795e0e31535f3a1ae56b48e97e3e75afc9d631168dfe643ecef",
+      "gasUsed": "102024",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0xeed806ca2407e833aa49a947ed911370fd2a008d0a12770e5604dd31c27a47e8",
+      "blockNumber": 73754240,
+      "blockHash": "0xb05f60b7b55cacf45544e2770bff5ae713e6157bff123f710bcceea915de03bf",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xb78b61ad059df6ae0f8c67db58fc194decbba283a34e6968555644df64f22e3d",
+      "blockNumber": 73754241,
+      "blockHash": "0x400d94504715cc00808ee993c7a67f83924ecd17b2753451827c856d17f5f726",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x386a17507869caf7a17c1938ad2384787ffd67162cbf5966a33a5ab81211da6a",
+      "blockNumber": 73754242,
+      "blockHash": "0x7625c37d869712faf515b3023ad740a57c5ddfce1f577d5362dfabbf5084b1fd",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x974c52e7625360a878b317100a024f82a25e34b298e9ca65881a0614d765222f",
+      "blockNumber": 73754243,
+      "blockHash": "0x785a34fae095284252d7e0555705bf90c7f1f257e144ef806e1ed97e17b03bc4",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x692ef4152bac86e3d9b3e24b751829c2edd9e048c5bd174224fa1f28c65e11e1",
+      "blockNumber": 73754244,
+      "blockHash": "0x9b5f6e7f4400bce4e8ca82aaff4810ed860649636ead160c813b510930c5547e",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xa899fe12750bfcb3217312082ccd2d1c444aab2e1c4686274b2b944304ca62fc",
+      "blockNumber": 73754245,
+      "blockHash": "0x53a6a2d0a31f627cbef2dd323242c815a6a5f3f238121d64f158cb67fd7112b5",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x72f818e61d2129fa89f7b79f43dd2638be244f957ce12a166c969dd86bc12d47",
+      "blockNumber": 73754246,
+      "blockHash": "0x48a79872ea40c8009f9ee27d2be4380566282fb189472bb63f79361c22f84b31",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x2481b0fcb5f77f5045011e8dac50274df94ac9ae74d2dcd522d1d35bfdb1a8f3",
+      "blockNumber": 73754247,
+      "blockHash": "0x3d1a97bd4ac5f539c76ac80200a3b546494db0259928ab4124a7017fde5539fe",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x05e3b90c40504671e55ca486cb6f4dc4e279acbae28017bba365a1793897f7d0",
+      "blockNumber": 73754248,
+      "blockHash": "0xef796b7a15233f25f9257551eca63d4b6e6b8e41156eafb59561e32e956fbd2e",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xc1f53c60c4db52acb8e9754c33fe471b1439a0f344a62f595c444e5721c6f3dd",
+      "blockNumber": 73754249,
+      "blockHash": "0x27951f71f7253918efb556108dde211def95cbfaa0708ce07195f40f7f3fb3fe",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "start real funding round",
+      "hash": "0xed67ec01d9c49bd862b0ae7c8a0f5ae044cfe15035e518748e8c69fc5b7e7763",
+      "blockNumber": 73754250,
+      "blockHash": "0x80dd5a16e8a0a44a27fd72af3b28217c067478bea8b20a0512d56840b85fc603",
+      "gasUsed": "775003",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0xf687d563ac2009d3d9f4dae27a075e651ea0b8b6dab7861673c4aaf48161372b",
+      "blockNumber": 73754251,
+      "blockHash": "0xe528b589029896740d4c5041d4d9436b1b04ab6e8155a0e9caeacd9c442428bf",
+      "gasUsed": "419183",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0x0b81f6f0c5c2072702bc430f25e315d869d682610c05cc1245caa59124b9753d",
+      "blockNumber": 73754252,
+      "blockHash": "0x23e7db02978ba52e458bf8e8e493f7c6b50466dcf3a46e38bdd1091823302d14",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0xf45e40c28fbc915abbd417350750d50a664fc46774780c3585941860509e6eba",
+      "blockNumber": 73754253,
+      "blockHash": "0x5ef581937f5db294cf110627dfc542dc8f71ea4019d19a1d0961e6e7db2cecfd",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to alternative",
+      "hash": "0x06cb57c1d811c9d9235d87b6b84363a77fa7b5a44d352027dffc77a9ae9b800b",
+      "blockNumber": 73754254,
+      "blockHash": "0x6406778f37cc4c565910ea4ec963195ff1e4130023bf57840c48f325df37603e",
+      "gasUsed": "402083",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "settle through VotingSystem",
+      "hash": "0xf9fab11ca03cc66bb24d9ce7e605314c577707f2e03b4c8cc83f24f4712f8885",
+      "blockNumber": 73754256,
+      "blockHash": "0x805b37fe4b9a068cd469d04059e444591330744020ba8671e6ad7b57d9563a6b",
+      "gasUsed": "528166",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "claim initial 20% and author bond",
+      "hash": "0x78cbaa59318969e4a19517f223e6e75de504fce1317ba1474f48e44937e1d8bb",
+      "blockNumber": 73754257,
+      "blockHash": "0xc8cde8bcbcb82d7ba49f39823ff2d92d5b2e3620ddcdfc01b1f7bbe38aa0f2c9",
+      "gasUsed": "635548",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "collect earned fee",
+      "hash": "0x784a45c4b8a85b8cb7d7ee5be8da5cd679753bb8cbece1e25e8ffd1f969d7f02",
+      "blockNumber": 73754258,
+      "blockHash": "0xaf68d5684fd30c0b6fa1cb57486b1d6f61528a613da769f60b967ca895cb2f84",
+      "gasUsed": "92509",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pay immutable beneficiary",
+      "hash": "0x74027174e4784e008b393c07f461cc92491608f3cbeec9e76e28c4883d9d8965",
+      "blockNumber": 73754259,
+      "blockHash": "0x003d622064d8ce8ca93ff2cb451e1ebb1fb93aeaf02ab23862ef67998f84aa80",
+      "gasUsed": "80653",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "submit actual milestone proof",
+      "hash": "0xd612a2646d092817812e3e6d7cdba9855e8ebdb8d2e70429e335c6a3f2d7189b",
+      "blockNumber": 73754260,
+      "blockHash": "0x9ae4823744c4a7f4c7d0aaa65e7aeca1c63a6794bd8618bfd858a6e1a09ce508",
+      "gasUsed": "216101",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0x9a637a03cac97fadeca2d686481192e2ebf9eb81f5343682ad8236b9f14d3fbf",
+      "blockNumber": 73754261,
+      "blockHash": "0x710026a60d2d4cd27d2c730ba9b6815898b803d59e6ae51810d0cf646db42a90",
+      "gasUsed": "148558",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0x287b5c1c66ba7db9450c1cd15fddf5ef7bc95aaee2a8115169c290e3cb733ae1",
+      "blockNumber": 73754262,
+      "blockHash": "0x43a9461375b7351443a16a64d7b500a6b63907cb9ec76915270948e96f3c362f",
+      "gasUsed": "114358",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "independent backer review",
+      "hash": "0xba32f9c1cb35b531b284e650c3aa636a4dd6849727f3dd6872fec184c23b796e",
+      "blockNumber": 73754263,
+      "blockHash": "0x7ea9813b018cd136efdce2027d789f0fc3d8f0adf6a012a242a7d7271fc58a74",
+      "gasUsed": "114358",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "release approved 40%",
+      "hash": "0x2a970173ca8ad48f1e8c9ca8d5f02fdc32aac7363da3ff47a045b126536c2d86",
+      "blockNumber": 73754265,
+      "blockHash": "0x6ebe19b90a0e6445026ee46f6c036ada00f7d04c9bc27263d63c65e5a0f71b0d",
+      "gasUsed": "411028",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "collect earned fee",
+      "hash": "0x0954e5e42609d60dc1499510dbee63bf6ab6046f8d7b6d4729707a945af2e8a2",
+      "blockNumber": 73754266,
+      "blockHash": "0xd8597bb2a0b0f816d41d113dbe6652d6896d68d97c103c89b77fea602df9baca",
+      "gasUsed": "92509",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pay immutable beneficiary",
+      "hash": "0xb7bb029aac838eca4e941b01a1b97d34f1cfe0c42d1c7b1a6e3a15c01a6e7c9e",
+      "blockNumber": 73754267,
+      "blockHash": "0xd31b616d395acd3500b446c5c310d918a31e23ee93261a14ddf0be75dcf5a252",
+      "gasUsed": "80653",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "cancel overdue actual grant",
+      "hash": "0x864787c6ead9babe0c6e619085d4cf957ab0781eeb993a23c65325a134913aa7",
+      "blockNumber": 73754269,
+      "blockHash": "0x7371f8569fa2eec156c7b80395df1c5b964039b67080b8b85c1174a92695e890",
+      "gasUsed": "218144",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0xd597809f45cce1df47f7b2e1594a52c6c1c6b7a7b46ad2379dae3ce0091fbefb",
+      "blockNumber": 73754270,
+      "blockHash": "0x648d5d8451887e185c3894d35d0d2e93220d51ea0f497b58a388fc07c65fbd9f",
+      "gasUsed": "162496",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0x13bcdd2dc88922e2440b711579d3c627a454b7b80072d882ff5020f33dc387aa",
+      "blockNumber": 73754271,
+      "blockHash": "0x26fd2601803eeb80bf79e15817d4fe0007479fda2f34ae9180677fa708f1b16b",
+      "gasUsed": "128296",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0xab6e85b424acfd6632c6e32faa904b0dd9b97602249dbc15946e27d07c344b98",
+      "blockNumber": 73754272,
+      "blockHash": "0xedea6e68e66fc8fc6051292e40dff72f754c4418a2c016697cd2999a4908d0f3",
+      "gasUsed": "121325",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "losing pledge full refund",
+      "hash": "0x861a925c9adb5192a4fdf2a54ab113a01e387da3911587dede5249476a0924ce",
+      "blockNumber": 73754273,
+      "blockHash": "0x5037d3f903f63c4e2dbdc0e2afc15b63d427a97f026ce51182a6c7f9199ef4ba",
+      "gasUsed": "102024",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0xad76c187ac707f641c520230de38c9f6d573ce1d56f84eb0719bc5db700d4178",
+      "blockNumber": 73754274,
+      "blockHash": "0x3e7061fc400b5c36ec6d532e21c3d11c01a68b6a90539c73dcb7f3c246ddb557",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xd4165fb5086ed01ba0019bd105c8ab554c28ade2faaba87b3364aa3994eb2a90",
+      "blockNumber": 73754275,
+      "blockHash": "0x9a7c695bd1839ae3b45e93ea50b5f95445efcf62d5a6c7bc9f6e129692e52250",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0xfeb7794551c366a83313115b4d5ffb4dbac5b08b6e18206164cb35ae5c54a0c4",
+      "blockNumber": 73754276,
+      "blockHash": "0xa0e5382ffe83b65c26ff1e14c1276e5c303500d1abe37aa305077a39be55031f",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x402f12155dad0d627bb1484deec182c971935f641b0f42526d3571de9543873c",
+      "blockNumber": 73754277,
+      "blockHash": "0x40a5fdf2ae28d1c3fb7f0a9a64900c3e9cbb7010d0180d67eea53cfc8bd8b51f",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0xe1f6f6362194e16cbda168d10adc5c3fbc7b80258b56690d58c8c2b4b948039e",
+      "blockNumber": 73754278,
+      "blockHash": "0x0b6105acd4d21febf160a3dafafae94de41027f6fa3a6aa89a30d07937925ad7",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xbce3ff45e764d9cffaebdad3954ba08896823abd6c24fabcc1d5a86aa1ccda39",
+      "blockNumber": 73754279,
+      "blockHash": "0x42ef25decd1c3ccb5536c8bcb5ddbf873643c60e2b601e5797bc59e181fa8060",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x5cf44534abbae69094ebe61db10e1541ec9a69439bbec41f974e6bbfd0da9e42",
+      "blockNumber": 73754280,
+      "blockHash": "0x7cad153de49d2db9d7883caaabfdd17db2b942013683c10eb2f5380a56491601",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0x8a728a55b56d18e7522cd08bec28b15770df75ecd07cde74a4e8ed462a21d04f",
+      "blockNumber": 73754281,
+      "blockHash": "0x3765d004e319922200b5bc75ed5358c854a5efcbc632795cb167ae9affc92456",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "create funding proposal",
+      "hash": "0x25c5fec3f4cc6e65227ec6af92aba7332cf29b0803eb63bb432423c9f622d902",
+      "blockNumber": 73754282,
+      "blockHash": "0xcb85c5093014e241dd102886d017bc2793d52338b3393b9e447c892a4d22144d",
+      "gasUsed": "384945",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "commit immutable plan",
+      "hash": "0xce054fe7cd261d65ee1bc5e0d2e57ff020f68cfb8e348e34e59a9aa133f415c2",
+      "blockNumber": 73754283,
+      "blockHash": "0x2110c1af009d5cc62d72dca64d4ea290c4cd593bc5a6c7db6b4939830dfd5498",
+      "gasUsed": "84448",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "start real funding round",
+      "hash": "0x2c7d30d11e684ec7df5e659f3bc5b0b8e3ff54c2a2087fa3b14c1970a676f7cd",
+      "blockNumber": 73754284,
+      "blockHash": "0xdcdb8895eb1caee39c041efd97b3a3a12f9d94406795fee5bbdf7db5b5f1a5b0",
+      "gasUsed": "775003",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0x2871fbccea3c314f11d097508534568f00deb19570e069b7e736bf3992baefdf",
+      "blockNumber": 73754285,
+      "blockHash": "0xf76d7a16310e2e86fff8a2386cdc1029c18005aeb4abb815a8ada8a2a4f462c4",
+      "gasUsed": "419183",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0x11b3ec379e8901913b27567499f135fb3d1d22678427d71f2269acf91d12ed7d",
+      "blockNumber": 73754286,
+      "blockHash": "0x29e7d3c45bf6416bc63603c913ff383383a6c74310950e06dc147d2372400603",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to winner",
+      "hash": "0x262dfea512a287ef53f27dc65bc42c1c6941a3d28e596e791eb9973e0b4e6a03",
+      "blockNumber": 73754287,
+      "blockHash": "0x098bf7b1c2f01b00d8c4af9dbedf566029d1eebb55194dc73180234592e874c2",
+      "gasUsed": "299483",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "pledge to alternative",
+      "hash": "0xae895ef2cf47f67ec58c161b56d7310e8a29c7628f082efed1e06a85e8d4d0b8",
+      "blockNumber": 73754288,
+      "blockHash": "0x4d04eda20440cbe479ecc8b16f16425cf00ad87f418cddd1874a59f95d029244",
+      "gasUsed": "402083",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "settle through VotingSystem",
+      "hash": "0xa7081295e8b29a01529e4b8c958849b006eeb46e12b3dc3b1aa715d29975a4f7",
+      "blockNumber": 73754290,
+      "blockHash": "0x975b08ba91af9e94194cc73748e3e79a84b9c837468d00e8720c30de53ea607f",
+      "gasUsed": "528166",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "expire unclaimed actual grant",
+      "hash": "0x164e93bcf50ad063216ffe46b9eebee66185d99d02a4ecdda7898614bfa83bb8",
+      "blockNumber": 73754292,
+      "blockHash": "0x7362ce8e3d6705b42857c5bb1d643962c6d71e5541a114a809b3e48a4c61eb80",
+      "gasUsed": "191649",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0xcd921224f41bc3ab2a56f8b85922a487f6d169d4b1301372de69718322a3e888",
+      "blockNumber": 73754293,
+      "blockHash": "0x8c8929c101cc3c9e56f582a3044c82dde773f3e8ec62a6a9dc7b07adec1a1aaf",
+      "gasUsed": "109024",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0xdb638f0195bbd19bf0fb479a76b08d7e8107f813f05a460a3ac09249e994dc59",
+      "blockNumber": 73754294,
+      "blockHash": "0x59ef7d3bf55a8812f65a2d037da0b872650613f50661dcc785e8e69f1b44b9a0",
+      "gasUsed": "109024",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "winning pledge gross refund",
+      "hash": "0x230b6771778a53762d6fe43de40cc6326c51f577dc67ee418aea766bcd144ecb",
+      "blockNumber": 73754295,
+      "blockHash": "0x71402e07054947a2e510ffc441a5ec48a2434d364116a09b6c5fb5f4162dea57",
+      "gasUsed": "104224",
+      "gasPrice": "21000000000",
+      "status": 1
+    },
+    {
+      "label": "losing pledge full refund",
+      "hash": "0xfbf691ac14ab1a6a83f26f9b709ab944e0267f6786fa8e395f0cb7f34f06932b",
+      "blockNumber": 73754296,
+      "blockHash": "0xa88ac2433046f58cc92e7c9a6baba300185a2ce01d9b3f47f5785fe33ef0b31e",
+      "gasUsed": "102024",
+      "gasPrice": "21000000000",
+      "status": 1
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "full native GrantManager 20/40/40",
+      "passed": true,
+      "gross": "60000000",
+      "fee": "3000000",
+      "net": "57000000",
+      "revenue": "600000",
+      "historicalPolicyPreserved": true
+    },
+    {
+      "name": "native grant cancellation after 20%",
+      "passed": true,
+      "refundPercent": "80",
+      "slashedUnclaimedBond": "0"
+    },
+    {
+      "name": "native grant cancellation after 60%",
+      "passed": true,
+      "refundPercent": "40",
+      "slashedUnclaimedBond": "0"
+    },
+    {
+      "name": "native grant cancellation after 0%",
+      "passed": true,
+      "refundPercent": "100",
+      "slashedUnclaimedBond": "50000000"
+    }
+  ],
+  "fixtureChanges": [
+    "Fresh local proxies; no public proxy changed",
+    "Public development accounts funded by Arc Anvil",
+    "Local PoP credentials, not proof of personhood",
+    "Local block-time jumps; production Solidity deadlines unchanged"
+  ],
+  "execution": {
+    "network": "arc",
+    "hardFork": "Zero6",
+    "client": "anvil/v1.7.1"
+  },
+  "contracts": {
+    "pool": "0x73c1080Dd122b2FCF5C81869dB53E6632f7ac727",
+    "ideas": "0xbFAf9117D452f678e3241BaBCC46c45770d81e57",
+    "voting": "0xFE27ccc79b951c94769ea5dD8ff0d483f6850577",
+    "grant": "0x3C276Bb848cae5c10327092d150B1e7cecA13eAb",
+    "roles": "0x17811cdCCAD01696019B6FD51b592e419c5187cd",
+    "progression": "0x3fEC7a81977Ca93E681F6960128CBD5E3F48963B",
+    "reputation": "0xF5283Ba78ae4E4cA1D73cf622894876a752E9379",
+    "verifier": "0x5c97DbD3e73b419925F20f8AEFFD22cCFf507672",
+    "treasury": "0x57481d4daB1a764255dd3EE6d61712ce3ba943E2",
+    "payee": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
+  },
+  "poolRuntimeHash": "0x6f7b9b5b4dee413c59d1b509e6aac1a9bfac373795f449b5db314329c397e023",
+  "originalPoolCustodyPreserved": "1140000000",
+  "nativeGasAdjustedBalanceAssertions": true,
+  "revenuePaid": "1080000",
+  "finalAccounting": [
+    "854320000",
+    "854320000",
+    "854320000",
+    "0",
+    "0",
+    "0",
+    "0"
+  ],
+  "lastBlock": 73754296,
+  "harnessSha256": "94da71cad60f7e4a1e78f9e38c317ef4529ca2a1ebe0c405b15c455bfd66800c"
+}

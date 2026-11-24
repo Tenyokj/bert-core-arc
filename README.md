@@ -12,6 +12,11 @@ BERT is programmable stablecoin-native funding infrastructure for transparent gr
 
 Explore indexed testnet activity in [BERT Console V0.1.0 Beta](https://bertdao-console.vercel.app) ([source](https://github.com/Tenyokj/bert-console-arc)). The console is read-only; contract state and transaction receipts remain authoritative.
 
+Unreleased development: [V2.4 transparent treasury and protocol revenue](docs/V2.4-PROTOCOL-REVENUE.md).
+This source candidate is not deployed; current public versions below remain unchanged.
+The [release configuration/runbook](docs/V2.4-RELEASE-CONFIGURATION.md) records
+owner-selected testnet terms and offline validation; it is not public-write approval.
+
 The protocol keeps proposal intake, voting rounds, treasury accounting, and staged grant distribution onchain. Economic flows are USDC-native: proposal deposits, vote commitments, treasury balances, reserve accounting, and grant payouts all settle in USDC-compatible units.
 
 The voting model can enforce a configured verification-attestation gate through a dedicated verifier contract. Voting remains capital-weighted in USDC, and the configured per-pledge cap applies when enabled. Current testnet Demo attestations are not proof of personhood; the planned production policy is described below.

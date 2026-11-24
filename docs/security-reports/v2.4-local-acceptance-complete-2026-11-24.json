@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-11-24T16:46:50.006Z",
+  "status": "bounded local acceptance complete; public release not started",
+  "gate5Complete": true,
+  "readyToBroadcast": false,
+  "publicTransactionsSent": false,
+  "graphEngine": "real Graph Node 0.45.0/WASM/Postgres",
+  "graphMockTokenUsed": true,
+  "graphChecks": [
+    {
+      "name": "native discovery, immutable payees, round policy and exact RPC log agreement",
+      "passed": true,
+      "events": 38
+    },
+    {
+      "name": "Graph Node process restart preserves entities and dynamic template",
+      "passed": true
+    },
+    {
+      "name": "two-block controlled local reorg removes orphan event and restores policy and financial entities",
+      "passed": true,
+      "orphanTransaction": "0xae76dbe7b7442904d811c124a052853606a34f8c6efd556a24a0a10ffc27c8f3",
+      "orphanTip": "0x439d087c556a80445a98c8874109f568993b454e77e2628cb72d3532db4866b8",
+      "canonicalTip": "0xf6a3a0700bcec3fc8b18476bdced86bb0fb038e43d4d398daa6282abb912b8b9"
+    },
+    {
+      "name": "fresh Postgres/IPFS store replays canonical history identically after reorg",
+      "passed": true
+    }
+  ],
+  "graphReceipts": 169,
+  "graphRevenueLogs": 38,
+  "graphRevenuePaid": "1080000",
+  "nativeArcRun": "prior separate 160-receipt native USDC run; not repeated or replaced",
+  "repeatedTests": {
+    "revenueSolidity": 27,
+    "frontendRoot": 87,
+    "offlineReleaseConfiguration": 5,
+    "docs": 4
+  },
+  "remaining": [
+    "Review and merge candidate PRs",
+    "Fresh pinned public inventory/authority/runtime preflight",
+    "Separately authorized testnet upgrade and deployment verification",
+    "Graph/client publication and real 48-hour revenue-policy notice",
+    "Public pilot and receipt-backed release evidence"
+  ],
+  "images": [
+    {
+      "tags": [
+        "graphprotocol/graph-node:v0.45.0"
+      ],
+      "digests": [
+        "graphprotocol/graph-node@sha256:b0436347fb24f9ae45b6d3959cac97bf60b3238ad1633a875c118ff86a07a0d3"
+      ],
+      "id": "sha256:b0436347fb24f9ae45b6d3959cac97bf60b3238ad1633a875c118ff86a07a0d3"
+    },
+    {
+      "tags": [
+        "postgres:14"
+      ],
+      "digests": [
+        "postgres@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059"
+      ],
+      "id": "sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059"
+    },
+    {
+      "tags": [
+        "ipfs/kubo:v0.34.1"
+      ],
+      "digests": [
+        "ipfs/kubo@sha256:1cf421fbd881d01144c0da39aa1511c05f1ef3fd5eebee6ba7487ecc0f915a44"
+      ],
+      "id": "sha256:1cf421fbd881d01144c0da39aa1511c05f1ef3fd5eebee6ba7487ecc0f915a44"
+    }
+  ],
+  "sha256": {
+    "docs/security-reports/v2.4-graph-node-acceptance-2026-11-24.json": "b037ff87808875e8890d97e8ca6b068816e61d09f8cd040abde1092ed5560dc6",
+    "docs/security-reports/v2.4-graph-fixture-2026-11-24.json": "7cf839dfbaccdb51fe1a06468c1b999896f88beb93a7269d4cc9f2ba87b5be9d",
+    "scripts/local/accept-v2-4-native-grants.mjs": "556f0b56b86bd2e0b17ab4ba52be97d85857814b70c7004ce83d667420175c62",
+    "frontend/subgraph/scripts/accept-revenue-graph-node.mjs": "58e736fba9eae504fdaa07d4da18d76799835626f068a12c5290d2a730f82edc",
+    "frontend/subgraph/docker-compose.revenue.yml": "70f2ca248ae492c219d45be8bed60a5b6fb8d0dc8f97d32e82b435e48fe2a5c0",
+    "contracts/BERT/DAO/FundingPoolUpgradeable.sol": "ac608c985799ec380ddb1a7953c2c745bc0faff24f376da94d8cfb183390ada1",
+    "contracts/BERT/DAO/ProtocolRevenueTreasury.sol": "83189e9e1d7a060a0760705d0026659a5fff6a7715fdff114aea8992d4bd2807"
+  }
+}

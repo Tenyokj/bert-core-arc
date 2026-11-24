@@ -86,6 +86,56 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev Provides external function declarations and event definitions for the funding pool system
  */
 interface IFundingPool {
+    /* ========== REVENUE ERRORS AND EVENTS ========== */
+
+    /// @notice Receiver identity or fee-share combination is invalid.
+    error InvalidRevenuePolicy();
+    /// @notice No proposed policy exists or its notice period has not elapsed.
+    error RevenuePolicyNotReady();
+    /// @notice The caller has insufficient earned revenue for the requested collection.
+    error RevenueUnavailable();
+    /// @notice A revenue-enabled pool cannot change the token backing historical entitlements.
+    error RevenueAssetLocked();
+    /// @notice Actual token custody is below the recorded total.
+    /// @param accounted Recorded custody in token-native units.
+    /// @param actual Observed token balance.
+    error PoolBalanceShortfall(uint256 accounted, uint256 actual);
+    /// @notice Reserve plus revenue exceeds recorded custody; reconciliation is required.
+    error InvalidRevenueAccounting();
+    /// @notice A revenue transfer did not credit the exact amount requested.
+    error UnsupportedRevenueTransfer();
+
+    /// @notice Announces a policy after which only future rounds can use the split.
+    /// @param treasury Proposed revenue receiver; zero disables future revenue.
+    /// @param shareBps Share of earned fees, not share of the pool balance.
+    /// @param readyAt Earliest execution timestamp.
+    event RevenuePolicyScheduled(address indexed treasury, uint256 shareBps, uint256 readyAt);
+    /// @notice Cancels the outstanding proposal without changing current policy.
+    event RevenuePolicyCancelled();
+    /// @notice Activates an announced policy for future round snapshots.
+    /// @param treasury New current receiver.
+    /// @param shareBps Share of earned fees.
+    event RevenuePolicyActivated(address indexed treasury, uint256 shareBps);
+    /// @notice Fixes a round's receiver and fee share, including zero-share rounds.
+    /// @param roundId Newly opened round.
+    /// @param treasury Fixed receiver.
+    /// @param shareBps Fixed share of earned fees.
+    event FundingRoundRevenueSnapshotted(uint256 indexed roundId, address indexed treasury, uint256 shareBps);
+    /// @notice Separates pledge-funded fees from fees on reserve-funded top-ups at settlement.
+    /// @param roundId Settled round.
+    /// @param eligibleFee Fee attributable to recorded winning pledges only.
+    /// @param totalFee Total fee under the unchanged settlement rules.
+    event FundingRoundRevenueBaseSet(uint256 indexed roundId, uint256 eligibleFee, uint256 totalFee);
+    /// @notice Records an earned fee entitlement without making an external receiver call.
+    /// @param roundId Source round.
+    /// @param treasury Round-local receiver.
+    /// @param amount Newly accrued entitlement.
+    event ProtocolRevenueAccrued(uint256 indexed roundId, address indexed treasury, uint256 amount);
+    /// @notice Records earned revenue actually paid to its receiver.
+    /// @param treasury Caller and immutable destination of this collection.
+    /// @param amount USDC paid.
+    event ProtocolRevenueClaimed(address indexed treasury, uint256 amount);
+
     /* ========== EVENTS ========== */
 
     /**
@@ -227,6 +277,38 @@ interface IFundingPool {
      * @param amount USDC amount routed to protocol reserve
      */
     event CommunityReserveReceived(address indexed communityTreasury, uint256 amount);
+
+    /* ========== REVENUE FUNCTIONS ========== */
+
+    /// @notice Announces a fee split for future rounds after a 48-hour delay.
+    /// @param treasury Receiver bound to this pool and token, or zero to disable.
+    /// @param shareBps Share of earned fees in basis points, not share of user funds.
+    function scheduleRevenuePolicy(address treasury, uint256 shareBps) external;
+
+    /// @notice Cancels the outstanding announcement; only Admin may call.
+    function cancelRevenuePolicy() external;
+
+    /// @notice Permissionlessly activates the announced policy after its delay.
+    function executeRevenuePolicy() external;
+
+    /// @notice Collects only the calling receiver's earned entitlement.
+    /// @param amount Amount to send to the caller itself.
+    function claimProtocolRevenue(uint256 amount) external;
+
+    /**
+     * @notice Reports recorded custody and limited accounting categories.
+     * @return actual Actual token custody.
+     * @return accounted Recorded custody, inclusive of reserve and revenue.
+     * @return reserve Reserve available for protocol allocation, not team withdrawal.
+     * @return revenue Earned but uncollected receiver entitlements.
+     * @return otherFunds Combined bonds, pledges, grants, fee escrow and donations.
+     * @return surplus Direct-transfer surplus not yet recorded.
+     * @return shortfall Recorded custody not backed by actual tokens.
+     */
+    function getTreasuryAccounting() external view returns (
+        uint256 actual, uint256 accounted, uint256 reserve, uint256 revenue,
+        uint256 otherFunds, uint256 surplus, uint256 shortfall
+    );
 
     /* ========== DEPOSIT FUNCTIONS ========== */
 

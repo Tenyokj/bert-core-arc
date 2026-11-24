@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-24T15:59:39.062Z",
+  "release": "V2.4 source candidate",
+  "status": "browser scope passed; gate 5 incomplete",
+  "chainId": 31337,
+  "publicTransactionsSent": false,
+  "asset": "MockUSDC; native Arc semantics tested separately",
+  "wallet": "local EIP-1193 test provider; not MetaMask extension",
+  "combinedBrowser": {
+    "passed": 2,
+    "duration": "3.9m",
+    "logSha256": "e16747e2a3af1a9e3eb3d10ad4bd913608df1760f88eb9fc2e6bbad058fd6af2"
+  },
+  "revenueBrowser": {
+    "passed": 1,
+    "uiReceipts": 106,
+    "fixtureReceipts": 34,
+    "rawRevenueLogs": 36,
+    "rounds": [
+      {
+        "roundId": "1",
+        "scenario": "full-legacy-zero-revenue"
+      },
+      {
+        "roundId": "2",
+        "scenario": "full-revenue-after-policy-disable"
+      },
+      {
+        "roundId": "3",
+        "scenario": "no-quorum-80-percent-gross-refund"
+      },
+      {
+        "roundId": "4",
+        "scenario": "no-winner-full-refund-no-fee"
+      }
+    ],
+    "expectedRawUnits": {
+      "pending": "0",
+      "accrued": "360000",
+      "claimed": "360000",
+      "collected": "360000",
+      "released": "360000",
+      "shareBps": "0"
+    },
+    "fixture": "subgraph/tests/fixtures/revenue-browser-receipts.json"
+  },
+  "mappingReplay": {
+    "passed": 10,
+    "engine": "actual revenue handlers with Graph store/RPC double; not Graph Node",
+    "duplicateDelivery": true,
+    "cleanReplay": true
+  },
+  "coreTests": {
+    "passed": 268,
+    "duration": "41s"
+  },
+  "frontendTests": {
+    "passed": 87
+  },
+  "poolRuntimeBytes": 24269,
+  "sourceInputsSha256": {
+    "frontend/scripts/e2e/funding.spec.mjs": "2c96538948610884bc0ae35aa9b27f0f346089dc1578e963095fe8e3c9ac9766",
+    "frontend/scripts/e2e/run-local.mjs": "a6aa088aecd6f7bb9206a830a2cfeb9a60f4d20f8033c5918ceb7b7c96d8761a",
+    "frontend/scripts/revenue-mapping.test.mjs": "e77be950a8db9a109bf3b275936faf5f18fe7329a28f296e343f1d5abadb8b19",
+    "frontend/subgraph/tests/fixtures/revenue-browser-receipts.json": "22d747fed7ecb0f6da135e18113def816c820e5be3f883e9596cd2c83c55f171",
+    "core/contracts/BERT/DAO/FundingPoolUpgradeable.sol": "ac608c985799ec380ddb1a7953c2c745bc0faff24f376da94d8cfb183390ada1",
+    "core/contracts/BERT/DAO/ProtocolRevenueTreasury.sol": "83189e9e1d7a060a0760705d0026659a5fff6a7715fdff114aea8992d4bd2807",
+    "core/contracts/BERT/DAO/GrantManagerUpgradeable.sol": "587876c805dd3628fb40128dbe8e270488f9004ad1bc3a1997f05310de46d384"
+  },
+  "remainingAcceptance": [
+    "Native Graph Node sync/query/restart/reorg",
+    "Full native-Arc GrantManager lifecycle on validated local execution semantics"
+  ],
+  "limitations": [
+    "Fresh local deployment; populated-proxy upgrade checked separately",
+    "Injected local test wallet, not MetaMask extension",
+    "No independent audit or public rollout",
+    "V3 reserve routing integration tests use mock caller registries/Treasuries"
+  ],
+  "sourceTreeState": "uncommitted local candidates; no public rollout"
+}

@@ -1,0 +1,2580 @@
+{
+  "description": "Generated pre-revenue FundingPool 1.4.0 fixture; compiler settings and layout from Hardhat build info",
+  "commit": "d87e475cbd833047619c4cd9cb4950cbdc1fb9de",
+  "solcVersion": "0.8.28",
+  "settings": {
+    "evmVersion": "prague",
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "": [
+          "ast"
+        ],
+        "*": [
+          "abi",
+          "evm.bytecode.linkReferences",
+          "evm.bytecode.object",
+          "evm.bytecode.opcodes",
+          "evm.bytecode.sourceMap",
+          "evm.deployedBytecode.immutableReferences",
+          "evm.deployedBytecode.linkReferences",
+          "evm.deployedBytecode.object",
+          "evm.deployedBytecode.opcodes",
+          "evm.deployedBytecode.sourceMap",
+          "evm.methodIdentifiers",
+          "storageLayout"
+        ]
+      }
+    },
+    "remappings": [
+      "npm/@openzeppelin/contracts-upgradeable@5.0.2/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@5.0.2/",
+      "project/:@openzeppelin/contracts-upgradeable/=npm/@openzeppelin/contracts-upgradeable@5.0.2/",
+      "project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@5.0.2/"
+    ]
+  },
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "target",
+          "type": "address"
+        }
+      ],
+      "name": "AddressEmptyCode",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "AddressInsufficientBalance",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "CommunityFactoryNotConfigured",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "EnforcedPause",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ExpectedPause",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FailedInnerCall",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundingRoundStateInvalid",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "IndexOutOfBounds",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "available",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "requested",
+          "type": "uint256"
+        }
+      ],
+      "name": "InsufficientIdeaBalance",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "available",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "requested",
+          "type": "uint256"
+        }
+      ],
+      "name": "InsufficientPoolBalance",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAuthor",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "idType",
+          "type": "string"
+        }
+      ],
+      "name": "InvalidId",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidInitialization",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "paramName",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "reason",
+          "type": "string"
+        }
+      ],
+      "name": "InvalidParameter",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotAdmin",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotDistributor",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotIdeaRegistry",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotInitializing",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotVotingSystem",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        }
+      ],
+      "name": "PledgeRefundAlreadyClaimed",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        }
+      ],
+      "name": "PledgeRefundUnavailable",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ReentrancyGuardReentrantCall",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "SafeERC20FailedOperation",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "treasury",
+          "type": "address"
+        }
+      ],
+      "name": "UnauthorizedCommunityTreasury",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "paramName",
+          "type": "string"
+        }
+      ],
+      "name": "ZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAmount",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "author",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "AuthorStakeDeposited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "author",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "AuthorStakeReleased",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "AuthorStakeSlashed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "communityFactory",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "approved",
+          "type": "bool"
+        }
+      ],
+      "name": "CommunityFactoryApprovalUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "communityFactory",
+          "type": "address"
+        }
+      ],
+      "name": "CommunityFactoryUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "communityTreasury",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "CommunityReserveReceived",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "FundingPoolInitialized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "winningIdeaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "restoredFee",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundingRoundCancelled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundingRoundFeeFinalized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "cumulativeTrancheBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundingRoundFeeReleased",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "feeBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundingRoundOpened",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "winningIdeaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "grossFunding",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "netFunding",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundingRoundSettled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "donor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsDeposited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsDistributed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newToken",
+          "type": "address"
+        }
+      ],
+      "name": "GovernanceTokenUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "winningIdeaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalRefund",
+          "type": "uint256"
+        }
+      ],
+      "name": "GrantRefundActivated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "IdeaFundsReserved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newRegistry",
+          "type": "address"
+        }
+      ],
+      "name": "IdeaRegistryUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "version",
+          "type": "uint64"
+        }
+      ],
+      "name": "Initialized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "Paused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "feeBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "PledgeFeeUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "PledgeRecorded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "PledgeRefundClaimed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newBalance",
+          "type": "uint256"
+        }
+      ],
+      "name": "PoolBalanceUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProgressiveFundingRoundFeeStarted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProtocolReserveAllocated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "Unpaused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "UnvestedFundingRoundFeeRestored",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newToken",
+          "type": "address"
+        }
+      ],
+      "name": "UsdcUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "MAX_COMMUNITY_FACTORIES",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "_poolByRoundAndIdea",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "activateGrantRefund",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "allocateReserveToIdea",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "approvedCommunityFactories",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "authorStakeByIdea",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "beginProgressiveFundingRoundFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "cancelUnclaimedFundingRound",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "claimPledgeRefund",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "communityFactory",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "communityFactoryAt",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "communityFactoryCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "deposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "depositAuthorStakeFrom",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "distributeFunds",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "distributed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "distributionHistory",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "distributedAt",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "donorBalances",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "finalizeFundingRoundFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundingRoundCancelled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundingRoundFeeBps",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundingRoundFeeFinalized",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundingRoundOpened",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundingRoundSettled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundingRoundWinner",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getDistribution",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "distributedAt",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getDistributionCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getFundingRoundSettlement",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "opened",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "settled",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "winningIdeaId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        }
+      ],
+      "name": "getPledge",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "refundClaimed",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governanceToken",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "grantRefundActive",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "grantRefundClaimCountByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "grantRefundPaidByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "grantRefundTotalByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ideaRegistry",
+      "outputs": [
+        {
+          "internalType": "contract IIdeaRegistry",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_usdc",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_ideaRegistry",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_rolesRegistry",
+          "type": "address"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "initializeCommunityFactoryAllowlist",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "initialFeeBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "initializeConditionalPledges",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "factory",
+          "type": "address"
+        }
+      ],
+      "name": "isCommunityFactoryApproved",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "isDistributed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "isPaused",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "openFundingRound",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pause",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "paused",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "pendingProtocolFeeByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pledgeFeeBps",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        }
+      ],
+      "name": "poolByRoundAndIdea",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "grossAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "previewNetFunding",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "grossAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "previewRoundNetFunding",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "progressiveFeeReleasedByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "progressiveFeeRestoredForRefund",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "progressiveFeeTrancheBpsByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "progressiveFundingRoundFeeStarted",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "protocolReserve",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "receiveCommunityReserve",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "recordPledgeFrom",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        }
+      ],
+      "name": "releaseAuthorStakeToAuthor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "cumulativeTrancheBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "releaseProgressiveFundingRoundFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "roles",
+      "outputs": [
+        {
+          "internalType": "contract RolesRegistryUpgradeable",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_communityFactory",
+          "type": "address"
+        }
+      ],
+      "name": "setCommunityFactory",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "factory",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "approved",
+          "type": "bool"
+        }
+      ],
+      "name": "setCommunityFactoryApproval",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newToken",
+          "type": "address"
+        }
+      ],
+      "name": "setGovernanceToken",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newRegistry",
+          "type": "address"
+        }
+      ],
+      "name": "setIdeaRegistry",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "feeBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "setPledgeFeeBps",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newToken",
+          "type": "address"
+        }
+      ],
+      "name": "setUsdc",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "winningIdeaId",
+          "type": "uint256"
+        }
+      ],
+      "name": "settleFundingRound",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "ideaId",
+          "type": "uint256"
+        }
+      ],
+      "name": "slashAuthorStakeToReserve",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "syncBalance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalPoolBalance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "unpause",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "usdc",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "winningGrossPledgeByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "winningPledgeCountByRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600e575f5ffd5b5060156019565b60c9565b7ff0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00805468010000000000000000900460ff161560685760405163f92ee8a960e01b815260040160405180910390fd5b80546001600160401b039081161460c65780546001600160401b0319166001600160401b0390811782556040519081527fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d29060200160405180910390a15b50565b614eb1806100d65f395ff3fe608060405234801561000f575f5ffd5b5060043610610422575f3560e01c8063a0ec91c51161022c578063d02fd16411610135578063e5b4b87d116100bf578063f9511ca011610084578063f9511ca014610af8578063f956e99b14610b17578063f96dae0a14610b2a578063fac8a61014610b3b578063fd9c652b14610b4e575f5ffd5b8063e5b4b87d14610a99578063ee2586d114610aac578063f0360bad14610abf578063f105f9bd14610ad2578063f857017014610ae5575f5ffd5b8063dced846011610105578063dced846014610a36578063dd97dc8f14610a49578063ddb0102914610a5c578063e3c47c2a14610a6f578063e4b7ab0014610a91575f5ffd5b8063d02fd164146109a3578063d3d71bd4146109ac578063d54003d8146109cb578063d6b8e44e14610a23575f5ffd5b8063b6b55f25116101b6578063c20d95d311610186578063c20d95d31461091a578063c30e55101461092d578063c9591a731461094f578063cb1468791461096e578063cb8fd50014610981575f5ffd5b8063b6b55f25146108cc578063b7e65267146108df578063b8fe28a8146108fe578063c0c53b8b14610907575f5ffd5b8063aeb229cf116101fc578063aeb229cf14610868578063b187bd2614610887578063b2b9e2b31461088f578063b5e077ae146108b1578063b64ba98d146108b9575f5ffd5b8063a0ec91c5146107f8578063a665a50d1461080b578063a8981fee14610836578063a98bbece14610849575f5ffd5b80636b0999631161032e5780638456cb59116102b85780638678ed14116102885780638678ed1414610772578063935c30c21461077a57806395b69d3e1461078d57806399f11eba146107ac578063a0a8dbbb146107ce575f5ffd5b80638456cb5914610713578063853e57d01461071b578063854da95c1461073d578063859c2e701461075f575f5ffd5b80637297cce9116102fe5780637297cce91461068d57806375f8072f146106a0578063761488ee146106b35780637b8c8de1146106d55780638025fe9a146106f4575f5ffd5b80636b099963146106415780636e6930d2146106545780636f5057e7146106675780636f62c3a61461067a575f5ffd5b80633e413bee116103af5780634ebaa3dc1161037f5780634ebaa3dc146105dc5780635026d63e146105ef5780635c975abb146105f8578063609396981461060f57806368124dd81461062e575f5ffd5b80633e413bee146105a65780633f4ba83a146105b957806342c91605146105c157806346725e28146105c9575f5ffd5b806325a27649116103f557806325a27649146104e5578063293ae87414610504578063368a18021461052f578063392f5f64146105615780633b345a8714610573575f5ffd5b8063065be3e2146104265780630fe94f921461043b57806320307ec81461044e57806322129b52146104b8575b5f5ffd5b610439610434366004614ab6565b610b56565b005b610439610449366004614aed565b610ca0565b61049661045c366004614b0d565b5f9182526042602090815260408084206001600160a01b03939093168452919052902080546001820154600290920154909260ff90911690565b6040805193845260208401929092521515908201526060015b60405180910390f35b6104d76104c6366004614b30565b604060208190525f91825290205481565b6040519081526020016104af565b6104d76104f3366004614b30565b604f6020525f908152604090205481565b603454610517906001600160a01b031681565b6040516001600160a01b0390911681526020016104af565b61055161053d366004614b30565b604d6020525f908152604090205460ff1681565b60405190151581526020016104af565b5f54610517906001600160a01b031681565b610586610581366004614b30565b610f42565b6040805194855260208501939093529183015260608201526080016104af565b603354610517906001600160a01b031681565b610439610fd3565b6039546104d7565b6104d76105d7366004614b30565b6110ca565b6104396105ea366004614b30565b611394565b6104d760355481565b5f516020614e1c5f395f51905f525460ff16610551565b6104d761061d366004614b30565b604e6020525f908152604090205481565b61043961063c366004614b30565b61161c565b61043961064f366004614aed565b611873565b610439610662366004614b47565b611b6f565b610439610675366004614b30565b611d02565b610551610688366004614b30565b611f0e565b61043961069b366004614b30565b611f44565b6104396106ae366004614b30565b612226565b6105516106c1366004614b30565b60506020525f908152604090205460ff1681565b6104d76106e3366004614b47565b60376020525f908152604090205481565b6104d7610702366004614b30565b60486020525f908152604090205481565b610439612372565b610551610729366004614b30565b603f6020525f908152604090205460ff1681565b61055161074b366004614b30565b60466020525f908152604090205460ff1681565b61043961076d366004614b30565b612467565b6104396125ec565b610439610788366004614b30565b6127c4565b6104d761079b366004614b30565b604b6020525f908152604090205481565b6105516107ba366004614b47565b60516020525f908152604090205460ff1681565b6104d76107dc366004614aed565b603860209081525f928352604080842090915290825290205481565b610439610806366004614b62565b6128ea565b610551610819366004614b47565b6001600160a01b03165f9081526051602052604090205460ff1690565b610517610844366004614b30565b612ae7565b6104d7610857366004614b30565b60436020525f908152604090205481565b6104d7610876366004614b30565b60476020525f908152604090205481565b610551612b15565b61055161089d366004614b30565b603a6020525f908152604090205460ff1681565b6104d7601081565b6104396108c7366004614b8b565b612b33565b6104396108da366004614b30565b612d9b565b6104d76108ed366004614b30565b60496020525f908152604090205481565b6104d7603d5481565b610439610915366004614bbd565b612e50565b610439610928366004614b30565b61309b565b61055161093b366004614b30565b603e6020525f908152604090205460ff1681565b6104d761095d366004614b30565b603b6020525f908152604090205481565b61043961097c366004614b47565b613223565b61055161098f366004614b30565b60446020525f908152604090205460ff1681565b6104d760365481565b6104d76109ba366004614b30565b604a6020525f908152604090205481565b610a066109d9366004614b30565b5f908152603e6020908152604080832054603f8352818420549282905292205460ff928316939290911691565b6040805193151584529115156020840152908201526060016104af565b610439610a31366004614b30565b6133ce565b610439610a44366004614c05565b6135b2565b610439610a57366004614b62565b613963565b610439610a6a366004614b30565b613d1c565b610551610a7d366004614b30565b60456020525f908152604090205460ff1681565b6052546104d7565b610439610aa7366004614b47565b613f46565b6104d7610aba366004614aed565b6140c1565b610586610acd366004614b30565b614123565b6104d7610ae0366004614aed565b61415b565b610439610af3366004614b47565b614192565b6104d7610b06366004614b30565b60416020525f908152604090205481565b6104d7610b25366004614b30565b614288565b6033546001600160a01b0316610517565b603c54610517906001600160a01b031681565b6104396142ae565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015610ba5573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610bc99190614c3d565b336040518363ffffffff1660e01b8152600401610be7929190614c54565b602060405180830381865afa158015610c02573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610c269190614c6b565b610c4357604051637bfa4b9f60e01b815260040160405180910390fd5b6001600160a01b038216610c925760405163eac0d38960e01b815260206004820152601060248201526f636f6d6d756e697479466163746f727960801b60448201526064015b60405180910390fd5b610c9c828261441b565b5050565b5f54604080516312a70f0b60e01b815290516001600160a01b03909216916391d148549183916312a70f0b916004808201926020929091908290030181865afa158015610cef573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610d139190614c3d565b336040518363ffffffff1660e01b8152600401610d31929190614c54565b602060405180830381865afa158015610d4c573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610d709190614c6b565b610d8d57604051632b07b28560e01b815260040160405180910390fd5b610d95614557565b5f828152603e602052604090205460ff161580610dbf57505f828152603f602052604090205460ff165b15610de05760405163199234e160e01b815260048101839052602401610c89565b5f828152603f60209081526040808320805460ff19166001179055908190528120829055819003610e5457604080515f8082526020820181905291810182905283907fbc35e2ace399f5460cc3871a3f41934a0c469a4d08bda85dde107e2eadd738ba9060600160405180910390a3610f3a565b5f828152603860209081526040808320848452825280832054858452604190925282205490919061271090610e899084614c9a565b610e939190614cb1565b90505f610ea08284614cd0565b5f86815260386020908152604080832088845282528083208490558883526043825280832086905560478252808320879055604c82528083208884528252808320548984526048835292819020929092558151868152908101859052908101829052909150849086907fbc35e2ace399f5460cc3871a3f41934a0c469a4d08bda85dde107e2eadd738ba9060600160405180910390a35050505b610c9c6145a1565b5f5f5f5f6039805490508510610f6b57604051634e23d03560e01b815260040160405180910390fd5b5f60398681548110610f7f57610f7f614ce3565b5f918252602091829020604080516080810182526004939093029091018054808452600182015494840185905260028201549284018390526003909101546060909301839052999298509650945092505050565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015611022573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906110469190614c3d565b336040518363ffffffff1660e01b8152600401611064929190614c54565b602060405180830381865afa15801561107f573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906110a39190614c6b565b6110c057604051637bfa4b9f60e01b815260040160405180910390fd5b6110c86145c7565b565b5f6110d3614557565b6110db614620565b5f828152603f602052604090205460ff1661110d578133604051639c4f316560e01b8152600401610c89929190614c54565b5f8281526042602090815260408083203384529091528120600181015490910361114e578233604051639c4f316560e01b8152600401610c89929190614c54565b600281015460ff1615611178578233604051633e9ee68960e11b8152600401610c89929190614c54565b5f8381526040602081905290205481548190036112af575f8481526045602052604090205460ff16156111b157816001015492506112b7565b5f8481526046602052604090205460ff161561128d575f848152604b60205260408120546111e0906001614cf7565b5f868152604860205260409020549091508103611222575f858152604a602090815260408083205460499092529091205461121b9190614cd0565b9350611257565b5f858152604760209081526040808320546001870154604990935292205461124a9190614c9a565b6112549190614cb1565b93505b5f858152604b60209081526040808320849055604a90915281208054869290611281908490614cf7565b909155506112aa915050565b8333604051639c4f316560e01b8152600401610c89929190614c54565b6112b7565b816001015492505b60028201805460ff191660011790555f84815260386020908152604080832085548452909152812080548592906112ef908490614cd0565b925050819055508260355f8282546113079190614cd0565b9091555050603354611323906001600160a01b03163385614650565b815460405184815233919086907fdb519ce709c67b4de3751e28f6d2bde9473ab5195f7e249a23f0df314e8d9cc09060200160405180910390a45f516020614e3c5f395f51905f5260355460405161137d91815260200190565b60405180910390a1505061138f6145a1565b919050565b5f5460408051633d47309b60e01b815290516001600160a01b03909216916391d14854918391633d47309b916004808201926020929091908290030181865afa1580156113e3573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906114079190614c3d565b336040518363ffffffff1660e01b8152600401611425929190614c54565b602060405180830381865afa158015611440573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906114649190614c6b565b611481576040516309ea906160e41b815260040160405180910390fd5b611489614557565b5f818152603b6020526040812054908190036114a55750611611565b603454604051630a19cd6360e31b8152600481018490525f916001600160a01b0316906350ce6b1890602401602060405180830381865afa1580156114ec573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906115109190614d0a565b90506001600160a01b038116611538576040516215802b60eb1b815260040160405180910390fd5b5f838152603b602090815260408083208390556001600160a01b038416835260379091528120805484929061156e908490614cd0565b925050819055508160355f8282546115869190614cd0565b90915550506033546115a2906001600160a01b03168284614650565b806001600160a01b0316837f3377294bbbee1de32198580fa78bebc723969314c9b818a142692889a69e5688846040516115de91815260200190565b60405180910390a35f516020614e3c5f395f51905f5260355460405161160691815260200190565b60405180910390a150505b6116196145a1565b50565b5f5460408051633c2f61f360e21b815290516001600160a01b03909216916391d1485491839163f0bd87cc916004808201926020929091908290030181865afa15801561166b573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061168f9190614c3d565b336040518363ffffffff1660e01b81526004016116ad929190614c54565b602060405180830381865afa1580156116c8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906116ec9190614c6b565b6117095760405163385296d560e01b815260040160405180910390fd5b611711614557565b5f8181526040602081815281832054603f90915291205460ff161580611735575080155b8061174d57505f8281526045602052604090205460ff165b1561176e5760405163199234e160e01b815260048101839052602401610c89565b5f8281526044602052604090205460ff168061179757505f828152604d602052604090205460ff165b156117b85760405163199234e160e01b815260048101839052602401610c89565b5f82815260436020908152604080832080549084905560449092528220805460ff1916600117905560368054919283926117f3908490614cf7565b9091555050604051818152829084907fea86df3dd73796ac725d1486e0494669d436137e47dbb7339bf8be7ffe3f58889060200160405180910390a3827fe55e086e3457857434231f8e1db03e3f9dc2caf24cf573d65db9c41c4eede1778260405161186191815260200190565b60405180910390a250506116196145a1565b5f5460408051633c2f61f360e21b815290516001600160a01b03909216916391d1485491839163f0bd87cc916004808201926020929091908290030181865afa1580156118c2573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906118e69190614c3d565b336040518363ffffffff1660e01b8152600401611904929190614c54565b602060405180830381865afa15801561191f573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906119439190614c6b565b6119605760405163385296d560e01b815260040160405180910390fd5b611968614557565b5f828152604d602052604090205460ff16158061199257505f8281526050602052604090205460ff165b806119aa57505f8281526045602052604090205460ff165b806119b6575061271081115b806119ce57505f828152604f60205260409020548111155b156119ef5760405163199234e160e01b815260048101839052602401610c89565b5f82815260436020526040812054906127108314611a2357612710611a148484614c9a565b611a1e9190614cb1565b611a25565b815b5f858152604e602052604081205491925090611a419083614cd0565b5f868152604f60209081526040808320889055604e9091528120849055603680549293508392909190611a75908490614cf7565b9091555050612710849003611add575f8581526043602090815260408083208390556044825291829020805460ff19166001179055905182815286917fe55e086e3457857434231f8e1db03e3f9dc2caf24cf573d65db9c41c4eede177910160405180910390a25b60405f8681526020019081526020015f2054857fea86df3dd73796ac725d1486e0494669d436137e47dbb7339bf8be7ffe3f588883604051611b2191815260200190565b60405180910390a3604080518281526020810186905286917ff8a4c027250098818450a6df938dfb2bae41f900c8428f4b995528fb880b5df8910160405180910390a2505050610c9c6145a1565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015611bbe573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190611be29190614c3d565b336040518363ffffffff1660e01b8152600401611c00929190614c54565b602060405180830381865afa158015611c1b573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190611c3f9190614c6b565b611c5c57604051637bfa4b9f60e01b815260040160405180910390fd5b6001600160a01b038116611ca65760405163eac0d38960e01b815260206004820152601060248201526f636f6d6d756e697479466163746f727960801b6044820152606401610c89565b603c80546001600160a01b0319166001600160a01b038316179055611ccc81600161441b565b6040516001600160a01b038216907fffa1bdd7fb0341f7b4bcf2e6814630ce060d5cc4b8c0d43e9d31da31a4b79f43905f90a250565b5f516020614e5c5f395f51905f52805460029190600160401b900460ff1680611d395750805467ffffffffffffffff808416911610155b15611d575760405163f92ee8a960e01b815260040160405180910390fd5b805468ffffffffffffffffff191667ffffffffffffffff831617600160401b1781555f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015611dc8573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190611dec9190614c3d565b336040518363ffffffff1660e01b8152600401611e0a929190614c54565b602060405180830381865afa158015611e25573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190611e499190614c6b565b611e6657604051637bfa4b9f60e01b815260040160405180910390fd5b6103e8831115611e8957604051634bab873760e11b8152600401610c8990614d25565b603d8390556040518381527f82602e1e0ff32f6128042571d9af3f1694e7ec6a19951e8e2f7e9f9bf5b3dad89060200160405180910390a1805460ff60401b1916815560405167ffffffffffffffff831681527fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d29060200160405180910390a1505050565b5f815f03611f2f576040516356e22f5760e11b8152600401610c8990614d78565b505f908152603a602052604090205460ff1690565b5f5460408051633c2f61f360e21b815290516001600160a01b03909216916391d1485491839163f0bd87cc916004808201926020929091908290030181865afa158015611f93573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190611fb79190614c3d565b336040518363ffffffff1660e01b8152600401611fd5929190614c54565b602060405180830381865afa158015611ff0573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906120149190614c6b565b6120315760405163385296d560e01b815260040160405180910390fd5b612039614557565b5f8181526040602081815281832054604d82528284205460459092529190922054909160ff90811691168061206c575081155b8061208e57508015801561208e57505f8381526044602052604090205460ff16155b806120ae57508080156120ae57505f8381526050602052604090205460ff165b156120cf5760405163199234e160e01b815260048101849052602401610c89565b5f8381526046602052604090205460ff16156121015760405163199234e160e01b815260048101849052602401610c89565b80156121af575f838152604e6020908152604080832054604390925282205461212a9190614cd0565b5f85815260436020908152604080832083905560508252808320805460ff1916600117905560388252808320878452909152812080549293508392909190612173908490614cf7565b909155505060405181815284907f72d82a6889008b38fbfb84968a98ba987a5c8405ce01233c33eebc6955d694a09060200160405180910390a2505b5f83815260386020908152604080832085845282528083205486845260468352818420805460ff19166001179055604983529281902083905551828152849186917fb4f9ae3fa3892d1505bc60fa10d52466cee3acf8bae7a7e0d3dee59cd0909b9d910160405180910390a35050506116196145a1565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015612275573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906122999190614c3d565b336040518363ffffffff1660e01b81526004016122b7929190614c54565b602060405180830381865afa1580156122d2573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906122f69190614c6b565b61231357604051637bfa4b9f60e01b815260040160405180910390fd5b6103e881111561233657604051634bab873760e11b8152600401610c8990614d99565b603d8190556040518181527f82602e1e0ff32f6128042571d9af3f1694e7ec6a19951e8e2f7e9f9bf5b3dad8906020015b60405180910390a150565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa1580156123c1573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906123e59190614c3d565b336040518363ffffffff1660e01b8152600401612403929190614c54565b602060405180830381865afa15801561241e573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906124429190614c6b565b61245f57604051637bfa4b9f60e01b815260040160405180910390fd5b6110c86146af565b5f54604080516312a70f0b60e01b815290516001600160a01b03909216916391d148549183916312a70f0b916004808201926020929091908290030181865afa1580156124b6573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906124da9190614c3d565b336040518363ffffffff1660e01b81526004016124f8929190614c54565b602060405180830381865afa158015612513573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906125379190614c6b565b61255457604051632b07b28560e01b815260040160405180910390fd5b80158061256e57505f818152603e602052604090205460ff165b1561258f5760405163199234e160e01b815260048101829052602401610c89565b5f818152603e60209081526040808320805460ff19166001179055603d5460418352928190208390555191825282917fdffdc53afb22ff8405615504c4755f08a8992f795d531492fbbd611b2f08abe8910160405180910390a250565b5f516020614e5c5f395f51905f52805460039190600160401b900460ff16806126235750805467ffffffffffffffff808416911610155b156126415760405163f92ee8a960e01b815260040160405180910390fd5b805468ffffffffffffffffff191667ffffffffffffffff831617600160401b1781555f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa1580156126b2573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906126d69190614c3d565b336040518363ffffffff1660e01b81526004016126f4929190614c54565b602060405180830381865afa15801561270f573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906127339190614c6b565b61275057604051637bfa4b9f60e01b815260040160405180910390fd5b603c546001600160a01b03161561277857603c54612778906001600160a01b0316600161441b565b805460ff60401b1916815560405167ffffffffffffffff831681527fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d29060200160405180910390a15050565b6127cc614557565b6127d4614620565b805f036127f457604051631f2a200560e01b815260040160405180910390fd5b6052545f0361281657604051630b7bdd5560e21b815260040160405180910390fd5b61281f336146f7565b61283e57604051639c4d413560e01b8152336004820152602401610c89565b603354612856906001600160a01b03163330846147dc565b8060355f8282546128679190614cf7565b925050819055508060365f82825461287f9190614cf7565b909155505060405181815233907f85a6e8bb1968513f90350932915d2162b4f38c7f0c387b872c86462891ea8bce906020015b60405180910390a25f516020614e3c5f395f51905f526035546040516128da91815260200190565b60405180910390a16116196145a1565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015612939573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061295d9190614c3d565b336040518363ffffffff1660e01b815260040161297b929190614c54565b602060405180830381865afa158015612996573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906129ba9190614c6b565b6129d757604051637bfa4b9f60e01b815260040160405180910390fd5b825f036129f7576040516356e22f5760e11b8152600401610c8990614d78565b815f03612a17576040516356e22f5760e11b8152600401610c8990614de5565b805f03612a3757604051631f2a200560e01b815260040160405180910390fd5b603654811115612a685760365460405163ce9514f960e01b8152600481019190915260248101829052604401610c89565b8060365f828254612a799190614cd0565b90915550505f83815260386020908152604080832085845290915281208054839290612aa6908490614cf7565b9091555050604051818152829084907fc57c4bef33dfb0fd236fb7374c0b625f671df63f6eeae4e68f1ff82e4ea2cfdd9060200160405180910390a3505050565b5f60528281548110612afb57612afb614ce3565b5f918252602090912001546001600160a01b031692915050565b5f612b2e5f516020614e1c5f395f51905f525460ff1690565b905090565b5f5460408051633d47309b60e01b815290516001600160a01b03909216916391d14854918391633d47309b916004808201926020929091908290030181865afa158015612b82573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190612ba69190614c3d565b336040518363ffffffff1660e01b8152600401612bc4929190614c54565b602060405180830381865afa158015612bdf573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190612c039190614c6b565b612c20576040516309ea906160e41b815260040160405180910390fd5b612c28614557565b6001600160a01b038316612c685760405163eac0d38960e01b8152600401610c899060208082526004908201526366726f6d60e01b604082015260600190565b815f03612c88576040516356e22f5760e11b8152600401610c8990614de5565b805f03612ca857604051631f2a200560e01b815260040160405180910390fd5b603354612cc0906001600160a01b03168430846147dc565b6001600160a01b0383165f9081526037602052604081208054839290612ce7908490614cf7565b90915550505f828152603b602052604081208054839290612d09908490614cf7565b925050819055508060355f828254612d219190614cf7565b90915550506040518181526001600160a01b0384169083907f874be67d266eeb4749d56b75baf946c61ee64b3d3f5759b7220dbc2aa7b1fcab9060200160405180910390a35f516020614e3c5f395f51905f52603554604051612d8691815260200190565b60405180910390a1612d966145a1565b505050565b612da3614557565b612dab614620565b805f03612dcb57604051631f2a200560e01b815260040160405180910390fd5b603354612de3906001600160a01b03163330846147dc565b335f9081526037602052604081208054839290612e01908490614cf7565b925050819055508060355f828254612e199190614cf7565b909155505060405181815233907f543ba50a5eec5e6178218e364b1d0f396157b3c8fa278522c2cb7fd99407d474906020016128b2565b5f516020614e5c5f395f51905f528054600160401b810460ff16159067ffffffffffffffff165f81158015612e825750825b90505f8267ffffffffffffffff166001148015612e9e5750303b155b905081158015612eac575080155b15612eca5760405163f92ee8a960e01b815260040160405180910390fd5b845467ffffffffffffffff191660011785558315612ef457845460ff60401b1916600160401b1785555b612efc614815565b612f04614825565b6001600160a01b038616612f4b5760405163eac0d38960e01b815260206004820152600d60248201526c726f6c6573526567697374727960981b6044820152606401610c89565b612f5486614835565b6101f4603d556001600160a01b038816612f9a5760405163eac0d38960e01b8152600401610c89906020808252600490820152637573646360e01b604082015260600190565b6001600160a01b038716612fe05760405163eac0d38960e01b815260206004820152600c60248201526b69646561526567697374727960a01b6044820152606401610c89565b603380546001600160a01b03808b166001600160a01b03199283161790925560348054928a16929091169190911790556130186146af565b6040513381527f4e955ff2126457edd1b51435a27749b6b8bf22de98850f68a381119fa96dffac9060200160405180910390a1831561309157845460ff60401b19168555604051600181527fc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d29060200160405180910390a15b5050505050505050565b5f5460408051633d47309b60e01b815290516001600160a01b03909216916391d14854918391633d47309b916004808201926020929091908290030181865afa1580156130ea573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061310e9190614c3d565b336040518363ffffffff1660e01b815260040161312c929190614c54565b602060405180830381865afa158015613147573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061316b9190614c6b565b613188576040516309ea906160e41b815260040160405180910390fd5b805f036131a8576040516356e22f5760e11b8152600401610c8990614de5565b5f818152603b6020526040812054908190036131c2575050565b5f828152603b60205260408120819055603680548392906131e4908490614cf7565b909155505060405181815282907f79f57e0c37bb8d403746677f75fa588882ba992b09df53256240da70c0151546906020015b60405180910390a25050565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015613272573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906132969190614c3d565b336040518363ffffffff1660e01b81526004016132b4929190614c54565b602060405180830381865afa1580156132cf573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906132f39190614c6b565b61331057604051637bfa4b9f60e01b815260040160405180910390fd5b6001600160a01b0381166133525760405163eac0d38960e01b81526020600482015260086024820152673732bbaa37b5b2b760c11b6044820152606401610c89565b603380546001600160a01b0319166001600160a01b0383169081179091556040517f695697c154277ce40ee0efa7c478421fa81ae4802bc333c6a3425394285c20c8905f90a26040516001600160a01b038216907febb6fcc3316b3c4d08d57521fd4c5ecb06fd1a671b0d49b1d01b33b0e074cb13905f90a250565b5f5460408051633c2f61f360e21b815290516001600160a01b03909216916391d1485491839163f0bd87cc916004808201926020929091908290030181865afa15801561341d573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906134419190614c3d565b336040518363ffffffff1660e01b815260040161345f929190614c54565b602060405180830381865afa15801561347a573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061349e9190614c6b565b6134bb5760405163385296d560e01b815260040160405180910390fd5b6134c3614557565b5f8181526040602081815281832054603f90915291205460ff1615806134e7575080155b806134ff57505f8281526045602052604090205460ff165b156135205760405163199234e160e01b815260048101839052602401610c89565b5f8281526044602052604090205460ff168061354957505f828152604d602052604090205460ff165b1561356a5760405163199234e160e01b815260048101839052602401610c89565b5f828152604d6020526040808220805460ff191660011790555183917f941b4be7aa3fc3567ef40f926de6b8029bbbe364ef63bb266062a6ed6fcd806891a2506116196145a1565b5f54604080516312a70f0b60e01b815290516001600160a01b03909216916391d148549183916312a70f0b916004808201926020929091908290030181865afa158015613601573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906136259190614c3d565b336040518363ffffffff1660e01b8152600401613643929190614c54565b602060405180830381865afa15801561365e573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906136829190614c6b565b61369f57604051632b07b28560e01b815260040160405180910390fd5b6136a7614557565b6136af614620565b6001600160a01b0384166136ef5760405163eac0d38960e01b8152600401610c899060208082526004908201526366726f6d60e01b604082015260600190565b815f0361370f576040516356e22f5760e11b8152600401610c8990614de5565b805f0361372f57604051631f2a200560e01b815260040160405180910390fd5b82158061374a57505f838152603e602052604090205460ff16155b8061376257505f838152603f602052604090205460ff165b156137835760405163199234e160e01b815260048101849052602401610c89565b5f8381526042602090815260408083206001600160a01b0388168452909152902060010154156137c95760405163199234e160e01b815260048101849052602401610c89565b6033546137e1906001600160a01b03168530846147dc565b6040805160608101825283815260208082018481525f838501818152888252604284528582206001600160a01b038b16835290935293842092518355516001830155516002909101805460ff19169115159190911790556035805483929061384a908490614cf7565b90915550505f83815260386020908152604080832085845290915281208054839290613877908490614cf7565b90915550505f838152604c6020908152604080832085845290915281208054600192906138a5908490614cf7565b90915550506040518181526001600160a01b038516907f543ba50a5eec5e6178218e364b1d0f396157b3c8fa278522c2cb7fd99407d4749060200160405180910390a2836001600160a01b031682847f6578337d83d732f1d5d4e108a8343d1622599819044564ea059bf8a841b758448460405161392591815260200190565b60405180910390a45f516020614e3c5f395f51905f5260355460405161394d91815260200190565b60405180910390a161395d6145a1565b50505050565b5f5460408051633c2f61f360e21b815290516001600160a01b03909216916391d1485491839163f0bd87cc916004808201926020929091908290030181865afa1580156139b2573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906139d69190614c3d565b336040518363ffffffff1660e01b81526004016139f4929190614c54565b602060405180830381865afa158015613a0f573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190613a339190614c6b565b613a505760405163385296d560e01b815260040160405180910390fd5b613a58614557565b613a60614620565b805f03613a8057604051631f2a200560e01b815260040160405180910390fd5b603454604051630a19cd6360e31b8152600481018490525f916001600160a01b0316906350ce6b1890602401602060405180830381865afa158015613ac7573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190613aeb9190614d0a565b90506001600160a01b038116613b13576040516215802b60eb1b815260040160405180910390fd5b5f84815260386020908152604080832086845290915290205480831115613b6557604051637359f4cf60e11b815260048101869052602481018590526044810182905260648101849052608401610c89565b5f613b708483614cd0565b5f8781526038602090815260408083208984529091528120829055603580549293508692909190613ba2908490614cd0565b90915550505f819003613bc8575f868152603a60205260409020805460ff191660011790555b60408051608081018252878152602081018781529181018681524260608301908152603980546001810182555f9190915292517fdc16fef70f8d5ddbc01ee3d903d1e69c18a3c7be080eb86a81e0578814ee58d360049094029384015592517fdc16fef70f8d5ddbc01ee3d903d1e69c18a3c7be080eb86a81e0578814ee58d4830155517fdc16fef70f8d5ddbc01ee3d903d1e69c18a3c7be080eb86a81e0578814ee58d582015590517fdc16fef70f8d5ddbc01ee3d903d1e69c18a3c7be080eb86a81e0578814ee58d690910155603354613cae906001600160a01b03168486614650565b84867fdaf6233a382145376035341e71f8a04305f7e323d0fe3e58c908cf0a26b76df986604051613ce191815260200190565b60405180910390a35f516020614e3c5f395f51905f52603554604051613d0991815260200190565b60405180910390a1505050612d966145a1565b5f5460408051633c2f61f360e21b815290516001600160a01b03909216916391d1485491839163f0bd87cc916004808201926020929091908290030181865afa158015613d6b573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190613d8f9190614c3d565b336040518363ffffffff1660e01b8152600401613dad929190614c54565b602060405180830381865afa158015613dc8573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190613dec9190614c6b565b613e095760405163385296d560e01b815260040160405180910390fd5b613e11614557565b5f8181526040602081815281832054603f90915291205460ff161580613e35575080155b80613e4d57505f8281526044602052604090205460ff165b80613e6557505f828152604d602052604090205460ff165b15613e865760405163199234e160e01b815260048101839052602401610c89565b5f8281526045602052604090205460ff1615613eb85760405163199234e160e01b815260048101839052602401610c89565b5f82815260436020908152604080832080549084905560458352818420805460ff19166001179055603883528184208585529092528220805491928392613f00908490614cf7565b9091555050604051818152829084907f917b4e07a0e9e0e93a6d75777d48201222d6470f932317f182ebf7d7e95cc87a9060200160405180910390a350506116196145a1565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa158015613f95573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190613fb99190614c3d565b336040518363ffffffff1660e01b8152600401613fd7929190614c54565b602060405180830381865afa158015613ff2573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906140169190614c6b565b61403357604051637bfa4b9f60e01b815260040160405180910390fd5b6001600160a01b0381166140785760405163eac0d38960e01b815260206004820152600b60248201526a6e6577526567697374727960a81b6044820152606401610c89565b603480546001600160a01b0319166001600160a01b0383169081179091556040517f24434eb1c8b6b4b7149b58db8b03cd21036f2ddbc9c89a967f36e82cd6b958b4905f90a250565b5f825f036140e2576040516356e22f5760e11b8152600401610c8990614d78565b815f03614102576040516356e22f5760e11b8152600401610c8990614de5565b505f8281526038602090815260408083208484529091529020545b92915050565b60398181548110614132575f80fd5b5f9182526020909120600490910201805460018201546002830154600390930154919350919084565b5f82815260416020526040812054612710906141779084614c9a565b6141819190614cb1565b61418b9083614cd0565b9392505050565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa1580156141e1573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906142059190614c3d565b336040518363ffffffff1660e01b8152600401614223929190614c54565b602060405180830381865afa15801561423e573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906142629190614c6b565b61427f57604051637bfa4b9f60e01b815260040160405180910390fd5b61161981613223565b5f612710603d548361429a9190614c9a565b6142a49190614cb1565b61411d9083614cd0565b5f546040805163a217fddf60e01b815290516001600160a01b03909216916391d1485491839163a217fddf916004808201926020929091908290030181865afa1580156142fd573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906143219190614c3d565b336040518363ffffffff1660e01b815260040161433f929190614c54565b602060405180830381865afa15801561435a573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061437e9190614c6b565b61439b57604051637bfa4b9f60e01b815260040160405180910390fd5b6033546040516370a0823160e01b81523060048201525f916001600160a01b0316906370a0823190602401602060405180830381865afa1580156143e1573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906144059190614c3d565b9050603654816144159190614cd0565b60355550565b80801561444057506001600160a01b0382165f9081526051602052604090205460ff16155b15614500576052546010116144b55760408051634bab873760e11b815260048101919091526012604482015271636f6d6d756e697479466163746f7269657360701b606482015260806024820152600f60848201526e1b585e1a5b5d5b481c995858da1959608a1b60a482015260c401610c89565b605280546001810182555f919091527fa9144a5e7efd259b8b0d55467f4696ed47ec83317d61501b76366dbcca65ce730180546001600160a01b0319166001600160a01b0384161790555b6001600160a01b0382165f81815260516020908152604091829020805460ff191685151590811790915591519182527f2fd31c8bef2ec34478cd4e2b395eaaf7630af331be6ae1d0634672ddd63a16549101613217565b7f9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f0080546001190161459b57604051633ee5aeb560e01b815260040160405180910390fd5b60029055565b60017f9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f0055565b6145cf6148a5565b5f516020614e1c5f395f51905f52805460ff191681557f5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa335b6040516001600160a01b039091168152602001612367565b5f516020614e1c5f395f51905f525460ff16156110c85760405163d93c066560e01b815260040160405180910390fd5b6040516001600160a01b03838116602483015260448201839052612d9691859182169063a9059cbb906064015b604051602081830303815290604052915060e01b6020820180516001600160e01b0383818316178352505050506148d4565b6146b7614620565b5f516020614e1c5f395f51905f52805460ff191660011781557f62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a25833614608565b6052545f90815b818110156147d3575f6052828154811061471a5761471a614ce3565b5f9182526020808320909101546001600160a01b0316808352605190915260409091205490915060ff1661474e57506147cb565b60405163a641f2c960e01b81526001600160a01b03868116600483015282169063a641f2c990602401602060405180830381865afa9250505080156147b0575060408051601f3d908101601f191682019092526147ad91810190614c6b565b60015b156147c95780156147c75750600195945050505050565b505b505b6001016146fe565b505f9392505050565b6040516001600160a01b03848116602483015283811660448301526064820183905261395d9186918216906323b872dd9060840161467d565b61481d614935565b6110c861496b565b61482d614935565b6110c8614973565b61483d614935565b6001600160a01b0381166148845760405163eac0d38960e01b815260206004820152600d60248201526c726f6c6573526567697374727960981b6044820152606401610c89565b5f80546001600160a01b0319166001600160a01b0392909216919091179055565b5f516020614e1c5f395f51905f525460ff166110c857604051638dfc202b60e01b815260040160405180910390fd5b5f6148e86001600160a01b03841683614993565b905080515f1415801561490c57508080602001905181019061490a9190614c6b565b155b15612d9657604051635274afe760e01b81526001600160a01b0384166004820152602401610c89565b5f516020614e5c5f395f51905f5254600160401b900460ff166110c857604051631afcd79f60e31b815260040160405180910390fd5b6145a1614935565b61497b614935565b5f516020614e1c5f395f51905f52805460ff19169055565b606061418b83835f845f5f856001600160a01b031684866040516149b79190614e05565b5f6040518083038185875af1925050503d805f81146149f1576040519150601f19603f3d011682016040523d82523d5f602084013e6149f6565b606091505b5091509150614a06868383614a10565b9695505050505050565b606082614a2557614a2082614a6c565b61418b565b8151158015614a3c57506001600160a01b0384163b155b15614a6557604051639996b31560e01b81526001600160a01b0385166004820152602401610c89565b508061418b565b805115614a7c5780518082602001fd5b604051630a12f52160e11b815260040160405180910390fd5b6001600160a01b0381168114611619575f5ffd5b8015158114611619575f5ffd5b5f5f60408385031215614ac7575f5ffd5b8235614ad281614a95565b91506020830135614ae281614aa9565b809150509250929050565b5f5f60408385031215614afe575f5ffd5b50508035926020909101359150565b5f5f60408385031215614b1e575f5ffd5b823591506020830135614ae281614a95565b5f60208284031215614b40575f5ffd5b5035919050565b5f60208284031215614b57575f5ffd5b813561418b81614a95565b5f5f5f60608486031215614b74575f5ffd5b505081359360208301359350604090920135919050565b5f5f5f60608486031215614b9d575f5ffd5b8335614ba881614a95565b95602085013595506040909401359392505050565b5f5f5f60608486031215614bcf575f5ffd5b8335614bda81614a95565b92506020840135614bea81614a95565b91506040840135614bfa81614a95565b809150509250925092565b5f5f5f5f60808587031215614c18575f5ffd5b8435614c2381614a95565b966020860135965060408601359560600135945092505050565b5f60208284031215614c4d575f5ffd5b5051919050565b9182526001600160a01b0316602082015260400190565b5f60208284031215614c7b575f5ffd5b815161418b81614aa9565b634e487b7160e01b5f52601160045260245ffd5b808202811582820484141761411d5761411d614c86565b5f82614ccb57634e487b7160e01b5f52601260045260245ffd5b500490565b8181038181111561411d5761411d614c86565b634e487b7160e01b5f52603260045260245ffd5b8082018082111561411d5761411d614c86565b5f60208284031215614d1a575f5ffd5b815161418b81614a95565b60408152600d60408201526c696e697469616c46656542707360981b6060820152608060208201525f61411d60808301601081526f18589bdd99480c4c081c195c98d95b9d60821b602082015260400190565b6020808252600790820152661c9bdd5b99125960ca1b604082015260600190565b60408152600660408201526566656542707360d01b6060820152608060208201525f61411d60808301601081526f18589bdd99480c4c081c195c98d95b9d60821b602082015260400190565b6020808252600690820152651a591958525960d21b604082015260600190565b5f82518060208501845e5f92019182525091905056fecd5ed15c6e187e77e9aee88184c21f4f2182ab5827cb3b7e07fbedcd63f03300812a312bfbc57c3813f93d3e1a8515055ed46fc860bd4e2ad39b02198d2a3b73f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00a26469706673582212201fb46eb40f49b74b427bdddbf9fb667095323ea2d43d457efcde7224aa3a388264736f6c634300081c0033",
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 30278,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "roles",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_contract(RolesRegistryUpgradeable)31110"
+      },
+      {
+        "astId": 30490,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_array(t_uint256)50_storage"
+      },
+      {
+        "astId": 4973,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "usdc",
+        "offset": 0,
+        "slot": "51",
+        "type": "t_contract(IERC20)2384"
+      },
+      {
+        "astId": 4977,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "ideaRegistry",
+        "offset": 0,
+        "slot": "52",
+        "type": "t_contract(IIdeaRegistry)32865"
+      },
+      {
+        "astId": 4980,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "totalPoolBalance",
+        "offset": 0,
+        "slot": "53",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 4983,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "protocolReserve",
+        "offset": 0,
+        "slot": "54",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 4998,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "donorBalances",
+        "offset": 0,
+        "slot": "55",
+        "type": "t_mapping(t_address,t_uint256)"
+      },
+      {
+        "astId": 5005,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "_poolByRoundAndIdea",
+        "offset": 0,
+        "slot": "56",
+        "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))"
+      },
+      {
+        "astId": 5010,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "distributionHistory",
+        "offset": 0,
+        "slot": "57",
+        "type": "t_array(t_struct(Distribution)4993_storage)dyn_storage"
+      },
+      {
+        "astId": 5015,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "distributed",
+        "offset": 0,
+        "slot": "58",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5020,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "authorStakeByIdea",
+        "offset": 0,
+        "slot": "59",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5023,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "communityFactory",
+        "offset": 0,
+        "slot": "60",
+        "type": "t_address"
+      },
+      {
+        "astId": 5034,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "pledgeFeeBps",
+        "offset": 0,
+        "slot": "61",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 5039,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "fundingRoundOpened",
+        "offset": 0,
+        "slot": "62",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5043,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "fundingRoundSettled",
+        "offset": 0,
+        "slot": "63",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5047,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "fundingRoundWinner",
+        "offset": 0,
+        "slot": "64",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5052,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "fundingRoundFeeBps",
+        "offset": 0,
+        "slot": "65",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5060,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "pledges",
+        "offset": 0,
+        "slot": "66",
+        "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(Pledge)5031_storage))"
+      },
+      {
+        "astId": 5065,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "pendingProtocolFeeByRound",
+        "offset": 0,
+        "slot": "67",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5069,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "fundingRoundFeeFinalized",
+        "offset": 0,
+        "slot": "68",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5073,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "fundingRoundCancelled",
+        "offset": 0,
+        "slot": "69",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5077,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "grantRefundActive",
+        "offset": 0,
+        "slot": "70",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5081,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "winningGrossPledgeByRound",
+        "offset": 0,
+        "slot": "71",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5085,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "winningPledgeCountByRound",
+        "offset": 0,
+        "slot": "72",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5089,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "grantRefundTotalByRound",
+        "offset": 0,
+        "slot": "73",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5093,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "grantRefundPaidByRound",
+        "offset": 0,
+        "slot": "74",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5097,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "grantRefundClaimCountByRound",
+        "offset": 0,
+        "slot": "75",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5103,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "_pledgeCountByRoundAndIdea",
+        "offset": 0,
+        "slot": "76",
+        "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))"
+      },
+      {
+        "astId": 5108,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "progressiveFundingRoundFeeStarted",
+        "offset": 0,
+        "slot": "77",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5112,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "progressiveFeeReleasedByRound",
+        "offset": 0,
+        "slot": "78",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5116,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "progressiveFeeTrancheBpsByRound",
+        "offset": 0,
+        "slot": "79",
+        "type": "t_mapping(t_uint256,t_uint256)"
+      },
+      {
+        "astId": 5120,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "progressiveFeeRestoredForRefund",
+        "offset": 0,
+        "slot": "80",
+        "type": "t_mapping(t_uint256,t_bool)"
+      },
+      {
+        "astId": 5125,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "approvedCommunityFactories",
+        "offset": 0,
+        "slot": "81",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 5129,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "approvedCommunityFactoryList",
+        "offset": 0,
+        "slot": "82",
+        "type": "t_array(t_address)dyn_storage"
+      },
+      {
+        "astId": 7294,
+        "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "83",
+        "type": "t_array(t_uint256)29_storage"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_address)dyn_storage": {
+        "base": "t_address",
+        "encoding": "dynamic_array",
+        "label": "address[]",
+        "numberOfBytes": "32"
+      },
+      "t_array(t_struct(Distribution)4993_storage)dyn_storage": {
+        "base": "t_struct(Distribution)4993_storage",
+        "encoding": "dynamic_array",
+        "label": "struct FundingPoolUpgradeable.Distribution[]",
+        "numberOfBytes": "32"
+      },
+      "t_array(t_uint256)29_storage": {
+        "base": "t_uint256",
+        "encoding": "inplace",
+        "label": "uint256[29]",
+        "numberOfBytes": "928"
+      },
+      "t_array(t_uint256)50_storage": {
+        "base": "t_uint256",
+        "encoding": "inplace",
+        "label": "uint256[50]",
+        "numberOfBytes": "1600"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_contract(IERC20)2384": {
+        "encoding": "inplace",
+        "label": "contract IERC20",
+        "numberOfBytes": "20"
+      },
+      "t_contract(IIdeaRegistry)32865": {
+        "encoding": "inplace",
+        "label": "contract IIdeaRegistry",
+        "numberOfBytes": "20"
+      },
+      "t_contract(RolesRegistryUpgradeable)31110": {
+        "encoding": "inplace",
+        "label": "contract RolesRegistryUpgradeable",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_address,t_struct(Pledge)5031_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct FundingPoolUpgradeable.Pledge)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Pledge)5031_storage"
+      },
+      "t_mapping(t_address,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_mapping(t_uint256,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_uint256,t_mapping(t_address,t_struct(Pledge)5031_storage))": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => mapping(address => struct FundingPoolUpgradeable.Pledge))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_struct(Pledge)5031_storage)"
+      },
+      "t_mapping(t_uint256,t_mapping(t_uint256,t_uint256))": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => mapping(uint256 => uint256))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_uint256,t_uint256)"
+      },
+      "t_mapping(t_uint256,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_struct(Distribution)4993_storage": {
+        "encoding": "inplace",
+        "label": "struct FundingPoolUpgradeable.Distribution",
+        "members": [
+          {
+            "astId": 4986,
+            "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+            "label": "roundId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 4988,
+            "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+            "label": "ideaId",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 4990,
+            "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+            "label": "amount",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 4992,
+            "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+            "label": "distributedAt",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "128"
+      },
+      "t_struct(Pledge)5031_storage": {
+        "encoding": "inplace",
+        "label": "struct FundingPoolUpgradeable.Pledge",
+        "members": [
+          {
+            "astId": 5026,
+            "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+            "label": "ideaId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 5028,
+            "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+            "label": "amount",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 5030,
+            "contract": "project/contracts/BERT/DAO/FundingPoolUpgradeable.sol:FundingPoolUpgradeable",
+            "label": "refundClaimed",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_bool"
+          }
+        ],
+        "numberOfBytes": "96"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

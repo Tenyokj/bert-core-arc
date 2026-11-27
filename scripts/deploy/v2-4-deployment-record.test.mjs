@@ -32,10 +32,17 @@ test("historical manifest preserves the original upgrade input and unchanged con
 
 test("published metadata distinguishes scheduling from activation", () => {
   const policy = current.v2.protocolRevenueTreasury;
-  assert.equal(policy.policyStatus, "scheduled-not-active");
+  assert.equal(policy.policyStatus, "active");
   assert.equal(policy.scheduleTransaction, record.revenueSchedule.transaction);
-  assert.equal(policy.scheduledShareBps, record.revenueSchedule.shareBps);
-  assert.equal(policy.readyAt, record.revenueSchedule.readyAt);
+  assert.equal(policy.activeShareBps, record.revenueActivation.shareBps);
+  assert.equal(policy.scheduledShareBps, 0);
+  assert.equal(policy.readyAt, 0);
+  assert.equal(policy.scheduleReadyAt, record.revenueSchedule.readyAt);
+  assert.equal(policy.activationTransaction, record.revenueActivation.transaction);
+  assert.equal(record.revenueActivation.status, 1);
+  assert.equal(record.revenueActivation.canonical, true);
+  assert(record.revenueActivation.timestamp >= record.revenueSchedule.readyAt);
+  assert.equal(record.revenueActivation.indexingErrors, false);
   assert.equal(record.revenueSchedule.readyAt - record.revenueSchedule.scheduledAt, 172800);
-  assert.equal(record.revenueSchedule.activationConfirmed, false);
+  assert.equal(record.revenueSchedule.activationConfirmed, true);
 });

@@ -47,9 +47,14 @@
       "deploymentBlock": 73930467,
       "deploymentTransaction": "0x252bdb54baeff7bbf173ea25c4c38adab215060a8852a4ccec54ce9944d6caaa",
       "beneficiaries": [{ "address": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF", "shareBps": 10000 }],
-      "policyStatus": "scheduled-not-active",
-      "scheduledShareBps": 2000,
-      "readyAt": 1795730604,
+      "policyStatus": "active",
+      "activeShareBps": 2000,
+      "scheduledShareBps": 0,
+      "readyAt": 0,
+      "scheduleReadyAt": 1795730604,
+      "activationTransaction": "0x08231f87e453d1f6690eb665f333a04d7d09d83dfc5d0acd62a87e35696ad109",
+      "activationBlock": 74359134,
+      "activatedAtUTC": "2026-11-27T10:03:38.000Z",
       "scheduleTransaction": "0x7d50e5bfb5fec55ff80a5618c6c6edeb3e11d0701e083993a62c9801d56b41ba"
     },
     "votingSystem": {

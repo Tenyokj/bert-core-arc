@@ -15,9 +15,9 @@ Explore indexed testnet activity in [BERT Console V0.1.0 Beta](https://bertdao-c
 Arc Testnet rollout: [V2.4 transparent treasury and protocol revenue](docs/V2.4-ARC-TESTNET-RELEASE.md).
 FundingPool 2.0.0 and immutable ProtocolRevenueTreasury 1.0.0 are deployed;
 V2 is active, Graph v0.4.0 and both clients are verified. The 20% eligible-fee
-policy is scheduled, **not active**: activation requires a separate transaction
-at/after 26 November 2026, 22:03:24 UTC. V2.4 is delivered for testnet with this
-activation explicitly pending; a public revenue pilot is recommended follow-up,
+policy is **active since November 27, 2026, 10:03:38 UTC (block 74359134)**. Receipt, RPC state and
+Graph/client proxies confirm activation. V2.4 is delivered and activated for
+testnet; a public revenue pilot remains recommended follow-up,
 not claimed acceptance. V3.2.1 contracts are unchanged. Current addresses are in
 the deployment manifest; the pre-V2.4 snapshot is retained separately for history.
 The [release configuration/runbook](docs/V2.4-RELEASE-CONFIGURATION.md) records

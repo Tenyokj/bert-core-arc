@@ -4,7 +4,7 @@
 USDC treasury and escrow layer for BERT V2. It holds author bonds and voter pledges, tracks conditional refund rights, finalizes successful-round fees, and executes authorized milestone payouts.
 
 V2.4 installed FundingPool implementation `2.0.0` on Arc Testnet November 24,
-2026. Its eligible-fee policy is scheduled, not active; see the
+2026. Its 2000-bps eligible-fee policy was activated November 27; see the
 [receipt-backed release record](../../../docs/V2.4-ARC-TESTNET-RELEASE.md).
 
 **Role In System**

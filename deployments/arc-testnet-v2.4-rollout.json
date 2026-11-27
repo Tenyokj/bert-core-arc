@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "network": "arcTestnet",
   "chainId": 5042002,
-  "updatedAt": "2026-11-24",
-  "status": "contracts-installed-and-reopened; indexer-and-clients-verified; revenue-scheduled-awaiting-activation",
+  "updatedAt": "2026-11-27",
+  "status": "contracts-installed-and-reopened; revenue-policy-active; activation-indexed-and-client-proxies-verified",
   "sourceCommit": "1e2c471",
   "sourceMergeCommit": "5ed0675",
   "fundingPool": {
@@ -31,7 +31,12 @@
     "version": "1.0.0",
     "upgradeable": false,
     "usdc": "0x3600000000000000000000000000000000000000",
-    "beneficiaries": [{ "address": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF", "shareBps": 10000 }],
+    "beneficiaries": [
+      {
+        "address": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+        "shareBps": 10000
+      }
+    ],
     "runtimeHash": "0x4ca53dd7bab324f2a37f9d36429bb4f0d3a6afdb539bb98eb632ace25df52940",
     "deployment": {
       "transaction": "0x252bdb54baeff7bbf173ea25c4c38adab215060a8852a4ccec54ce9944d6caaa",
@@ -40,9 +45,18 @@
     }
   },
   "reopening": {
-    "grants": { "transaction": "0x064f1347bb045376cad904355340bca3f88d2adb77bbeb340911f8876a11c015", "block": 73930758 },
-    "voting": { "transaction": "0xf5e98490ff46ce87b91af1e751c1fb89f64f87502d955a7a6ebdd7c055a30ee9", "block": 73930800 },
-    "pool": { "transaction": "0xf20da1ceec4f860647d780786a96b98fa41074700a09f3b00d158c7cdbc713bd", "block": 73930847 }
+    "grants": {
+      "transaction": "0x064f1347bb045376cad904355340bca3f88d2adb77bbeb340911f8876a11c015",
+      "block": 73930758
+    },
+    "voting": {
+      "transaction": "0xf5e98490ff46ce87b91af1e751c1fb89f64f87502d955a7a6ebdd7c055a30ee9",
+      "block": 73930800
+    },
+    "pool": {
+      "transaction": "0xf20da1ceec4f860647d780786a96b98fa41074700a09f3b00d158c7cdbc713bd",
+      "block": 73930847
+    }
   },
   "verification": {
     "block": 73930983,
@@ -97,7 +111,7 @@
     "readyAtUTC": "2026-11-26T22:03:24.000Z",
     "readyAtEuropeMadrid": "2026-11-26T23:03:24+01:00",
     "delaySeconds": 172800,
-    "activationConfirmed": false,
+    "activationConfirmed": true,
     "directRPCCheckBlock": 73935268,
     "activeShareBpsAtCheck": 0,
     "indexedCheckBlock": 73935281,
@@ -106,7 +120,41 @@
     "indexedBeneficiarySplitMatches": true,
     "indexingErrors": false
   },
-  "pending": ["Explorer source verification", "Actual 48-hour notice ending 2026-11-26T22:03:24Z", "Separate policy activation", "Publication of final documentation and GitHub release"],
-  "recommendedFollowUp": ["Public new-round eligible-fee accrual, collection and payout pilot"],
-  "note": "Receipt-backed V2.4 testnet delivery; revenue activation remains pending. The consolidated manifest is current; its exact pre-upgrade snapshot is archived separately. Preserve the completed operational journal, never bypass its fingerprint or repeat its sends. A deployed Treasury is not an active revenue policy."
+  "pending": [
+    "Explorer source verification",
+    "Publication of activation-status documentation"
+  ],
+  "recommendedFollowUp": [
+    "Public new-round eligible-fee accrual, collection and payout pilot"
+  ],
+  "note": "Receipt-backed V2.4 testnet delivery with revenue policy activated and indexed. Original November 24 installation/schedule snapshots remain historical evidence. Preserve the operational journal; never repeat completed rollout sends. Activation is not a completed public fee accrual/collection/payout pilot or an independent audit. GitHub release publication was reported by the owner; activation documentation changes require their own review/publication.",
+  "revenueActivation": {
+    "transaction": "0x08231f87e453d1f6690eb665f333a04d7d09d83dfc5d0acd62a87e35696ad109",
+    "block": 74359134,
+    "blockHash": "0x4d469a12124eed5fb86cdea230d77a86df3eeadd142f27ede4a4771515c3a210",
+    "status": 1,
+    "canonical": true,
+    "method": "executeRevenuePolicy",
+    "from": "0xA4B0a01dB1d68D4CDB007F78bAB63Cb4ebd814bF",
+    "to": "0x5eDdccd772a9E0F079cC6646b529C20e3D46e585",
+    "timestamp": 1795773818,
+    "activatedAtUTC": "2026-11-27T10:03:38.000Z",
+    "activatedAtEuropeMadrid": "2026-11-27T11:03:38+01:00",
+    "treasury": "0xeCF9D2fD1914D1aFa124498931fdAA976D4e143b",
+    "shareBps": 2000,
+    "scheduledRevenueTreasury": "0x0000000000000000000000000000000000000000",
+    "scheduledRevenueShareBps": 0,
+    "revenuePolicyReadyAt": 0,
+    "poolPaused": false,
+    "directRPCCheckBlock": 74359304,
+    "indexedGraphCheckBlock": 74359383,
+    "indexedDappCheckBlock": 74359383,
+    "indexedConsoleCheckBlock": 74359395,
+    "indexedEvent": "PolicyActivated",
+    "indexedValuesMatchRPC": true,
+    "indexingErrors": false,
+    "observedAccrued": "0",
+    "observedClaimed": "0",
+    "observedPending": "0"
+  }
 }

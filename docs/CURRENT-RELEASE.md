@@ -1,13 +1,12 @@
 # Current Release and Payout Modes
 
-This is the current integration summary for **BERT V2.4 rollout (revenue scheduled,
-not active)** with retained V2.3 grant rules, **Community Layer
+This is the current integration summary for **BERT V2.4 rollout (revenue policy active)** with retained V2.3 grant rules, **Community Layer
 V3.2.1**, and **Console V0.1.0 Beta** on **Arc Testnet, chain ID 5042002**.
 Protocol-layer versions are independent of each contract's `@custom:version`.
 The [deployment manifest](../deployments/arc-testnet-v3.json) identifies addresses;
 the [documentation audit](DOCUMENTATION-AUDIT-2026-10-24.md) records verification.
 
-**Current releases: V2.4, installed on Arc Testnet November 24, 2026 with revenue activation pending; Community Layer V3.2.1, deployed October 25, 2026.**
+**Current releases: V2.4, installed on Arc Testnet November 24, 2026 with revenue activated November 27, 2026; Community Layer V3.2.1, deployed October 25, 2026.**
 See [receipt-backed release evidence](V3.2.1-ARC-TESTNET-RELEASE.md).
 See [version scopes](V3.2-RELEASE.md).
 
@@ -24,9 +23,9 @@ Their changed tool fingerprint intentionally cannot resume the original journal;
 keep that journal as evidence and do not repeat completed sends.
 Selected testnet terms are 20% of eligible earned fees to Treasury, a fixed
 single beneficiary receiving 100% of Treasury receipts, and 48-hour policy
-notice. The terms were scheduled in a successful public transaction; they remain
-inactive until a separate activation at/after **2026-11-26 22:03:24 UTC**
-(23:03:24 Europe/Madrid). A new round opened before activation keeps zero share.
+notice. The terms were activated in a successful public transaction at
+**2026-11-27 10:03:38 UTC** (11:03:38 Europe/Madrid), block74359134.
+A new round opened before activation keeps its original share.
 No full public accrual/collection/payment pilot or independent audit is claimed.
 See the
 [specification](V2.4-PROTOCOL-REVENUE.md),
